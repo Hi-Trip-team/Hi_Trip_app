@@ -53,7 +53,7 @@ struct LoginView: View {
             }
         }
         // 로그인 성공 시 홈 화면으로 전환
-        .onChange(of: viewModel.loginSuccess) { _, success in
+        .onChange(of: viewModel.loginSuccess) { success in
             if success { router.navigateToHome() }
         }
     }
