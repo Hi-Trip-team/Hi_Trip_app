@@ -95,7 +95,7 @@ final class SignUpUseCase {
 
 // MARK: - SignUpError
 /// 회원가입 관련 에러 정의
-enum SignUpError: LocalizedError {
+enum SignUpError: LocalizedError, Equatable {
     case emptyNickname
     case nicknameTooShort      // 2자 미만
     case nicknameDuplicate     // 서버에서 중복 판정

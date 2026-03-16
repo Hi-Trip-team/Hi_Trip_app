@@ -73,7 +73,7 @@ final class LoginUseCase {
 // MARK: - LoginError
 /// 로그인 관련 에러 정의
 /// LocalizedError 채택 → .localizedDescription으로 한글 메시지 바로 사용 가능
-enum LoginError: LocalizedError {
+enum LoginError: LocalizedError, Equatable {
     /// ID(성함) 미입력
     case emptyId
     /// 비밀번호(생년월일) 미입력
