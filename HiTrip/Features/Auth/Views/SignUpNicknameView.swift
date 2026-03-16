@@ -42,7 +42,7 @@ struct SignUpNicknameView: View {
         }
         .padding(.horizontal, 24)
         // 닉네임 변경 시 확인 상태 초기화
-        .onChange(of: viewModel.nickname) { _, _ in
+        .onChange(of: viewModel.nickname) { _ in
             viewModel.resetNicknameCheck()
         }
     }
