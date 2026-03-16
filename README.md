@@ -2,7 +2,7 @@
 
 > 관광 안내사와 관광객을 연결하는 여행 SaaS 플랫폼
 
-**2025 한국관광공사 × 카카오 관광데이터 활용 공모전** 출품작
+**2026 한국관광공사 × 카카오 관광데이터 활용 공모전** 출품예정
 
 <br>
 
@@ -60,20 +60,20 @@ Hi Trip은 관광 안내사(Guide)와 관광객(Tourist)을 매칭하여
 │  └──────────┘       └───────┬────────┘   │
 ├─────────────────────────────┼────────────┤
 │              Domain Layer   │            │
-│  ┌──────────┐       ┌──────┴─────────┐   │
+│  ┌──────────┐       ┌───────┴────────┐   │
 │  │  Entity  │       │    UseCase     │   │
-│  │  (Model) │       │ (비즈니스 로직)  │   │
+│  │  (Model) │       │  (비즈니스 로직)   │   │
 │  └──────────┘       └───────┬────────┘   │
 │                             │ Protocol   │
 ├─────────────────────────────┼────────────┤
 │               Data Layer    │            │
-│  ┌──────────────┐   ┌──────┴─────────┐   │
-│  │ NetworkService│   │  Repository   │   │
-│  │ (URLSession)  │   │  (구현체)      │   │
-│  └──────────────┘   └───────┬────────┘   │
-│                      ┌──────┴─────────┐   │
-│                      │KeychainManager │   │
-│                      └────────────────┘   │
+│  ┌───────────────┐   ┌──────┴─────────┐  │
+│  │ NetworkService│   │   Repository   │  │
+│  │ (URLSession)  │   │    (구현체)      │  │
+│  └───────────────┘   └───────┬────────┘  │
+│                      ┌───────┴────────┐  │
+│                      │KeychainManager │  │
+│                      └────────────────┘  │
 └──────────────────────────────────────────┘
 ```
 
@@ -110,14 +110,14 @@ HiTrip/
 
 ## 구현 로드맵
 
-### Phase 1 — 인증 플로우
+### Phase 1 — 인증 플로우 ✅
 - [x] Xcode 프로젝트 초기 설정
 - [x] Core Network layer (URLSession + RxSwift)
 - [x] Domain layer (Entity, Protocol, UseCase)
 - [x] Data layer (Repository, Keychain)
-- [ ] Login UI + ViewModel + Design System
-- [ ] SignUp 4단계 플로우
-- [ ] Unit Tests
+- [x] Login UI + ViewModel + Design System
+- [x] SignUp 4단계 플로우
+- [x] Unit Tests (LoginUseCase + SignUpUseCase)
 
 ### Phase 2 — 일정 관리
 - [ ] 일정 CRUD (안내사/관광객 뷰 분리)
