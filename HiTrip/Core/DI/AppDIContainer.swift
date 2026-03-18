@@ -48,6 +48,11 @@ final class AppDIContainer {
         AuthRepository(networkService: networkService)
     }()
 
+    /// 일정 Repository — 현재 메모리 저장, 나중에 서버 연동으로 교체
+    private lazy var scheduleRepository: ScheduleRepositoryProtocol = {
+        ScheduleRepository()
+    }()
+
     // MARK: - Init
 
     /// 프로덕션용 — 싱글턴으로만 사용
@@ -86,6 +91,10 @@ final class AppDIContainer {
         SignUpUseCase(repository: authRepository)
     }
 
+    func makeScheduleUseCase() -> ScheduleUseCase {
+        ScheduleUseCase(repository: scheduleRepository)
+    }
+
     // MARK: - ViewModel Factory
 
     /// RootView에서 호출하여 LoginView에 주입
@@ -96,5 +105,10 @@ final class AppDIContainer {
     /// RootView에서 호출하여 SignUpFlowView에 주입
     func makeSignUpViewModel() -> SignUpViewModel {
         SignUpViewModel(signUpUseCase: makeSignUpUseCase())
+    }
+
+    /// HomeView의 일정 탭에서 사용
+    func makeScheduleViewModel() -> ScheduleViewModel {
+        ScheduleViewModel(scheduleUseCase: makeScheduleUseCase())
     }
 }

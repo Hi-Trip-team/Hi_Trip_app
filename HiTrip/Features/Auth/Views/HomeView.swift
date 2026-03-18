@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// 탭 구성:
 /// - 홈: 로그인 성공 확인 + 로그아웃
-/// - 일정: Phase 2에서 구현
+/// - 일정: ScheduleListView (CRUD)
 /// - 스팟 추천: Phase 4에서 구현
 /// - 긴급 연락: Phase 5에서 구현
 /// - 프로필: Phase 2에서 구현
@@ -46,7 +46,9 @@ struct HomeView: View {
                 .tabItem { Label(Tab.home.rawValue, systemImage: Tab.home.icon) }
                 .tag(Tab.home)
 
-            placeholderTab("일정", icon: "calendar", phase: 2)
+            ScheduleListView(
+                    viewModel: AppDIContainer.shared.makeScheduleViewModel()
+                )
                 .tabItem { Label(Tab.schedule.rawValue, systemImage: Tab.schedule.icon) }
                 .tag(Tab.schedule)
 
