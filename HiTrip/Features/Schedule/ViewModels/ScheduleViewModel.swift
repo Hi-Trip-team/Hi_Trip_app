@@ -98,7 +98,6 @@ final class ScheduleViewModel: ObservableObject {
                 onSuccess: { [weak self] _ in
                     self?.isLoading = false
                     self?.isCompleted = true
-                    self?.resetForm()
                 },
                 onFailure: { [weak self] error in
                     self?.isLoading = false
