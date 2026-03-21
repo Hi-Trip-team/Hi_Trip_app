@@ -8,7 +8,7 @@ import SwiftUI
 /// - 일정: ScheduleListView (CRUD)
 /// - 스팟 추천: Phase 4에서 구현
 /// - 긴급 연락: Phase 5에서 구현
-/// - 프로필: Phase 2에서 구현
+/// - 프로필: ProfileView (프로필 조회 + 로그아웃)
 ///
 /// Phase 1에서는 탭 구조만 잡고,
 /// 각 탭의 실제 콘텐츠는 해당 Phase 커밋에서 교체
@@ -60,7 +60,7 @@ struct HomeView: View {
                 .tabItem { Label(Tab.emergency.rawValue, systemImage: Tab.emergency.icon) }
                 .tag(Tab.emergency)
 
-            placeholderTab("프로필", icon: "person.fill", phase: 2)
+            ProfileView()
                 .tabItem { Label(Tab.profile.rawValue, systemImage: Tab.profile.icon) }
                 .tag(Tab.profile)
         }
