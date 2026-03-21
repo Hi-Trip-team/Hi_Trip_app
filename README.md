@@ -100,8 +100,13 @@ HiTrip/
 ├── Data/                         # 데이터 접근 구현체
 │   └── Repositories/             # Protocol 구현 (API + Keychain)
 ├── Features/                     # 기능별 UI
-│   └── Auth/
-│       ├── ViewModels/
+│   ├── Auth/
+│   │   ├── ViewModels/
+│   │   └── Views/
+│   ├── Schedule/
+│   │   ├── ViewModels/
+│   │   └── Views/
+│   └── Profile/
 │       └── Views/
 └── Resources/                    # Assets, 리소스 파일
 ```
@@ -119,9 +124,14 @@ HiTrip/
 - [x] SignUp 4단계 플로우
 - [x] Unit Tests (LoginUseCase + SignUpUseCase)
 
-### Phase 2 — 일정 관리
-- [ ] 일정 CRUD (안내사/관광객 뷰 분리)
-- [ ] 프로필 화면
+### Phase 2 — 일정 관리 + 프로필 ✅
+- [x] Schedule Entity + Repository Protocol + UseCase
+- [x] ScheduleRepository 메모리 기반 CRUD 구현
+- [x] ScheduleViewModel (CRUD 상태 관리)
+- [x] ScheduleListView / CreateView / DetailView
+- [x] Schedule DI 연결 + HomeView 탭 교체
+- [x] ProfileView (프로필 조회 + 로그아웃)
+- [x] HomeView 프로필 탭 연결
 
 ### Phase 3 — 실시간 채팅
 - [ ] WebSocket 기반 1:1 채팅
