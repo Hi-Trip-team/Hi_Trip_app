@@ -53,6 +53,11 @@ final class AppDIContainer {
         ScheduleRepository()
     }()
 
+    /// 채팅 Repository — 현재 메모리 저장, 나중에 WebSocket으로 교체
+    private lazy var chatRepository: ChatRepositoryProtocol = {
+        ChatRepository()
+    }()
+
     // MARK: - Init
 
     /// 프로덕션용 — 싱글턴으로만 사용
@@ -95,6 +100,10 @@ final class AppDIContainer {
         ScheduleUseCase(repository: scheduleRepository)
     }
 
+    func makeChatUseCase() -> ChatUseCase {
+        ChatUseCase(repository: chatRepository)
+    }
+
     // MARK: - ViewModel Factory
 
     /// RootView에서 호출하여 LoginView에 주입
@@ -110,5 +119,10 @@ final class AppDIContainer {
     /// HomeView의 일정 탭에서 사용
     func makeScheduleViewModel() -> ScheduleViewModel {
         ScheduleViewModel(scheduleUseCase: makeScheduleUseCase())
+    }
+
+    /// HomeView의 채팅 탭에서 사용
+    func makeChatViewModel() -> ChatViewModel {
+        ChatViewModel(chatUseCase: makeChatUseCase())
     }
 }
