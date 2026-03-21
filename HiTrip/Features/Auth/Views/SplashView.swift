@@ -36,9 +36,13 @@ struct SplashView: View {
 
             // 1.5초 후 자동 로그인 판단
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                router.handleAutoLogin(
-                    isLoggedIn: KeychainManager.shared.isLoggedIn
-                )
+                // TODO: 서버 연동 후 아래 주석 해제하고 디버그 코드 삭제
+                // router.handleAutoLogin(
+                //     isLoggedIn: KeychainManager.shared.isLoggedIn
+                // )
+
+                // [DEBUG] 로그인 없이 바로 홈 화면으로 이동 (CRUD 테스트용)
+                router.navigateToHome()
             }
         }
     }
