@@ -6,6 +6,7 @@ import SwiftUI
 /// 탭 구성:
 /// - 홈: 로그인 성공 확인 + 로그아웃
 /// - 일정: ScheduleListView (CRUD)
+/// - 채팅: ChatListView (1:1 메시지)
 /// - 스팟 추천: Phase 4에서 구현
 /// - 긴급 연락: Phase 5에서 구현
 /// - 프로필: ProfileView (프로필 조회 + 로그아웃)
@@ -23,6 +24,7 @@ struct HomeView: View {
     enum Tab: String, CaseIterable {
         case home      = "홈"
         case schedule  = "일정"
+        case chat      = "채팅"
         case spots     = "스팟 추천"
         case emergency = "긴급 연락"
         case profile   = "프로필"
@@ -31,6 +33,7 @@ struct HomeView: View {
             switch self {
             case .home:      return "house.fill"
             case .schedule:  return "calendar"
+            case .chat:      return "bubble.left.and.bubble.right"
             case .spots:     return "map.fill"
             case .emergency: return "exclamationmark.triangle.fill"
             case .profile:   return "person.fill"
@@ -51,6 +54,12 @@ struct HomeView: View {
                 )
                 .tabItem { Label(Tab.schedule.rawValue, systemImage: Tab.schedule.icon) }
                 .tag(Tab.schedule)
+
+            ChatListView(
+                    viewModel: AppDIContainer.shared.makeChatViewModel()
+                )
+                .tabItem { Label(Tab.chat.rawValue, systemImage: Tab.chat.icon) }
+                .tag(Tab.chat)
 
             placeholderTab("스팟 추천", icon: "map.fill", phase: 4)
                 .tabItem { Label(Tab.spots.rawValue, systemImage: Tab.spots.icon) }

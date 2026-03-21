@@ -106,6 +106,9 @@ HiTrip/
 │   ├── Schedule/
 │   │   ├── ViewModels/
 │   │   └── Views/
+│   ├── Chat/
+│   │   ├── ViewModels/
+│   │   └── Views/
 │   └── Profile/
 │       └── Views/
 └── Resources/                    # Assets, 리소스 파일
@@ -133,9 +136,14 @@ HiTrip/
 - [x] ProfileView (프로필 조회 + 로그아웃)
 - [x] HomeView 프로필 탭 연결
 
-### Phase 3 — 실시간 채팅
-- [ ] WebSocket 기반 1:1 채팅
-- [ ] 메시지 UI (안내사/관광객 뷰)
+### Phase 3 — 실시간 채팅 ✅
+- [x] ChatRoom + Message Entity 정의
+- [x] ChatRepositoryProtocol + ChatUseCase (비즈니스 로직)
+- [x] ChatRepository 메모리 기반 구현 (WebSocket 교체 대비)
+- [x] ChatViewModel (목록 + 메시지 상태 관리)
+- [x] ChatListView + ChatCreateView (채팅방 목록 + 생성)
+- [x] ChatRoomView (말풍선 UI + 메시지 입력)
+- [x] Chat DI 연결 + HomeView 채팅 탭 교체
 
 ### Phase 4 — 지도 + 스팟 추천
 - [ ] KakaoMaps SDK 연동
