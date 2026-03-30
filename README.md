@@ -109,6 +109,9 @@ HiTrip/
 │   ├── Chat/
 │   │   ├── ViewModels/
 │   │   └── Views/
+│   ├── Emergency/
+│   │   ├── ViewModels/
+│   │   └── Views/
 │   └── Profile/
 │       └── Views/
 └── Resources/                    # Assets, 리소스 파일
@@ -149,9 +152,13 @@ HiTrip/
 - [ ] KakaoMaps SDK 연동
 - [ ] TourAPI 관광지 검색
 
-### Phase 5 — 건강 + 긴급 연락
-- [ ] HealthKit 연동
-- [ ] 긴급 연락 플로우
+### Phase 5 — 긴급 연락 ✅
+- [x] EmergencyContact Entity (프리셋 + 개인 연락처, ContactCategory enum)
+- [x] EmergencyRepositoryProtocol + EmergencyUseCase (비즈니스 로직)
+- [x] EmergencyRepository 메모리 기반 구현 (112/119 등 프리셋 포함)
+- [x] EmergencyViewModel (카테고리 그룹핑 + 전화 URL 생성)
+- [x] EmergencyView + EmergencyAddView (퀵콜 버튼 + 연락처 관리)
+- [x] Emergency DI 연결 + HomeView 긴급 연락 탭 교체
 
 ### Phase 6 — 마무리
 - [ ] 푸시 알림 (APNs)
@@ -213,4 +220,4 @@ main ── develop ── feature/기능명
 
 ## 라이선스
 
-이 프로젝트는 2025 관광데이터 활용 공모전 출품을 위해 제작되었습니다.
+이 프로젝트는 2026 관광데이터 활용 공모전 출품을 위해 제작되었습니다.
