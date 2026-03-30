@@ -58,6 +58,11 @@ final class AppDIContainer {
         ChatRepository()
     }()
 
+    /// 긴급 연락처 Repository — 프리셋 번호 + 개인 연락처
+    private lazy var emergencyRepository: EmergencyRepositoryProtocol = {
+        EmergencyRepository()
+    }()
+
     // MARK: - Init
 
     /// 프로덕션용 — 싱글턴으로만 사용
@@ -104,6 +109,10 @@ final class AppDIContainer {
         ChatUseCase(repository: chatRepository)
     }
 
+    func makeEmergencyUseCase() -> EmergencyUseCase {
+        EmergencyUseCase(repository: emergencyRepository)
+    }
+
     // MARK: - ViewModel Factory
 
     /// RootView에서 호출하여 LoginView에 주입
@@ -124,5 +133,10 @@ final class AppDIContainer {
     /// HomeView의 채팅 탭에서 사용
     func makeChatViewModel() -> ChatViewModel {
         ChatViewModel(chatUseCase: makeChatUseCase())
+    }
+
+    /// HomeView의 긴급 연락 탭에서 사용
+    func makeEmergencyViewModel() -> EmergencyViewModel {
+        EmergencyViewModel(emergencyUseCase: makeEmergencyUseCase())
     }
 }

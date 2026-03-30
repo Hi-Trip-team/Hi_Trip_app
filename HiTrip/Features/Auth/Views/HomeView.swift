@@ -8,7 +8,7 @@ import SwiftUI
 /// - 일정: ScheduleListView (CRUD)
 /// - 채팅: ChatListView (1:1 메시지)
 /// - 스팟 추천: Phase 4에서 구현
-/// - 긴급 연락: Phase 5에서 구현
+/// - 긴급 연락: EmergencyView (긴급 전화 + 연락처 관리)
 /// - 프로필: ProfileView (프로필 조회 + 로그아웃)
 ///
 /// Phase 1에서는 탭 구조만 잡고,
@@ -65,7 +65,9 @@ struct HomeView: View {
                 .tabItem { Label(Tab.spots.rawValue, systemImage: Tab.spots.icon) }
                 .tag(Tab.spots)
 
-            placeholderTab("긴급 연락", icon: "exclamationmark.triangle.fill", phase: 5)
+            EmergencyView(
+                    viewModel: AppDIContainer.shared.makeEmergencyViewModel()
+                )
                 .tabItem { Label(Tab.emergency.rawValue, systemImage: Tab.emergency.icon) }
                 .tag(Tab.emergency)
 
