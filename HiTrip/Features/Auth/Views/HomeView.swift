@@ -7,7 +7,7 @@ import SwiftUI
 /// - 홈: 로그인 성공 확인 + 로그아웃
 /// - 일정: ScheduleListView (CRUD)
 /// - 채팅: ChatListView (1:1 메시지)
-/// - 스팟 추천: Phase 4에서 구현
+/// - 스팟 추천: SpotListView (TourAPI 관광지 검색)
 /// - 긴급 연락: EmergencyView (긴급 전화 + 연락처 관리)
 /// - 프로필: ProfileView (프로필 조회 + 로그아웃)
 ///
@@ -61,7 +61,9 @@ struct HomeView: View {
                 .tabItem { Label(Tab.chat.rawValue, systemImage: Tab.chat.icon) }
                 .tag(Tab.chat)
 
-            placeholderTab("스팟 추천", icon: "map.fill", phase: 4)
+            SpotListView(
+                    viewModel: AppDIContainer.shared.makeSpotViewModel()
+                )
                 .tabItem { Label(Tab.spots.rawValue, systemImage: Tab.spots.icon) }
                 .tag(Tab.spots)
 

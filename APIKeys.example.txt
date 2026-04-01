@@ -1,0 +1,16 @@
+import Foundation
+
+// MARK: - APIKeys (예시 파일)
+///
+/// ⚠️ 실제 사용 시:
+/// 1. 이 파일을 복사하여 APIKeys.swift로 이름 변경
+/// 2. 아래 빈 문자열에 실제 키 입력
+/// 3. APIKeys.swift는 .gitignore에 등록되어 git에 올라가지 않음
+
+enum APIKeys {
+    /// 한국관광공사 TourAPI 인증키 — https://www.data.go.kr 에서 발급
+    static let tourAPIKey = ""
+
+    /// 카카오 네이티브 앱 키 — https://developers.kakao.com 에서 발급
+    static let kakaoNativeAppKey = ""
+}

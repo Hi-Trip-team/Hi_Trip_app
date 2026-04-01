@@ -63,6 +63,11 @@ final class AppDIContainer {
         EmergencyRepository()
     }()
 
+    /// 관광지 Repository — TourAPI 실제 연동
+    private lazy var spotRepository: SpotRepositoryProtocol = {
+        SpotRepository()
+    }()
+
     // MARK: - Init
 
     /// 프로덕션용 — 싱글턴으로만 사용
@@ -113,6 +118,10 @@ final class AppDIContainer {
         EmergencyUseCase(repository: emergencyRepository)
     }
 
+    func makeSpotUseCase() -> SpotUseCase {
+        SpotUseCase(repository: spotRepository)
+    }
+
     // MARK: - ViewModel Factory
 
     /// RootView에서 호출하여 LoginView에 주입
@@ -138,5 +147,10 @@ final class AppDIContainer {
     /// HomeView의 긴급 연락 탭에서 사용
     func makeEmergencyViewModel() -> EmergencyViewModel {
         EmergencyViewModel(emergencyUseCase: makeEmergencyUseCase())
+    }
+
+    /// HomeView의 스팟 추천 탭에서 사용
+    func makeSpotViewModel() -> SpotViewModel {
+        SpotViewModel(spotUseCase: makeSpotUseCase())
     }
 }

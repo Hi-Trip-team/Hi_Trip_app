@@ -1,4 +1,5 @@
 import UIKit
+import KakaoMapsSDK
 
 // MARK: - AppDelegate
 /// UIKit 생명주기 관리
@@ -16,7 +17,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        // TODO: Phase 4 — KakaoMaps SDK 초기화
+        // KakaoMaps SDK 초기화
+        // - 앱 시작 시 1회만 호출
+        // - 카카오 개발자 콘솔에서 발급받은 네이티브 앱 키 사용
+        SDKInitializer.InitSDK(appKey: APIKeys.kakaoNativeAppKey)
+
         // TODO: Phase 6 — Push 알림 권한 요청
         return true
     }
