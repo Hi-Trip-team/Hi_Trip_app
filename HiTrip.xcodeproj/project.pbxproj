@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		914CACF42F7BBF5A00CA754D /* KakaoMapsSDK-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 914CACF32F7BBF5A00CA754D /* KakaoMapsSDK-SPM */; };
 		917DC0222F5586AC00D5DAA8 /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 917DC0212F5586AC00D5DAA8 /* RxSwift */; };
 		917DC02F2F59742600D5DAA8 /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 917DC02E2F59742600D5DAA8 /* RxCocoa */; };
 /* End PBXBuildFile section */
@@ -46,6 +47,7 @@
 			files = (
 				917DC02F2F59742600D5DAA8 /* RxCocoa in Frameworks */,
 				917DC0222F5586AC00D5DAA8 /* RxSwift in Frameworks */,
+				914CACF42F7BBF5A00CA754D /* KakaoMapsSDK-SPM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,11 +61,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		914CACF22F7BBF5A00CA754D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		917DBFC22F557C9D00D5DAA8 = {
 			isa = PBXGroup;
 			children = (
 				917DBFCD2F557C9D00D5DAA8 /* HiTrip */,
 				917DC0582F67DDA500D5DAA8 /* HiTripTests */,
+				914CACF22F7BBF5A00CA754D /* Frameworks */,
 				917DBFCC2F557C9D00D5DAA8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +109,7 @@
 			packageProductDependencies = (
 				917DC0212F5586AC00D5DAA8 /* RxSwift */,
 				917DC02E2F59742600D5DAA8 /* RxCocoa */,
+				914CACF32F7BBF5A00CA754D /* KakaoMapsSDK-SPM */,
 			);
 			productName = HiTrip;
 			productReference = 917DBFCB2F557C9D00D5DAA8 /* HiTrip.app */;
@@ -158,6 +169,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				917DC0172F55860900D5DAA8 /* XCRemoteSwiftPackageReference "RxSwift" */,
+				914CACDA2F7B4BB100CA754D /* XCRemoteSwiftPackageReference "KakaoMapsSDK-SPM" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 917DBFCC2F557C9D00D5DAA8 /* Products */;
@@ -340,8 +352,10 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SDBJF5F47N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "주변 관광지 검색을 위해 위치 정보를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -353,7 +367,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = kr.co.hitrip.HiTrip;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hitrip.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -375,8 +389,10 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SDBJF5F47N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "주변 관광지 검색을 위해 위치 정보를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -388,7 +404,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = kr.co.hitrip.HiTrip;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hitrip.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -468,6 +484,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		914CACDA2F7B4BB100CA754D /* XCRemoteSwiftPackageReference "KakaoMapsSDK-SPM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kakao-mapsSDK/KakaoMapsSDK-SPM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.12.10;
+			};
+		};
 		917DC0172F55860900D5DAA8 /* XCRemoteSwiftPackageReference "RxSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ReactiveX/RxSwift";
@@ -479,6 +503,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		914CACF32F7BBF5A00CA754D /* KakaoMapsSDK-SPM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 914CACDA2F7B4BB100CA754D /* XCRemoteSwiftPackageReference "KakaoMapsSDK-SPM" */;
+			productName = "KakaoMapsSDK-SPM";
+		};
 		917DC0212F5586AC00D5DAA8 /* RxSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 917DC0172F55860900D5DAA8 /* XCRemoteSwiftPackageReference "RxSwift" */;

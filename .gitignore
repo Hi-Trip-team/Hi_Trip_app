@@ -18,6 +18,9 @@ Package.resolved
 # CocoaPods (사용 시)
 Pods/
 
+# API Keys (민감 정보)
+**/APIKeys.swift
+
 # Misc
 *.swp
 *~
