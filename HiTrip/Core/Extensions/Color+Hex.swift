@@ -120,4 +120,11 @@ enum HiTripColor {
     static let error = Color(hex: "E53E3E")
     /// 읽음/성공 표시 (초록 체크)
     static let readCheck = Color(hex: "4CAF50")
+
+    // MARK: - Dot Indicator (회원가입 플로우)
+
+    /// 도트 인디케이터 비활성
+    static let dotInactive = gray300
+    /// 도트 인디케이터 활성
+    static let dotActive = primary800
 }
