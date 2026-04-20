@@ -49,9 +49,7 @@ struct HomeView: View {
                 .tabItem { Label(Tab.home.rawValue, systemImage: Tab.home.icon) }
                 .tag(Tab.home)
 
-            ScheduleListView(
-                    viewModel: AppDIContainer.shared.makeScheduleViewModel()
-                )
+            TripListView()
                 .tabItem { Label(Tab.schedule.rawValue, systemImage: Tab.schedule.icon) }
                 .tag(Tab.schedule)
 
