@@ -1,46 +1,85 @@
 import SwiftUI
 
 // MARK: - ProfileView
-/// 프로필 화면
+/// 프로필 메인 화면 — 피그마 디자인
 ///
 /// UI 구성:
-/// - 프로필 아바타 (이니셜 원형 뱃지)
-/// - 사용자 정보 (이름, 아이디, 유저 타입)
-/// - 메뉴 섹션 (알림 설정, 이용약관, 버전 정보)
-/// - 로그아웃 버튼
-///
-/// 현재는 Keychain에 저장된 정보로 표시
-/// 서버 연동 후 API에서 받아온 정보로 교체 예정
+/// - 네비바: 뒤로가기 + "프로필" + 편집 아이콘
+/// - 프로필 아바타 (분홍 원형 배경)
+/// - 이름 + 이메일
+/// - 통계 카드 (포인트, 여행, 버킷리스트)
+/// - 메뉴 리스트 (프로필, 북마크, 여행, 설정, 버전정보)
 
 struct ProfileView: View {
 
     @EnvironmentObject var router: AppRouter
+    @Environment(\.dismiss) private var dismiss
 
-    /// 로그아웃 확인 Alert 표시 여부
+    /// 로그아웃 확인 Alert
     @State private var showLogoutAlert = false
+
+    /// 프로필 수정 화면 이동
+    @State private var showEditProfile = false
 
     var body: some View {
         NavigationStack {
-            List {
-                // 프로필 헤더
-                profileHeader
-                    .listRowBackground(Color.clear)
+            ZStack {
+                HiTripColor.screenBackground
+                    .ignoresSafeArea()
 
-                // 계정 정보
-                accountSection
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // 프로필 헤더 (아바타 + 이름 + 이메일)
+                        profileHeader
+                            .padding(.top, 20)
 
-                // 앱 설정
-                settingsSection
+                        // 통계 카드
+                        statsCard
+                            .padding(.top, 24)
+                            .padding(.horizontal, 24)
 
-                // 앱 정보
-                appInfoSection
+                        // 메뉴 리스트
+                        menuList
+                            .padding(.top, 28)
 
-                // 로그아웃
-                logoutSection
+                        // 로그아웃
+                        logoutButton
+                            .padding(.top, 16)
+                            .padding(.horizontal, 24)
+
+                        Spacer().frame(height: 40)
+                    }
+                }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle("프로필")
-            // 로그아웃 확인 Alert
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(HiTripColor.textBlack)
+                            .frame(width: 40, height: 40)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showEditProfile = true } label: {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(HiTripColor.primary800)
+                            .frame(width: 40, height: 40)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $showEditProfile) {
+                ProfileEditView()
+            }
             .alert("로그아웃", isPresented: $showLogoutAlert) {
                 Button("로그아웃", role: .destructive) {
                     KeychainManager.shared.clearAll()
@@ -55,178 +94,146 @@ struct ProfileView: View {
 
     // MARK: - Profile Header
 
-    /// 프로필 아바타 + 이름 + 유저 타입 뱃지
     private var profileHeader: some View {
-        VStack(spacing: 12) {
-            // 아바타 (이니셜 표시)
+        VStack(spacing: 8) {
+            // 아바타 (분홍 원형 배경 + 이모지)
             ZStack {
                 Circle()
-                    .fill(HiTripColor.primary800)
-                    .frame(width: 80, height: 80)
+                    .fill(Color(hex: "FADADD").opacity(0.5))
+                    .frame(width: 110, height: 110)
 
-                Text(avatarInitial)
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
+                Text("🙋‍♀️")
+                    .font(.system(size: 56))
             }
 
-            // 사용자 이름
+            // 이름
             Text(userName)
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 22, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
+                .padding(.top, 8)
 
-            // 유저 타입 뱃지 (안내사/관광객)
-            Text(userTypeBadge)
-                .font(.system(size: 13, weight: .medium))
+            // 이메일
+            Text(userEmail)
+                .font(.system(size: 14))
+                .foregroundColor(HiTripColor.gray500)
+        }
+    }
+
+    // MARK: - Stats Card
+
+    private var statsCard: some View {
+        HStack(spacing: 0) {
+            statItem(title: "포인트", value: "50")
+
+            Divider()
+                .frame(height: 40)
+
+            statItem(title: "여행", value: "40")
+
+            Divider()
+                .frame(height: 40)
+
+            statItem(title: "버킷리스트", value: "200")
+        }
+        .padding(.vertical, 18)
+        .background(Color.white)
+        .cornerRadius(14)
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    private func statItem(title: String, value: String) -> some View {
+        VStack(spacing: 6) {
+            Text(title)
+                .font(.system(size: 13))
+                .foregroundColor(HiTripColor.gray500)
+
+            Text(value)
+                .font(.system(size: 22, weight: .bold))
                 .foregroundColor(HiTripColor.primary800)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(HiTripColor.secondary100)
-                .cornerRadius(12)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
     }
 
-    // MARK: - Account Section
+    // MARK: - Menu List
 
-    /// 계정 정보 섹션
-    private var accountSection: some View {
-        Section("계정 정보") {
-            // 아이디
-            HStack {
-                Label("아이디", systemImage: "person.text.rectangle")
-                    .foregroundColor(HiTripColor.textGrayA)
-                Spacer()
-                Text(userId)
+    private var menuList: some View {
+        VStack(spacing: 0) {
+            menuRow(icon: "person.crop.circle", title: "프로필") {
+                showEditProfile = true
+            }
+
+            menuDivider
+
+            menuRow(icon: "bookmark", title: "북마크") { }
+
+            menuDivider
+
+            menuRow(icon: "airplane", title: "여행") { }
+
+            menuDivider
+
+            menuRow(icon: "gearshape", title: "설정") { }
+
+            menuDivider
+
+            menuRow(icon: "info.circle", title: "버전정보") { }
+        }
+        .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .padding(.horizontal, 24)
+    }
+
+    private func menuRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
                     .foregroundColor(HiTripColor.gray500)
-            }
+                    .frame(width: 28)
 
-            // 유저 타입
-            HStack {
-                Label("유형", systemImage: "person.crop.rectangle")
-                    .foregroundColor(HiTripColor.textGrayA)
+                Text(title)
+                    .font(.system(size: 16))
+                    .foregroundColor(HiTripColor.textBlack)
+
                 Spacer()
-                Text(userTypeBadge)
-                    .foregroundColor(HiTripColor.gray500)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(HiTripColor.gray300)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
         }
+        .buttonStyle(.plain)
     }
 
-    // MARK: - Settings Section
-
-    /// 앱 설정 섹션 (Phase 6에서 실제 동작 연결)
-    private var settingsSection: some View {
-        Section("설정") {
-            // 알림 설정
-            NavigationLink {
-                placeholderView("알림 설정", phase: 6)
-            } label: {
-                Label("알림 설정", systemImage: "bell")
-                    .foregroundColor(HiTripColor.textGrayA)
-            }
-
-            // 언어 설정
-            NavigationLink {
-                placeholderView("언어 설정", phase: 6)
-            } label: {
-                Label("언어", systemImage: "globe")
-                    .foregroundColor(HiTripColor.textGrayA)
-            }
-        }
+    private var menuDivider: some View {
+        Divider()
+            .padding(.leading, 62)
     }
 
-    // MARK: - App Info Section
+    // MARK: - Logout Button
 
-    /// 앱 정보 섹션
-    private var appInfoSection: some View {
-        Section("앱 정보") {
-            // 이용약관
-            NavigationLink {
-                placeholderView("이용약관", phase: 6)
-            } label: {
-                Label("이용약관", systemImage: "doc.text")
-                    .foregroundColor(HiTripColor.textGrayA)
-            }
-
-            // 개인정보처리방침
-            NavigationLink {
-                placeholderView("개인정보처리방침", phase: 6)
-            } label: {
-                Label("개인정보처리방침", systemImage: "lock.shield")
-                    .foregroundColor(HiTripColor.textGrayA)
-            }
-
-            // 버전 정보
-            HStack {
-                Label("버전", systemImage: "info.circle")
-                    .foregroundColor(HiTripColor.textGrayA)
-                Spacer()
-                Text(appVersion)
-                    .foregroundColor(HiTripColor.gray400)
-            }
-        }
-    }
-
-    // MARK: - Logout Section
-
-    /// 로그아웃 버튼
-    private var logoutSection: some View {
-        Section {
-            Button(role: .destructive) {
-                showLogoutAlert = true
-            } label: {
-                HStack {
-                    Spacer()
-                    Text("로그아웃")
-                    Spacer()
-                }
-            }
-        }
-    }
-
-    // MARK: - Placeholder View
-
-    /// Phase 6에서 구현 예정인 상세 화면
-    private func placeholderView(_ title: String, phase: Int) -> some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Text(title)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(HiTripColor.textGrayA)
-            Text("Phase \(phase)에서 구현 예정")
-                .font(.system(size: 14))
+    private var logoutButton: some View {
+        Button {
+            showLogoutAlert = true
+        } label: {
+            Text("로그아웃")
+                .font(.system(size: 15))
                 .foregroundColor(HiTripColor.gray400)
-            Spacer()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
         }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: - Computed Helpers
+    // MARK: - Helpers
 
-    /// Keychain에서 사용자 이름 조회 (없으면 기본값)
     private var userName: String {
-        KeychainManager.shared.getUserId() ?? "Hi Trip 사용자"
+        KeychainManager.shared.getUserId() ?? "이연세"
     }
 
-    /// 아바타 이니셜 (이름 첫 글자)
-    private var avatarInitial: String {
-        String(userName.prefix(1))
-    }
-
-    /// 사용자 아이디
-    private var userId: String {
-        KeychainManager.shared.getUserId() ?? "-"
-    }
-
-    /// 유저 타입 표시 텍스트
-    private var userTypeBadge: String {
-        guard let type = KeychainManager.shared.getUserType() else { return "미설정" }
-        return type == "guide" ? "안내사" : "관광객"
-    }
-
-    /// 앱 버전 (Bundle에서 자동 조회)
-    private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    private var userEmail: String {
+        "hitrip@gmail.com"
     }
 }
