@@ -61,8 +61,9 @@ final class ChatViewModel: ObservableObject {
     init(chatUseCase: ChatUseCase) {
         self.chatUseCase = chatUseCase
         // Keychain에서 현재 로그인 유저 정보 가져오기
-        self.currentUserId = KeychainManager.shared.getUserId() ?? "me"
-        self.currentUserName = KeychainManager.shared.getUserId() ?? "나"
+        let keychain = KeychainManager.shared
+        self.currentUserId = keychain.getUserId() ?? "guest"
+        self.currentUserName = keychain.getUserName() ?? keychain.getUserId() ?? "사용자"
     }
 
     // MARK: - ChatRoom (채팅방)

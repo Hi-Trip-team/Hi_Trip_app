@@ -63,6 +63,12 @@ final class AppDIContainer {
         EmergencyRepository()
     }()
 
+    /// 여행(Trip/Todo/Event) Repository — 현재 Mock, 나중에 서버 연동으로 교체
+    /// TripDataStore.shared가 내부적으로 직접 참조하므로 DI 등록은 참조용
+    private lazy var tripRepository: TripRepositoryProtocol = {
+        MockTripRepository()
+    }()
+
     /// 관광지 Repository — TourAPI 실제 연동
     private lazy var spotRepository: SpotRepositoryProtocol = {
         SpotRepository()

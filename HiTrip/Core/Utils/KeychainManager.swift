@@ -35,6 +35,8 @@ final class KeychainManager {
         static let refreshToken = "com.hitrip.refreshToken"
         static let userId       = "com.hitrip.userId"
         static let userType     = "com.hitrip.userType"
+        static let userName     = "com.hitrip.userName"
+        static let userEmail    = "com.hitrip.userEmail"
     }
 
     private init() {}
@@ -79,6 +81,22 @@ final class KeychainManager {
         load(key: Keys.userType)
     }
 
+    func saveUserName(_ name: String) {
+        save(key: Keys.userName, value: name)
+    }
+
+    func getUserName() -> String? {
+        load(key: Keys.userName)
+    }
+
+    func saveUserEmail(_ email: String) {
+        save(key: Keys.userEmail, value: email)
+    }
+
+    func getUserEmail() -> String? {
+        load(key: Keys.userEmail)
+    }
+
     // MARK: - 로그인 상태 확인
 
     /// Access Token 존재 여부로 로그인 상태 판단
@@ -90,7 +108,8 @@ final class KeychainManager {
 
     /// 저장된 모든 인증 정보 삭제
     func clearAll() {
-        [Keys.accessToken, Keys.refreshToken, Keys.userId, Keys.userType]
+        [Keys.accessToken, Keys.refreshToken, Keys.userId, Keys.userType,
+         Keys.userName, Keys.userEmail]
             .forEach { delete(key: $0) }
     }
 
