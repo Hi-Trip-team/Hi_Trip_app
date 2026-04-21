@@ -112,6 +112,9 @@ HiTrip/
 │   ├── Emergency/
 │   │   ├── ViewModels/
 │   │   └── Views/
+│   ├── Spot/
+│   │   ├── ViewModels/
+│   │   └── Views/
 │   └── Profile/
 │       └── Views/
 └── Resources/                    # Assets, 리소스 파일
@@ -148,9 +151,19 @@ HiTrip/
 - [x] ChatRoomView (말풍선 UI + 메시지 입력)
 - [x] Chat DI 연결 + HomeView 채팅 탭 교체
 
-### Phase 4 — 지도 + 스팟 추천
-- [ ] KakaoMaps SDK 연동
-- [ ] TourAPI 관광지 검색
+### Phase 4 — 지도 + 스팟 추천 ✅
+- [x] TourAPI(KorService2) 관광지 키워드 검색 + 위치 기반 검색
+- [x] TourAPIService 전용 네트워크 서비스 (serviceKey 인코딩 우회)
+- [x] SpotRepositoryProtocol + SpotUseCase (좌표 범위 검증)
+- [x] SpotRepository (TourAPIService 래퍼)
+- [x] SpotViewModel (CLLocationManager + 페이지네이션)
+- [x] SpotListView (키워드/현재위치 검색 + 무한스크롤)
+- [x] SpotDetailView (이미지, 주소, 전화, 유형 표시)
+- [x] KakaoMaps SDK 연동 (SDKInitializer + KakaoMapView UIViewRepresentable)
+- [x] SpotMapView (전체화면 지도 표시)
+- [x] Spot DI 연결 + HomeView 스팟 탭 교체
+- [x] API키 보안 (.gitignore + APIKeys.example.txt 템플릿)
+- [ ] KakaoMap 지도 타일 렌더링 이슈 (인증 성공, 타일 미표시 — 추후 디버깅)
 
 ### Phase 5 — 긴급 연락 ✅
 - [x] EmergencyContact Entity (프리셋 + 개인 연락처, ContactCategory enum)
@@ -182,7 +195,21 @@ cd Hi_Trip_app/HiTrip
 open HiTrip.xcodeproj
 ```
 
-> SPM 의존성(RxSwift, RxCocoa)은 프로젝트 열 때 자동으로 resolve됩니다.
+> SPM 의존성(RxSwift, RxCocoa, KakaoMapsSDK)은 프로젝트 열 때 자동으로 resolve됩니다.
+
+### API 키 설정
+
+프로젝트 실행을 위해 API 키 파일이 필요합니다:
+
+1. 프로젝트 루트의 `APIKeys.example.txt`를 참고
+2. `HiTrip/Core/Utils/APIKeys.swift` 파일을 생성:
+```swift
+enum APIKeys {
+    static let tourAPIKey = "YOUR_TOUR_API_KEY"
+    static let kakaoNativeAppKey = "YOUR_KAKAO_NATIVE_APP_KEY"
+}
+```
+> APIKeys.swift는 .gitignore에 포함되어 있어 커밋되지 않습니다.
 
 <br>
 

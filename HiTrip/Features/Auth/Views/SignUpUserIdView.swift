@@ -1,18 +1,18 @@
 import SwiftUI
 
 // MARK: - SignUpUserIdView
-/// 회원가입 Step 3: 아이디 설정
+/// 회원가입 Step 2: 아이디 설정 (피그마 레이아웃)
 ///
-/// UI 구성:
-/// - 안내 텍스트 ("로그인에 사용할 아이디를 입력해 주세요")
-/// - 아이디 입력 필드
-/// - 유효성 안내 메시지 (4자 이상)
-/// - "다음" 버튼 (4자 이상 입력 시 활성화)
+/// 피그마 디자인:
+/// - "아이디 설정" 타이틀 + 설명
+/// - 아이디 입력 필드 + 중복확인 버튼
+/// - 하단 "다음" 버튼
 ///
-/// 검증 규칙:
-/// - 공백 제거 후 4자 이상 필요 (SignUpUseCase.execute()에서도 이중 검증)
-/// - 클라이언트 사이드 검증 → 빠른 피드백
-/// - 서버 사이드 검증 → 최종 회원가입 시 재검증
+/// 동작 (닉네임 중복확인과 동일한 패턴):
+/// 1. 아이디 4자 이상 입력 → "중복확인" 버튼 활성화
+/// 2. 중복확인 탭 → API 호출 → 결과 메시지 표시
+/// 3. 아이디 수정 → 확인 상태 초기화
+/// 4. 사용 가능 확인 완료 → "다음" 버튼 활성화
 
 struct SignUpUserIdView: View {
 
@@ -21,78 +21,104 @@ struct SignUpUserIdView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 안내 텍스트
-            guideSection
+            // 타이틀 + 설명
+            titleSection
+                .padding(.top, 40)
+
+            // "아이디" 라벨 (파란색)
+            Text("아이디")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(HiTripColor.secondary700)
                 .padding(.top, 32)
+                .padding(.bottom, 8)
 
-            // 아이디 입력 필드
+            // 아이디 입력 + 중복확인 버튼
             userIdInputSection
-                .padding(.top, 28)
 
-            // 유효성 메시지
-            validationMessage
+            // 확인 결과 메시지
+            messageSection
                 .padding(.top, 8)
 
             Spacer()
 
             // 다음 버튼
             nextButton
-                .padding(.bottom, 40)
+                .padding(.bottom, 20)
         }
         .padding(.horizontal, 24)
+        .onChange(of: viewModel.userId) { _ in
+            viewModel.resetUserIdCheck()
+        }
     }
 
-    // MARK: - Guide Section
+    // MARK: - Title Section
 
-    private var guideSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Text("아이디 설정")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
 
-            Text("로그인에 사용할 아이디를 입력해 주세요.")
-                .font(.system(size: 15))
+            Text("로그인에 사용할 아이디를 입력해 주세요.\n기존에 존재하는 아이디인지 확인이 필요합니다.")
+                .font(.system(size: 14))
                 .foregroundColor(HiTripColor.gray500)
+                .lineSpacing(4)
         }
     }
 
     // MARK: - User ID Input
 
     private var userIdInputSection: some View {
-        TextField("아이디 입력 (4자 이상)", text: $viewModel.userId)
-            .padding(14)
-            .background(HiTripColor.inputBackground)
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(borderColor, lineWidth: 1)
-            )
-            .focused($isFocused)
-            .autocapitalization(.none)    // 대문자 자동 변환 비활성화
-            .disableAutocorrection(true)  // 자동 수정 비활성화
-            .submitLabel(.done)
-            .onSubmit { isFocused = false }
+        HStack(spacing: 10) {
+            TextField("아이디를 입력해주세요 (4자 이상)", text: $viewModel.userId)
+                .padding(14)
+                .background(HiTripColor.inputBackground)
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(borderColor, lineWidth: 1)
+                )
+                .focused($isFocused)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .submitLabel(.done)
+                .onSubmit { isFocused = false }
+
+            // 중복확인 버튼
+            Button {
+                isFocused = false
+                viewModel.checkUserId()
+            } label: {
+                Text("중복확인")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(
+                        isCheckButtonEnabled
+                            ? HiTripColor.primary800
+                            : HiTripColor.buttonDisabled
+                    )
+                    .cornerRadius(10)
+            }
+            .disabled(!isCheckButtonEnabled)
+        }
     }
 
-    // MARK: - Validation Message
+    // MARK: - Message Section
 
-    /// 아이디 길이 안내 메시지
-    /// - 빈 상태: 메시지 없음
-    /// - 4자 미만: 빨간색 경고
-    /// - 4자 이상: 초록색 확인
-    private var validationMessage: some View {
+    private var messageSection: some View {
         Group {
-            if !viewModel.userId.isEmpty {
-                if viewModel.isUserIdValid {
-                    Text("사용 가능한 아이디 형식입니다.")
-                        .foregroundColor(HiTripColor.readCheck)
-                } else {
-                    Text("아이디는 4자 이상이어야 합니다.")
-                        .foregroundColor(HiTripColor.error)
-                }
+            if let message = viewModel.userIdMessage {
+                Text(message)
+                    .font(.system(size: 13))
+                    .foregroundColor(
+                        viewModel.isUserIdAvailable
+                            ? HiTripColor.readCheck
+                            : HiTripColor.error
+                    )
             }
         }
-        .font(.system(size: 13))
         .frame(height: 20, alignment: .leading)
     }
 
@@ -104,27 +130,33 @@ struct SignUpUserIdView: View {
         } label: {
             Text("다음")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(
+                    isNextEnabled ? .white : HiTripColor.buttonDisabledText
+                )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
-                    viewModel.isUserIdValid
+                    isNextEnabled
                         ? HiTripColor.buttonPrimary
                         : HiTripColor.buttonDisabled
                 )
                 .cornerRadius(10)
         }
-        .disabled(!viewModel.isUserIdValid)
+        .disabled(!isNextEnabled)
     }
 
-    // MARK: - Border Color
+    // MARK: - Computed Helpers
 
-    /// 입력 필드 테두리 색상
-    /// - 빈 상태: 기본 회색
-    /// - 유효: 초록색
-    /// - 무효: 빨간색
+    private var isNextEnabled: Bool {
+        viewModel.isUserIdChecked && viewModel.isUserIdAvailable
+    }
+
+    private var isCheckButtonEnabled: Bool {
+        viewModel.isUserIdFormatValid && !viewModel.isUserIdChecked
+    }
+
     private var borderColor: Color {
-        guard !viewModel.userId.isEmpty else { return HiTripColor.gray300 }
-        return viewModel.isUserIdValid ? HiTripColor.readCheck : HiTripColor.error
+        guard viewModel.isUserIdChecked else { return HiTripColor.gray300 }
+        return viewModel.isUserIdAvailable ? HiTripColor.readCheck : HiTripColor.error
     }
 }

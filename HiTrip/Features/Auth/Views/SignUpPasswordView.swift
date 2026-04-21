@@ -1,19 +1,14 @@
 import SwiftUI
 
 // MARK: - SignUpPasswordView
-/// 회원가입 Step 4: 비밀번호 설정
+/// 회원가입 Step 3: 비밀번호 설정 (피그마 레이아웃)
 ///
-/// UI 구성:
-/// - 안내 텍스트
-/// - 비밀번호 입력 (SecureField, 6자 이상)
-/// - 비밀번호 확인 입력 (SecureField, 일치 여부)
-/// - 실시간 유효성 피드백
-/// - "가입하기" 버튼 (둘 다 유효 시 활성화 → 회원가입 API 호출)
-///
-/// 검증 규칙:
-/// - 비밀번호: 6자 이상
-/// - 비밀번호 확인: 비밀번호와 일치
-/// - 두 조건 모두 만족 시 "가입하기" 버튼 활성화
+/// 피그마 디자인:
+/// - "비밀번호 설정" 타이틀 + 설명
+/// - "비밀번호를 입력해주세요." 라벨 (파란색)
+/// - 비밀번호 입력 (영문, 숫자, 특수문자 포함 8자 이상)
+/// - 비밀번호 확인 입력
+/// - 하단 "다음" 버튼
 
 struct SignUpPasswordView: View {
 
@@ -24,13 +19,19 @@ struct SignUpPasswordView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 안내 텍스트
-            guideSection
+            // 타이틀 + 설명
+            titleSection
+                .padding(.top, 40)
+
+            // 비밀번호 입력 라벨 (파란색)
+            Text("비밀번호를 입력해주세요.")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(HiTripColor.secondary700)
                 .padding(.top, 32)
+                .padding(.bottom, 8)
 
             // 비밀번호 입력
             passwordInputSection
-                .padding(.top, 28)
 
             // 에러 메시지 (API 호출 실패 시)
             errorSection
@@ -38,34 +39,35 @@ struct SignUpPasswordView: View {
 
             Spacer()
 
-            // 가입하기 버튼
-            signUpButton
-                .padding(.bottom, 40)
+            // 다음 버튼
+            nextButton
+                .padding(.bottom, 20)
         }
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Guide Section
+    // MARK: - Title Section
 
-    private var guideSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Text("비밀번호 설정")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
 
-            Text("안전한 비밀번호를 설정해 주세요.")
-                .font(.system(size: 15))
+            Text("비밀번호를 설정하면 이메일을 통해 로그인이 가능하고,\n계정을 안전하게 관리할 수 있습니다.")
+                .font(.system(size: 14))
                 .foregroundColor(HiTripColor.gray500)
+                .lineSpacing(4)
         }
     }
 
     // MARK: - Password Input
 
     private var passwordInputSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             // 비밀번호 입력
             VStack(alignment: .leading, spacing: 6) {
-                SecureField("비밀번호 (6자 이상)", text: $viewModel.password)
+                SecureField("영문, 숫자, 특수문자 포함 8자 이상", text: $viewModel.password)
                     .padding(14)
                     .background(HiTripColor.inputBackground)
                     .cornerRadius(10)
@@ -81,7 +83,7 @@ struct SignUpPasswordView: View {
                 if !viewModel.password.isEmpty {
                     Text(viewModel.isPasswordValid
                          ? "사용 가능한 비밀번호입니다."
-                         : "비밀번호는 6자 이상이어야 합니다.")
+                         : "비밀번호는 8자 이상이어야 합니다.")
                         .font(.system(size: 13))
                         .foregroundColor(
                             viewModel.isPasswordValid
@@ -93,6 +95,11 @@ struct SignUpPasswordView: View {
 
             // 비밀번호 확인
             VStack(alignment: .leading, spacing: 6) {
+                // 비밀번호 확인 라벨 (파란색)
+                Text("비밀번호를 입력해주세요.")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(HiTripColor.secondary700)
+                    .padding(.bottom, 2)
                 SecureField("비밀번호 확인", text: $viewModel.passwordConfirm)
                     .padding(14)
                     .background(HiTripColor.inputBackground)
@@ -123,7 +130,6 @@ struct SignUpPasswordView: View {
 
     // MARK: - Error Section
 
-    /// API 호출 실패 시 에러 메시지 표시
     private var errorSection: some View {
         Group {
             if let error = viewModel.errorMessage {
@@ -135,19 +141,19 @@ struct SignUpPasswordView: View {
         .frame(height: 20, alignment: .leading)
     }
 
-    // MARK: - Sign Up Button
+    // MARK: - Next Button
 
-    /// "가입하기" 버튼
-    /// - 비밀번호 유효 + 확인 일치 시 활성화
-    /// - 탭 시 ViewModel.signUp() 호출 → API 요청
-    private var signUpButton: some View {
+    private var nextButton: some View {
         Button {
             focusedField = nil
-            viewModel.signUp()
+            viewModel.goToNextStep()
         } label: {
-            Text("가입하기")
+            Text("다음")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(
+                    viewModel.isPasswordStepValid
+                        ? .white : HiTripColor.buttonDisabledText
+                )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
@@ -162,13 +168,11 @@ struct SignUpPasswordView: View {
 
     // MARK: - Border Colors
 
-    /// 비밀번호 필드 테두리
     private var passwordBorderColor: Color {
         guard !viewModel.password.isEmpty else { return HiTripColor.gray300 }
         return viewModel.isPasswordValid ? HiTripColor.readCheck : HiTripColor.error
     }
 
-    /// 비밀번호 확인 필드 테두리
     private var confirmBorderColor: Color {
         guard !viewModel.passwordConfirm.isEmpty else { return HiTripColor.gray300 }
         return viewModel.isPasswordMatch ? HiTripColor.readCheck : HiTripColor.error
