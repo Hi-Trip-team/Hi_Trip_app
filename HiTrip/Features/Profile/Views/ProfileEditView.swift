@@ -7,22 +7,14 @@ import SwiftUI
 /// - 네비바: 뒤로가기 + "프로필 수정" + 완료 버튼
 /// - 아바타 + 이름 + "프로필 변경하기" 링크
 /// - 폼: 닉네임, 생년월일, 거주 국가, 휴대번호
+///
+/// ProfileView에서 공유되는 ProfileViewModel을 받아서
+/// 수정 폼 상태와 저장 로직을 ViewModel에 위임한다.
 
 struct ProfileEditView: View {
 
     @Environment(\.dismiss) private var dismiss
-
-    // MARK: - Form State
-
-    @State private var nickname: String = ""
-    @State private var birthday: Date = Date()
-    @State private var showBirthdayPicker: Bool = false
-    @State private var country: String = "대한민국"
-    @State private var countryCode: String = "+82"
-    @State private var phoneNumber: String = ""
-
-    /// 저장 완료 알림
-    @State private var showSaveAlert: Bool = false
+    @ObservedObject var viewModel: ProfileViewModel
 
     var body: some View {
         ZStack {
@@ -61,13 +53,13 @@ struct ProfileEditView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("완료") {
-                    saveProfile()
+                    viewModel.saveProfile()
                 }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(HiTripColor.primary800)
             }
         }
-        .alert("저장 완료", isPresented: $showSaveAlert) {
+        .alert("저장 완료", isPresented: $viewModel.showSaveAlert) {
             Button("확인") { dismiss() }
         } message: {
             Text("프로필이 저장되었습니다.")
@@ -89,7 +81,7 @@ struct ProfileEditView: View {
             }
 
             // 이름
-            Text(userName)
+            Text(viewModel.userName)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
                 .padding(.top, 4)
@@ -111,7 +103,7 @@ struct ProfileEditView: View {
             formField(
                 label: "닉네임",
                 placeholder: "15자 이내 영문, 숫자로 입력해주세요",
-                text: $nickname
+                text: $viewModel.editNickname
             )
 
             // 생년월일
@@ -121,7 +113,7 @@ struct ProfileEditView: View {
             formField(
                 label: "거주 국가",
                 placeholder: "국가를 입력해주세요",
-                text: $country
+                text: $viewModel.editCountry
             )
 
             // 휴대번호
@@ -155,13 +147,13 @@ struct ProfileEditView: View {
                 .foregroundColor(HiTripColor.textBlack)
 
             Button {
-                showBirthdayPicker.toggle()
+                viewModel.showBirthdayPicker.toggle()
             } label: {
                 HStack {
-                    Text(birthdayText)
+                    Text(viewModel.isBirthdayDefault ? "생년월일을 선택해주세요" : viewModel.birthdayText)
                         .font(.system(size: 15))
                         .foregroundColor(
-                            birthdayText == "생년월일을 선택해주세요"
+                            viewModel.isBirthdayDefault
                                 ? HiTripColor.gray400
                                 : HiTripColor.textBlack
                         )
@@ -174,10 +166,10 @@ struct ProfileEditView: View {
             }
             .buttonStyle(.plain)
 
-            if showBirthdayPicker {
+            if viewModel.showBirthdayPicker {
                 DatePicker(
                     "",
-                    selection: $birthday,
+                    selection: $viewModel.editBirthday,
                     displayedComponents: .date
                 )
                 .datePickerStyle(.wheel)
@@ -185,11 +177,6 @@ struct ProfileEditView: View {
                 .environment(\.locale, Locale(identifier: "ko_KR"))
             }
         }
-    }
-
-    /// 생년월일 표시 텍스트
-    private var birthdayText: String {
-        "생년월일을 선택해주세요"
     }
 
     // MARK: - Phone Field
@@ -203,14 +190,14 @@ struct ProfileEditView: View {
             HStack(spacing: 8) {
                 // 국가 코드
                 Menu {
-                    Button("+82 🇰🇷") { countryCode = "+82" }
-                    Button("+1 🇺🇸") { countryCode = "+1" }
-                    Button("+81 🇯🇵") { countryCode = "+81" }
-                    Button("+86 🇨🇳") { countryCode = "+86" }
-                    Button("+213 🇩🇿") { countryCode = "+213" }
+                    Button("+82 🇰🇷") { viewModel.editCountryCode = "+82" }
+                    Button("+1 🇺🇸") { viewModel.editCountryCode = "+1" }
+                    Button("+81 🇯🇵") { viewModel.editCountryCode = "+81" }
+                    Button("+86 🇨🇳") { viewModel.editCountryCode = "+86" }
+                    Button("+213 🇩🇿") { viewModel.editCountryCode = "+213" }
                 } label: {
                     HStack(spacing: 4) {
-                        Text(countryCode)
+                        Text(viewModel.editCountryCode)
                             .font(.system(size: 15))
                             .foregroundColor(HiTripColor.textBlack)
                         Image(systemName: "chevron.down")
@@ -224,7 +211,7 @@ struct ProfileEditView: View {
                 }
 
                 // 전화번호
-                TextField("전화번호를 입력해주세요", text: $phoneNumber)
+                TextField("전화번호를 입력해주세요", text: $viewModel.editPhoneNumber)
                     .font(.system(size: 15))
                     .keyboardType(.phonePad)
                     .padding(.horizontal, 16)
@@ -233,18 +220,5 @@ struct ProfileEditView: View {
                     .cornerRadius(12)
             }
         }
-    }
-
-    // MARK: - Actions
-
-    private func saveProfile() {
-        // Mock: 프로필 저장 (추후 API 연동)
-        showSaveAlert = true
-    }
-
-    // MARK: - Helpers
-
-    private var userName: String {
-        KeychainManager.shared.getUserId() ?? "이연세"
     }
 }

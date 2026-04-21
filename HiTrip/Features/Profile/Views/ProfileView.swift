@@ -14,6 +14,7 @@ struct ProfileView: View {
 
     @EnvironmentObject var router: AppRouter
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = ProfileViewModel()
 
     /// 로그아웃 확인 Alert
     @State private var showLogoutAlert = false
@@ -78,7 +79,10 @@ struct ProfileView: View {
                 }
             }
             .navigationDestination(isPresented: $showEditProfile) {
-                ProfileEditView()
+                ProfileEditView(viewModel: viewModel)
+            }
+            .onAppear {
+                viewModel.loadProfile()
             }
             .alert("로그아웃", isPresented: $showLogoutAlert) {
                 Button("로그아웃", role: .destructive) {
@@ -107,13 +111,13 @@ struct ProfileView: View {
             }
 
             // 이름
-            Text(userName)
+            Text(viewModel.userName)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
                 .padding(.top, 8)
 
             // 이메일
-            Text(userEmail)
+            Text(viewModel.userEmail)
                 .font(.system(size: 14))
                 .foregroundColor(HiTripColor.gray500)
         }
@@ -123,17 +127,17 @@ struct ProfileView: View {
 
     private var statsCard: some View {
         HStack(spacing: 0) {
-            statItem(title: "포인트", value: "50")
+            statItem(title: "포인트", value: viewModel.pointsText)
 
             Divider()
                 .frame(height: 40)
 
-            statItem(title: "여행", value: "40")
+            statItem(title: "여행", value: viewModel.tripCountText)
 
             Divider()
                 .frame(height: 40)
 
-            statItem(title: "버킷리스트", value: "200")
+            statItem(title: "버킷리스트", value: viewModel.bucketListCountText)
         }
         .padding(.vertical, 18)
         .background(Color.white)
@@ -227,13 +231,4 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Helpers
-
-    private var userName: String {
-        KeychainManager.shared.getUserId() ?? "이연세"
-    }
-
-    private var userEmail: String {
-        "hitrip@gmail.com"
-    }
 }
