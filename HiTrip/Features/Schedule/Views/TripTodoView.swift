@@ -1,14 +1,15 @@
 import SwiftUI
 
 // MARK: - TripTodoView
-/// 화면2: 할일 탭 — 체크리스트
+/// 할 일 탭 — 체크리스트
 ///
 /// 피그마 디자인:
-/// - 주간 캘린더 스트립 (월요일 시작)
-/// - "오늘 일정 준비" 섹션 체크리스트
-/// - "여행 준비 & 관리" 섹션 체크리스트
-/// - 각 항목: 체크 원 + 텍스트 + 더보기(...)
-/// - 섹션 상단에 "체크리스트를 추가하세요." placeholder
+/// - "✈️ 오늘 일정 준비" 섹션 (배경 #F4F3F9, radius 18)
+/// - "🧳 여행 준비 & 관리" 섹션
+/// - 각 항목: 체크 원(고정 22x22) + 텍스트 + 더보기(...)
+/// - "체크리스트를 추가하세요." placeholder
+///
+/// 주간 캘린더 스트립은 TripDetailView에서 공용으로 표시
 
 struct TripTodoView: View {
 
@@ -20,20 +21,16 @@ struct TripTodoView: View {
     @State private var editingTodoId: UUID?
     @State private var editingTodoText: String = ""
 
+    /// 섹션 헤더 배경색
+    private let sectionTagBackground = HiTripColor.sectionTagBackground
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // 주간 캘린더 스트립
-                WeekCalendarStripView(
-                    selectedDate: $viewModel.selectedDate,
-                    style: .mondayStart
-                )
-                .padding(.top, 8)
-
                 // "오늘 일정 준비" 섹션
                 todoSection(
                     title: "오늘 일정 준비",
-                    emoji: "🏖",
+                    emoji: "✈️",
                     section: .todayPrep,
                     todos: viewModel.todayPrepTodos
                 )
@@ -46,7 +43,7 @@ struct TripTodoView: View {
                     section: .travelPrep,
                     todos: viewModel.travelPrepTodos
                 )
-                .padding(.top, 20)
+                .padding(.top, 24)
 
                 Spacer().frame(height: 40)
             }
@@ -62,7 +59,7 @@ struct TripTodoView: View {
         todos: [TripTodo]
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 섹션 헤더 태그
+            // 섹션 헤더 태그 (pill, 배경 #F4F3F9, radius 18)
             HStack(spacing: 4) {
                 Text(emoji)
                     .font(.system(size: 13))
@@ -72,18 +69,16 @@ struct TripTodoView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(HiTripColor.gray100)
-            .cornerRadius(20)
-            .padding(.bottom, 12)
+            .background(sectionTagBackground)
+            .cornerRadius(18)
+            .padding(.bottom, 14)
 
             // "체크리스트를 추가하세요" placeholder + 추가 기능
             addTodoRow(section: section)
-                .padding(.bottom, 4)
 
             // 체크리스트 항목들
             ForEach(todos) { todo in
                 todoRow(todo)
-                    .padding(.vertical, 6)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -111,6 +106,7 @@ struct TripTodoView: View {
                             addingSection = nil
                         }
                 }
+                .padding(.vertical, 4)
             } else {
                 // placeholder 모드
                 Button {
@@ -125,6 +121,7 @@ struct TripTodoView: View {
                             .font(.system(size: 15))
                             .foregroundColor(HiTripColor.gray300)
                     }
+                    .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)
             }
@@ -135,19 +132,21 @@ struct TripTodoView: View {
 
     private func todoRow(_ todo: TripTodo) -> some View {
         HStack(spacing: 10) {
-            // 체크 원
+            // 체크 원 — 고정 프레임으로 위치 이동 방지
             Button {
                 viewModel.toggleTodo(todo.id)
             } label: {
-                if todo.isCompleted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(HiTripColor.primary800)
-                } else {
-                    Circle()
-                        .stroke(HiTripColor.gray300, lineWidth: 1.5)
-                        .frame(width: 22, height: 22)
+                ZStack {
+                    if todo.isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(HiTripColor.primary800)
+                    } else {
+                        Circle()
+                            .stroke(HiTripColor.gray300, lineWidth: 1.5)
+                    }
                 }
+                .frame(width: 22, height: 22)
             }
             .buttonStyle(.plain)
 
@@ -193,5 +192,6 @@ struct TripTodoView: View {
                     .frame(width: 28, height: 28)
             }
         }
+        .padding(.vertical, 4)
     }
 }

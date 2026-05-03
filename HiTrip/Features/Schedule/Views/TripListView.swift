@@ -87,7 +87,7 @@ struct TripListView: View {
             )
         }
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(24)
         .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
         .padding(.horizontal, 20)
         .padding(.top, 8)

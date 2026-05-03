@@ -13,8 +13,8 @@ final class TripDetailViewModel: ObservableObject {
     // MARK: - Tab
 
     enum DetailTab: String, CaseIterable {
-        case todo = "할일"
-        case calendar = "캘린더"
+        case mySchedule = "내 일정"
+        case todo = "할 일"
     }
 
     // MARK: - Store Reference
@@ -24,7 +24,7 @@ final class TripDetailViewModel: ObservableObject {
 
     // MARK: - Published State
 
-    @Published var selectedTab: DetailTab = .todo
+    @Published var selectedTab: DetailTab = .mySchedule
     @Published var trip: Trip
     @Published var selectedDate: Date = Date()
     @Published var displayedMonth: Date = Date()
@@ -55,6 +55,18 @@ final class TripDetailViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+    }
+
+    // MARK: - Trip: 선택 날짜에 해당하는 일정 목록
+
+    /// 선택된 날짜의 여행 일정 (전체 Store 기준)
+    var tripsForSelectedDate: [Trip] {
+        store.trips(for: selectedDate)
+    }
+
+    /// 전체 여행 일정 (날짜 무관)
+    var allTrips: [Trip] {
+        store.sortedTrips
     }
 
     // MARK: - Todo: Filtered by Date + Section

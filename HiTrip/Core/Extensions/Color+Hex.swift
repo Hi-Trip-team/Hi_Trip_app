@@ -121,6 +121,11 @@ enum HiTripColor {
     /// 읽음/성공 표시 (초록 체크)
     static let readCheck = Color(hex: "4CAF50")
 
+    // MARK: - Section Tag
+
+    /// #F4F3F9 — 체크리스트 섹션 태그 배경 (연보라)
+    static let sectionTagBackground = Color(hex: "F4F3F9")
+
     // MARK: - Dot Indicator (회원가입 플로우)
 
     /// 도트 인디케이터 비활성
