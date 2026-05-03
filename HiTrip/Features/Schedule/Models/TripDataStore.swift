@@ -95,6 +95,14 @@ final class TripDataStore: ObservableObject {
         trips.first { $0.id == id }
     }
 
+    /// 특정 날짜의 Trip 목록 (날짜 일치)
+    func trips(for date: Date) -> [Trip] {
+        let cal = Calendar.current
+        return trips
+            .filter { cal.isDate($0.date, inSameDayAs: date) }
+            .sorted { $0.date < $1.date }
+    }
+
     // MARK: - Todo: CRUD
 
     /// 특정 Trip + 날짜 + 섹션 필터

@@ -1,34 +1,27 @@
 import SwiftUI
 
 // MARK: - WeekCalendarStripView
-/// 주간 캘린더 스트립 — 화면1(최근 일정)과 화면2(할일)에서 공용
+/// 주간 캘린더 스트립 — 공용 컴포넌트
 ///
 /// 피그마 디자인:
-/// - 좌우 화살표로 주(week) 이동
-/// - 요일 라벨 (S M T W T F S 또는 월 화 수 목 금 토 일)
-/// - 날짜 숫자 — 선택된 날짜는 파란 원 배경
-///
-/// 사용:
-/// ```swift
-/// WeekCalendarStripView(
-///     selectedDate: $viewModel.selectedDate,
-///     style: .sundayStart   // 화면1: 일요일 시작
-/// )
-/// ```
+/// - 헤더: "10월 22일" + 좌우 화살표(< >)
+/// - 요일 라벨: S M T W T F S (일요일 시작)
+/// - 날짜 숫자: 선택된 날짜는 파란 둥근사각 배경 (radius 16)
+/// - 전체 카드: 흰색 배경, radius 24 (외부에서 적용)
 
 struct WeekCalendarStripView: View {
 
     @Binding var selectedDate: Date
 
     /// 주 시작 요일 스타일
-    var style: WeekStyle = .mondayStart
+    var style: WeekStyle = .sundayStart
 
     /// 날짜 탭 시 콜백 (nil이면 selectedDate 바인딩만 변경)
     var onDateTap: ((Date) -> Void)?
 
     enum WeekStyle {
-        case sundayStart   // 화면1: S M T W T F S
-        case mondayStart   // 화면2: 월 화 수 목 금 토 일
+        case sundayStart   // S M T W T F S
+        case mondayStart   // 월 화 수 목 금 토 일
     }
 
     /// 표시 중인 주의 기준 날짜
@@ -37,19 +30,24 @@ struct WeekCalendarStripView: View {
     private let calendar = Calendar.current
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             // 상단: 날짜 텍스트 + 좌우 화살표
             headerRow
 
-            // 요일 + 날짜 그리드
-            weekDaysRow
+            // 요일 라벨 + 날짜 숫자 (간격 좁게)
+            VStack(spacing: 4) {
+                weekdayLabels
+                weekDaysRow
+            }
+            .padding(.top, 16)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.vertical, 16)
     }
 
     // MARK: - Header
 
+    /// 피그마: "10월 22일" + < > 화살표
     private var headerRow: some View {
         HStack {
             Text(headerDateText)
@@ -74,46 +72,51 @@ struct WeekCalendarStripView: View {
         }
     }
 
+    // MARK: - Weekday Labels
+
+    /// 요일 라벨 행 (S M T W T F S)
+    private var weekdayLabels: some View {
+        HStack(spacing: 0) {
+            ForEach(weekDays, id: \.self) { date in
+                Text(dayLabel(for: date))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(HiTripColor.gray400)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
     // MARK: - Week Days Row
 
+    /// 날짜 숫자 행 — 선택된 날짜는 파란 RoundedRectangle(16)
     private var weekDaysRow: some View {
         HStack(spacing: 0) {
             ForEach(weekDays, id: \.self) { date in
-                VStack(spacing: 6) {
-                    // 요일 라벨
-                    Text(dayLabel(for: date))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(isToday(date) ? HiTripColor.primary800 : HiTripColor.gray400)
-
-                    // 날짜 숫자
-                    Text("\(calendar.component(.day, from: date))")
-                        .font(.system(size: 16, weight: isSelected(date) ? .bold : .medium))
-                        .foregroundColor(isSelected(date) ? .white : HiTripColor.textBlack)
-                        .frame(width: 36, height: 36)
-                        .background(
-                            Circle()
-                                .fill(isSelected(date) ? HiTripColor.primary800 : Color.clear)
-                        )
-                }
-                .frame(maxWidth: .infinity)
-                .onTapGesture {
-                    selectedDate = date
-                    onDateTap?(date)
-                }
+                Text("\(calendar.component(.day, from: date))")
+                    .font(.system(size: 16, weight: isSelected(date) ? .bold : .medium))
+                    .foregroundColor(isSelected(date) ? .white : HiTripColor.textBlack)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(isSelected(date) ? HiTripColor.primary800 : Color.clear)
+                    )
+                    .frame(maxWidth: .infinity)
+                    .onTapGesture {
+                        selectedDate = date
+                        onDateTap?(date)
+                    }
             }
         }
     }
 
     // MARK: - Helpers
 
-    /// 헤더에 표시할 날짜 텍스트 (예: "4월")
-    /// 표시 중인 주의 중간 날짜 기준으로 월 표시 — '>' 클릭 시 자동 변경
+    /// 헤더 날짜 텍스트 — 피그마: "10월 22일"
+    /// 선택된 날짜 기준으로 표시
     private var headerDateText: String {
-        let days = weekDays
-        // 주의 중간(4번째) 날짜 기준으로 월 표시
-        let referenceDate = days.isEmpty ? selectedDate : days[min(3, days.count - 1)]
-        let month = calendar.component(.month, from: referenceDate)
-        return "\(month)월"
+        let month = calendar.component(.month, from: selectedDate)
+        let day = calendar.component(.day, from: selectedDate)
+        return "\(month)월 \(day)일"
     }
 
     /// 현재 표시 중인 주의 7일 배열
@@ -145,11 +148,6 @@ struct WeekCalendarStripView: View {
             let weekday = calendar.component(.weekday, from: date)
             return symbols[weekday - 1]
         }
-    }
-
-    /// 오늘 날짜인지
-    private func isToday(_ date: Date) -> Bool {
-        calendar.isDateInToday(date)
     }
 
     /// 선택된 날짜인지
