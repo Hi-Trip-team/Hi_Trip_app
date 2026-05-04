@@ -13,6 +13,15 @@ import RxSwift
 
 protocol TripRepositoryProtocol {
 
+    // MARK: - TripPackage
+
+    /// 현재 사용자에게 배정된 여행 패키지 조회
+    /// (여행사가 등록 후 고객을 추가하면 해당 고객에게 노출)
+    func fetchCurrentPackage() -> Single<TripPackage?>
+
+    /// 전체 패키지 목록 (여행사 관리용)
+    func fetchPackages() -> Single<[TripPackage]>
+
     // MARK: - Trip
 
     /// 전체 여행 목록 조회

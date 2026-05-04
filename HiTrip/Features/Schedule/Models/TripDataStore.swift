@@ -21,6 +21,8 @@ final class TripDataStore: ObservableObject {
 
     // MARK: - Published Data
 
+    /// 현재 사용자에게 배정된 여행 패키지 (여행사 등록 데이터)
+    @Published var currentPackage: TripPackage?
     @Published var trips: [Trip] = []
     @Published var todos: [TripTodo] = []
     @Published var events: [TripEvent] = []
@@ -47,6 +49,15 @@ final class TripDataStore: ObservableObject {
 
     /// Repository에서 초기 데이터 로드
     private func loadInitialData() {
+        // 여행 패키지 로드 (여행사 등록 데이터)
+        repository.fetchCurrentPackage()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] package in
+                self?.currentPackage = package
+            })
+            .disposed(by: disposeBag)
+
+        // 개인 일정 로드
         repository.fetchTrips()
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] trips in
@@ -81,6 +92,44 @@ final class TripDataStore: ObservableObject {
                 self?.events.append(contentsOf: fetchedEvents)
             })
             .disposed(by: disposeBag)
+    }
+
+    // MARK: - Package: Dashboard Helpers
+
+    /// 전체 공지사항 (최신순)
+    var allNotices: [TripNotice] {
+        guard let pkg = currentPackage else { return [] }
+        return pkg.notices.sorted { $0.date > $1.date }
+    }
+
+    /// 대표 공지사항 (홈 메인 노출용)
+    var representativeNotice: TripNotice? {
+        guard let pkg = currentPackage else { return nil }
+        return pkg.notices.first { $0.isRepresentative }
+            ?? pkg.notices.sorted(by: { $0.date > $1.date }).first
+    }
+
+    /// 오늘의 공지사항
+    func todayNotices(for date: Date = Date()) -> [TripNotice] {
+        guard let pkg = currentPackage else { return [] }
+        let cal = Calendar.current
+        return pkg.notices.filter { cal.isDate($0.date, inSameDayAs: date) }
+    }
+
+    /// 오늘의 미션
+    func todayMissions(for date: Date = Date()) -> [TripMission] {
+        guard let pkg = currentPackage else { return [] }
+        let cal = Calendar.current
+        return pkg.missions.filter { cal.isDate($0.date, inSameDayAs: date) }
+    }
+
+    /// 오늘의 공식 일정 (여행사 등록)
+    func todayOfficialSchedules(for date: Date = Date()) -> [TripOfficialSchedule] {
+        guard let pkg = currentPackage else { return [] }
+        let cal = Calendar.current
+        return pkg.officialSchedules
+            .filter { cal.isDate($0.date, inSameDayAs: date) }
+            .sorted { $0.startTime < $1.startTime }
     }
 
     // MARK: - Trip: Read

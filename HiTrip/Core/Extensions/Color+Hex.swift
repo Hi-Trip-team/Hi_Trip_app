@@ -112,8 +112,13 @@ enum HiTripColor {
     static let buttonDisabledText = gray400
     /// 로고 텍스트 컬러
     static let logoText = secondary700
-    /// 스크린 기본 배경
-    static let screenBackground = gray100
+    /// 강조 링크 / 이동 링크 (#0C46C0)
+    static let accentLink = primary800
+    /// 스크린 기본 배경 #F9F9F9
+    static let screenBackground = Color(hex: "F9F9F9")
+
+    /// 카드 드롭 섀도우 컬러 #B4BCC91F (12% opacity)
+    static let cardShadow = Color(hex: "B4BCC9").opacity(0.12)
     /// 인풋 필드 배경
     static let inputBackground = Color.white
     /// 에러 (빨간 테두리, 경고 텍스트)

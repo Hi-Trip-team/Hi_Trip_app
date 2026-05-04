@@ -36,7 +36,7 @@ struct TripDetailView: View {
             // 탭 콘텐츠
             tabContent
         }
-        .background(Color.white)
+        .background(HiTripColor.screenBackground)
         .onAppear { viewModel.selectedTab = initialTab }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -51,15 +51,16 @@ struct TripDetailView: View {
 
     // MARK: - Calendar Card (탭 공용)
 
-    /// 주간 캘린더 카드 — 흰색 배경, radius 24
+    /// 주간 캘린더 카드 — 흰색 배경, radius 16, 디자인 스펙 shadow
     private var calendarCard: some View {
         WeekCalendarStripView(
             selectedDate: $viewModel.selectedDate,
             style: .sundayStart
         )
+        .padding(16)
         .background(Color.white)
-        .cornerRadius(24)
-        .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+        .cornerRadius(16)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.12), radius: 12, x: 0, y: 4)
     }
 
     // MARK: - Tab Selector
