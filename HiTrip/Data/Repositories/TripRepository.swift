@@ -12,12 +12,26 @@ final class MockTripRepository: TripRepositoryProtocol {
 
     // MARK: - In-Memory Storage
 
+    private var currentPackage: TripPackage?
     private var trips: [Trip] = []
     private var todos: [TripTodo] = []
     private var events: [TripEvent] = []
 
     init() {
         loadMockData()
+    }
+
+    // MARK: - TripPackage
+
+    func fetchCurrentPackage() -> Single<TripPackage?> {
+        .just(currentPackage)
+    }
+
+    func fetchPackages() -> Single<[TripPackage]> {
+        if let pkg = currentPackage {
+            return .just([pkg])
+        }
+        return .just([])
     }
 
     // MARK: - Trip
@@ -93,6 +107,73 @@ final class MockTripRepository: TripRepositoryProtocol {
         let today = now
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) ?? now
         let dayAfter = calendar.date(byAdding: .day, value: 2, to: now) ?? now
+
+        // ── TripPackage (여행사 등록 데이터) ──────────────────
+
+        let packageStart = calendar.date(byAdding: .day, value: -2, to: now) ?? now
+        let packageEnd = calendar.date(byAdding: .day, value: 3, to: now) ?? now
+
+        currentPackage = TripPackage(
+            name: "제주 힐링여행",
+            startDate: packageStart,
+            endDate: packageEnd,
+            destination: "제주",
+            totalParticipants: 20,
+            currentParticipants: 18,
+            weatherDescription: "맑음 22°C",
+            notices: [
+                TripNotice(title: "집합 안내", content: "오전 9시 로비 집합 — 우산 꼭 챙겨주세요!", date: today, isImportant: true, isRepresentative: true),
+                TripNotice(title: "준비물 안내", content: "내일 해변 투어 준비물: 선크림, 모자, 수건 필수!", date: today),
+                TripNotice(title: "식사 안내", content: "점심은 12시 30분 한림 맛집에서 단체 식사입니다.", date: today),
+                TripNotice(title: "해변 투어", content: "내일 오전 9시 해변 투어 출발합니다. 편한 신발 착용해주세요.", date: tomorrow),
+                TripNotice(title: "귀국 안내", content: "마지막 날 체크아웃은 11시까지입니다.", date: dayAfter)
+            ],
+            missions: [
+                TripMission(content: "제주 명소 3곳 방문하기", date: today),
+                TripMission(content: "현지 맛집에서 사진 남기기", date: tomorrow)
+            ],
+            officialSchedules: [
+                TripOfficialSchedule(
+                    emoji: "🏠",
+                    title: "숙소로 이동",
+                    startTime: calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today) ?? now,
+                    endTime: calendar.date(bySettingHour: 16, minute: 0, second: 0, of: today) ?? now,
+                    date: today
+                ),
+                TripOfficialSchedule(
+                    emoji: "🌅",
+                    title: "자유 시간",
+                    startTime: calendar.date(bySettingHour: 16, minute: 0, second: 0, of: today) ?? now,
+                    endTime: calendar.date(bySettingHour: 23, minute: 0, second: 0, of: today) ?? now,
+                    date: today
+                ),
+                TripOfficialSchedule(
+                    emoji: "🏖️",
+                    title: "해변 투어",
+                    startTime: calendar.date(bySettingHour: 9, minute: 0, second: 0, of: tomorrow) ?? now,
+                    endTime: calendar.date(bySettingHour: 12, minute: 0, second: 0, of: tomorrow) ?? now,
+                    date: tomorrow
+                ),
+                TripOfficialSchedule(
+                    emoji: "🍽️",
+                    title: "점심 식사",
+                    startTime: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: tomorrow) ?? now,
+                    endTime: calendar.date(bySettingHour: 14, minute: 0, second: 0, of: tomorrow) ?? now,
+                    date: tomorrow
+                )
+            ],
+            nearbySpots: [
+                TripNearbySpot(name: "협재 해수욕장", distance: "도보 8분", category: "beach"),
+                TripNearbySpot(name: "한림공원", distance: "도보 11분", category: "leaf"),
+                TripNearbySpot(name: "금오름", distance: "차량 14분", category: "mountain"),
+                TripNearbySpot(name: "금능 해수욕장", distance: "도보 9분", category: "water")
+            ],
+            translations: [
+                TripTranslation(original: "화장실 어디예요?", translated: "Where is the restroom?", category: "기본"),
+                TripTranslation(original: "얼마예요?", translated: "How much is it?", category: "쇼핑"),
+                TripTranslation(original: "도와주세요", translated: "Please help me", category: "긴급")
+            ]
+        )
 
         // ── Trips ──────────────────────────────────
 

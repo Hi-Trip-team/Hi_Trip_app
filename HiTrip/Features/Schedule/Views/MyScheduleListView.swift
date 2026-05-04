@@ -64,9 +64,7 @@ struct MyScheduleListView: View {
                     tripCardRow(trip)
                 }
                 .buttonStyle(.plain)
-                .background(Color.white)
-                .cornerRadius(16)
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+                .hiTripCard()
             }
         }
     }
