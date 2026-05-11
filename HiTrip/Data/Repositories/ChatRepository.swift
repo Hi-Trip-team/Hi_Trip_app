@@ -14,10 +14,10 @@ import RxSwift
 /// - chatRooms: [ChatRoom] — 채팅방 목록
 /// - messages: [UUID: [Message]] — 채팅방 ID별 메시지 배열 (Dictionary)
 ///
-/// Dictionary를 쓰는 이유:
-/// - 채팅방별로 메시지를 따로 관리해야 함
-/// - messages[chatRoomId]로 해당 방의 메시지만 빠르게 조회 가능
-/// - 배열 하나에 전부 넣으면 매번 filter해야 해서 비효율
+/// Mock 데이터 설계:
+/// - 여행사가 그룹 생성 시 자동으로 2개 채팅방 개설:
+///   1. 단체톡방 (해당 여행 그룹 전원)
+///   2. 담당 가이드 개인톡
 
 final class ChatRepository: ChatRepositoryProtocol {
 
@@ -27,8 +27,140 @@ final class ChatRepository: ChatRepositoryProtocol {
     private var chatRooms: [ChatRoom] = []
 
     /// 채팅방 ID → 메시지 배열 매핑
-    /// 예: [roomA의 UUID: [메시지1, 메시지2], roomB의 UUID: [메시지3]]
     private var messages: [UUID: [Message]] = [:]
+
+    // MARK: - Init (Mock 시드 데이터)
+
+    init() {
+        seedMockData()
+    }
+
+    /// Mock 채팅방 + 메시지 시드
+    private func seedMockData() {
+        let cal = Calendar.current
+        let now = Date()
+
+        // --- 1) 단체톡방 ---
+        let groupRoomId = UUID()
+        let groupRoom = ChatRoom(
+            id: groupRoomId,
+            participantName: "제주 힐링여행 단체톡방",
+            participantType: "group",
+            isGroupChat: true,
+            lastMessage: "내일 일정 변경 공지드립니다",
+            lastMessageDate: cal.date(byAdding: .minute, value: -15, to: now) ?? now,
+            unreadCount: 3,
+            isOnline: false,
+            createdAt: cal.date(byAdding: .day, value: -5, to: now) ?? now
+        )
+
+        let groupMessages: [Message] = [
+            Message(
+                chatRoomId: groupRoomId,
+                senderId: "guide_lee",
+                senderName: "이연세 가이드",
+                content: "안녕하세요! 제주 힐링여행 가이드 이연세입니다 😊",
+                sentAt: cal.date(byAdding: .hour, value: -3, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: groupRoomId,
+                senderId: "guide_lee",
+                senderName: "이연세 가이드",
+                content: "오늘 일정 안내드립니다. 9시 호텔 로비 집합입니다!",
+                sentAt: cal.date(byAdding: .hour, value: -2, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: groupRoomId,
+                senderId: "tourist_kim",
+                senderName: "김민수",
+                content: "네 알겠습니다!",
+                sentAt: cal.date(byAdding: .minute, value: -90, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: groupRoomId,
+                senderId: "guest",
+                senderName: "사용자",
+                content: "감사합니다 가이드님",
+                sentAt: cal.date(byAdding: .minute, value: -60, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: groupRoomId,
+                senderId: "guide_lee",
+                senderName: "이연세 가이드",
+                content: "내일 일정 변경 공지드립니다",
+                sentAt: cal.date(byAdding: .minute, value: -15, to: now) ?? now,
+                isRead: false
+            )
+        ]
+
+        // --- 2) 가이드 개인톡 ---
+        let guideRoomId = UUID()
+        let guideRoom = ChatRoom(
+            id: guideRoomId,
+            participantName: "이연세 가이드",
+            participantType: "guide",
+            isGroupChat: false,
+            lastMessage: "혹시 알레르기 있으신 음식 있으실까요?",
+            lastMessageDate: cal.date(byAdding: .minute, value: -30, to: now) ?? now,
+            unreadCount: 1,
+            isOnline: true,
+            createdAt: cal.date(byAdding: .day, value: -5, to: now) ?? now
+        )
+
+        let guideMessages: [Message] = [
+            Message(
+                chatRoomId: guideRoomId,
+                senderId: "guide_lee",
+                senderName: "이연세 가이드",
+                content: "안녕하세요! 담당 가이드 이연세입니다.",
+                sentAt: cal.date(byAdding: .hour, value: -4, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: guideRoomId,
+                senderId: "guide_lee",
+                senderName: "이연세 가이드",
+                content: "여행 중 궁금하신 점이나 불편한 사항이 있으시면 언제든 연락주세요 😊",
+                sentAt: cal.date(byAdding: .hour, value: -4, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: guideRoomId,
+                senderId: "guest",
+                senderName: "사용자",
+                content: "네 감사합니다! 내일 점심 장소는 어디인가요?",
+                sentAt: cal.date(byAdding: .hour, value: -1, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: guideRoomId,
+                senderId: "guide_lee",
+                senderName: "이연세 가이드",
+                content: "내일 점심은 제주 흑돼지 맛집으로 예약해두었습니다!",
+                sentAt: cal.date(byAdding: .minute, value: -45, to: now) ?? now,
+                isRead: true
+            ),
+            Message(
+                chatRoomId: guideRoomId,
+                senderId: "guide_lee",
+                senderName: "이연세 가이드",
+                content: "혹시 알레르기 있으신 음식 있으실까요?",
+                sentAt: cal.date(byAdding: .minute, value: -30, to: now) ?? now,
+                isRead: false
+            )
+        ]
+
+        // 저장
+        chatRooms = [groupRoom, guideRoom]
+        messages = [
+            groupRoomId: groupMessages,
+            guideRoomId: guideMessages
+        ]
+    }
 
     // MARK: - ChatRoom CRUD
 
@@ -36,7 +168,7 @@ final class ChatRepository: ChatRepositoryProtocol {
     func createRoom(room: ChatRoom) -> Single<ChatRoom> {
         return Single.create { [weak self] single in
             self?.chatRooms.append(room)
-            self?.messages[room.id] = []  // 빈 메시지 배열 초기화
+            self?.messages[room.id] = []
             single(.success(room))
             return Disposables.create()
         }
@@ -63,7 +195,7 @@ final class ChatRepository: ChatRepositoryProtocol {
 
             if let index = self.chatRooms.firstIndex(where: { $0.id == id }) {
                 self.chatRooms.remove(at: index)
-                self.messages.removeValue(forKey: id)  // 메시지도 함께 삭제
+                self.messages.removeValue(forKey: id)
                 single(.success(()))
             } else {
                 single(.failure(ChatError.roomNotFound))
@@ -75,8 +207,6 @@ final class ChatRepository: ChatRepositoryProtocol {
     // MARK: - Message CRUD
 
     /// 메시지 전송
-    /// 1. 메시지를 해당 채팅방 배열에 추가
-    /// 2. 채팅방의 lastMessage, lastMessageDate 갱신
     func sendMessage(message: Message) -> Single<Message> {
         return Single.create { [weak self] single in
             guard let self else {
@@ -120,7 +250,6 @@ final class ChatRepository: ChatRepositoryProtocol {
                 return Disposables.create()
             }
 
-            // 메시지 읽음 처리
             if var roomMessages = self.messages[chatRoomId] {
                 for i in 0..<roomMessages.count {
                     roomMessages[i].isRead = true
@@ -128,7 +257,6 @@ final class ChatRepository: ChatRepositoryProtocol {
                 self.messages[chatRoomId] = roomMessages
             }
 
-            // 채팅방 unreadCount 초기화
             if let roomIndex = self.chatRooms.firstIndex(where: { $0.id == chatRoomId }) {
                 self.chatRooms[roomIndex].unreadCount = 0
             }

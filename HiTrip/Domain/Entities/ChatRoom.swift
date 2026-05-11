@@ -20,21 +20,21 @@ import Foundation
 /// Codable 채택 이유:
 /// - 추후 서버 JSON ↔ Swift 변환용
 
-struct ChatRoom: Identifiable, Codable, Equatable {
+struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
 
     /// 고유 식별자
     let id: UUID
 
-    /// 상대방 이름 — 채팅 목록에 표시
-    /// 예: "김안내", "박관광"
+    /// 채팅방 이름 — 단체톡: "여행 단체톡방", 개인톡: 상대방 이름
     var participantName: String
 
-    /// 상대방 유형 — "guide" 또는 "tourist"
-    /// 목록에서 안내사/관광객 배지 표시에 사용
+    /// 채팅방 유형 — "guide"(가이드 개인톡) 또는 "group"(단체톡방)
     var participantType: String
 
+    /// 단체톡방 여부
+    var isGroupChat: Bool
+
     /// 마지막 메시지 내용 — 목록 미리보기
-    /// 예: "내일 9시에 만나요!"
     var lastMessage: String
 
     /// 마지막 메시지 시간 — 목록 정렬 기준
@@ -43,6 +43,9 @@ struct ChatRoom: Identifiable, Codable, Equatable {
     /// 읽지 않은 메시지 수 — 뱃지 숫자 표시
     var unreadCount: Int
 
+    /// 온라인 상태 (개인톡에서만 사용)
+    var isOnline: Bool
+
     /// 채팅방 생성 시간
     let createdAt: Date
 
@@ -50,18 +53,22 @@ struct ChatRoom: Identifiable, Codable, Equatable {
     init(
         id: UUID = UUID(),
         participantName: String,
-        participantType: String,
+        participantType: String = "guide",
+        isGroupChat: Bool = false,
         lastMessage: String = "",
         lastMessageDate: Date = Date(),
         unreadCount: Int = 0,
+        isOnline: Bool = false,
         createdAt: Date = Date()
     ) {
         self.id = id
         self.participantName = participantName
         self.participantType = participantType
+        self.isGroupChat = isGroupChat
         self.lastMessage = lastMessage
         self.lastMessageDate = lastMessageDate
         self.unreadCount = unreadCount
+        self.isOnline = isOnline
         self.createdAt = createdAt
     }
 }
