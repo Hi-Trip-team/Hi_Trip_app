@@ -162,6 +162,7 @@ final class TripDataStore: ObservableObject {
             $0.section == section &&
             cal.isDate($0.date, inSameDayAs: date)
         }
+        .sorted { !$0.isCompleted && $1.isCompleted }
     }
 
     /// 특정 날짜의 전체 투두 (모든 Trip)
