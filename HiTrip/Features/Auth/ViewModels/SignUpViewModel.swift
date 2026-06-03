@@ -124,37 +124,27 @@ final class SignUpViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        // TODO: 백엔드 연동 시 실제 닉네임 중복 확인 API 호출
-        // 현재는 Mock으로 항상 사용 가능 처리 (UI 확인용)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLoading = false
-            self?.isNicknameChecked = true
-            self?.isNicknameAvailable = true
-            self?.nicknameMessage = "사용 가능한 닉네임입니다."
-        }
-
-        // ── 원본 API 호출 코드 (백엔드 연동 시 위 Mock 삭제 후 아래 주석 해제) ──
-        // signUpUseCase.checkNickname(nickname)
-        //     .observe(on: MainScheduler.instance)
-        //     .subscribe(
-        //         onSuccess: { [weak self] response in
-        //             self?.isLoading = false
-        //             self?.isNicknameChecked = true
-        //             self?.isNicknameAvailable = response.isAvailable
-        //             if response.isAvailable {
-        //                 self?.nicknameMessage = "사용 가능한 닉네임입니다."
-        //             } else {
-        //                 self?.nicknameMessage = "이미 사용 중인 닉네임입니다."
-        //             }
-        //         },
-        //         onFailure: { [weak self] error in
-        //             self?.isLoading = false
-        //             self?.isNicknameChecked = false
-        //             self?.isNicknameAvailable = false
-        //             self?.nicknameMessage = error.localizedDescription
-        //         }
-        //     )
-        //     .disposed(by: disposeBag)
+        signUpUseCase.checkNickname(nickname)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] response in
+                    self?.isLoading = false
+                    self?.isNicknameChecked = true
+                    self?.isNicknameAvailable = response.isAvailable
+                    if response.isAvailable {
+                        self?.nicknameMessage = "사용 가능한 닉네임입니다."
+                    } else {
+                        self?.nicknameMessage = "이미 사용 중인 닉네임입니다."
+                    }
+                },
+                onFailure: { [weak self] error in
+                    self?.isLoading = false
+                    self?.isNicknameChecked = false
+                    self?.isNicknameAvailable = false
+                    self?.nicknameMessage = error.localizedDescription
+                }
+            )
+            .disposed(by: disposeBag)
     }
 
     // MARK: - Step 2: 아이디 중복 확인
@@ -230,33 +220,24 @@ final class SignUpViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        // TODO: 백엔드 연동 시 실제 회원가입 API 호출
-        // 현재는 Mock으로 항상 성공 처리 (UI 확인용)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLoading = false
-            self?.signUpCompleted = true
-            self?.currentStep = .complete
-        }
-
-        // ── 원본 API 호출 코드 (백엔드 연동 시 위 Mock 삭제 후 아래 주석 해제) ──
-        // signUpUseCase.execute(
-        //     nickname: nickname,
-        //     userId: userId,
-        //     password: password,
-        //     passwordConfirm: passwordConfirm
-        // )
-        // .observe(on: MainScheduler.instance)
-        // .subscribe(
-        //     onSuccess: { [weak self] _ in
-        //         self?.isLoading = false
-        //         self?.signUpCompleted = true
-        //         self?.currentStep = .complete
-        //     },
-        //     onFailure: { [weak self] error in
-        //         self?.isLoading = false
-        //         self?.errorMessage = error.localizedDescription
-        //     }
-        // )
-        // .disposed(by: disposeBag)
+        signUpUseCase.execute(
+            nickname: nickname,
+            userId: userId,
+            password: password,
+            passwordConfirm: passwordConfirm
+        )
+        .observe(on: MainScheduler.instance)
+        .subscribe(
+            onSuccess: { [weak self] _ in
+                self?.isLoading = false
+                self?.signUpCompleted = true
+                self?.currentStep = .complete
+            },
+            onFailure: { [weak self] error in
+                self?.isLoading = false
+                self?.errorMessage = error.localizedDescription
+            }
+        )
+        .disposed(by: disposeBag)
     }
 }

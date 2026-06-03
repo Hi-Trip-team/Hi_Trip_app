@@ -74,7 +74,7 @@ final class SignUpUseCase {
         guard !password.isEmpty else {
             return .error(SignUpError.emptyPassword)
         }
-        guard password.count >= 6 else {
+        guard password.count >= 8 else {
             return .error(SignUpError.passwordTooShort)
         }
 
@@ -114,7 +114,7 @@ enum SignUpError: LocalizedError, Equatable {
         case .emptyUserId:       return "아이디를 입력해주세요."
         case .userIdTooShort:    return "아이디는 4자 이상이어야 합니다."
         case .emptyPassword:     return "비밀번호를 입력해주세요."
-        case .passwordTooShort:  return "비밀번호는 6자 이상이어야 합니다."
+        case .passwordTooShort:  return "비밀번호는 8자 이상이어야 합니다."
         case .passwordMismatch:  return "비밀번호가 일치하지 않습니다."
         case .serverError(let msg): return msg
         }

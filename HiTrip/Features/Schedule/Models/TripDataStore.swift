@@ -35,17 +35,31 @@ final class TripDataStore: ObservableObject {
 
     // MARK: - Init
 
-    /// 프로덕션 (Mock Repository)
+    /// 프로덕션 — APIEnvironment에 따라 Mock/Remote 자동 전환
     private init() {
-        self.repository = MockTripRepository()
+        self.networkService = .shared
+        self.scheduleRepository = RemoteScheduleRepository(networkService: .shared)
+        if APIEnvironment.current.useMock {
+            self.repository = MockTripRepository()
+        } else {
+            self.repository = RemoteTripRepository(networkService: .shared)
+        }
         loadInitialData()
     }
 
     /// 테스트용 — 커스텀 Repository 주입
     init(repository: TripRepositoryProtocol) {
+        self.networkService = .shared
+        self.scheduleRepository = RemoteScheduleRepository(networkService: .shared)
         self.repository = repository
         loadInitialData()
     }
+
+    /// 스케줄 Repository (서버 공식 일정 조회용)
+    private let scheduleRepository: RemoteScheduleRepository
+
+    /// NetworkService (추천 장소 등 직접 호출용)
+    private let networkService: NetworkService
 
     /// Repository에서 초기 데이터 로드
     private func loadInitialData() {
@@ -54,6 +68,12 @@ final class TripDataStore: ObservableObject {
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] package in
                 self?.currentPackage = package
+
+                // 패키지 로드 후 서버 스케줄 + 추천 장소도 가져오기
+                if let pkg = package {
+                    self?.loadServerSchedules()
+                    self?.loadServerRecommendations()
+                }
             })
             .disposed(by: disposeBag)
 
@@ -62,11 +82,65 @@ final class TripDataStore: ObservableObject {
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] trips in
                 self?.trips = trips
-                // 각 Trip의 Todo/Event도 로드
                 for trip in trips {
                     self?.loadTodos(for: trip.id)
                     self?.loadEvents(for: trip.id)
                 }
+            })
+            .disposed(by: disposeBag)
+    }
+
+    // MARK: - Server Schedule 로드
+
+    /// 서버에서 공식 일정 가져와서 currentPackage.officialSchedules에 반영
+    func loadServerSchedules() {
+        // 서버 Trip 목록에서 첫 번째(활성) Trip의 ID를 사용
+        networkService.request(.tripsList(), type: [TripDTO].self)
+            .observe(on: MainScheduler.instance)
+            .flatMap { [weak self] dtos -> Single<[ScheduleDTO]> in
+                guard let self,
+                      let activeTripId = dtos.first(where: { $0.status == "ongoing" })?.id ?? dtos.first?.id else {
+                    return .just([])
+                }
+                // activeTripPk 설정 (ScheduleViewModel에서도 사용)
+                self.scheduleRepository.activeTripPk = activeTripId
+                return self.networkService.request(.schedulesList(tripPk: activeTripId), type: [ScheduleDTO].self)
+            }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] scheduleDTOs in
+                guard let self, var pkg = self.currentPackage else { return }
+
+                // 일차별로 그룹화하여 날짜 계산
+                let schedules = scheduleDTOs.compactMap { dto -> TripOfficialSchedule? in
+                    let dayOffset = (dto.dayNumber ?? 1) - 1
+                    let scheduleDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: pkg.startDate) ?? pkg.startDate
+                    return dto.toOfficialSchedule(for: scheduleDate)
+                }
+
+                pkg.officialSchedules = schedules
+                self.currentPackage = pkg
+                print("✅ [TripDataStore] 서버 스케줄 \(schedules.count)개 로드 완료")
+            }, onFailure: { error in
+                print("⚠️ [TripDataStore] 서버 스케줄 로드 실패: \(error.localizedDescription)")
+            })
+            .disposed(by: disposeBag)
+    }
+
+    // MARK: - Server Recommendations 로드
+
+    /// 서버에서 AI 추천 장소 가져와서 currentPackage.nearbySpots에 반영
+    func loadServerRecommendations() {
+        networkService.request(.recommendationsList(), type: [RecommendationDTO].self)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] dtos in
+                guard let self, var pkg = self.currentPackage else { return }
+
+                let spots = dtos.map { $0.toNearbySpot() }
+                pkg.nearbySpots = spots
+                self.currentPackage = pkg
+                print("✅ [TripDataStore] 추천 장소 \(spots.count)개 로드 완료")
+            }, onFailure: { error in
+                print("⚠️ [TripDataStore] 추천 장소 로드 실패: \(error.localizedDescription)")
             })
             .disposed(by: disposeBag)
     }

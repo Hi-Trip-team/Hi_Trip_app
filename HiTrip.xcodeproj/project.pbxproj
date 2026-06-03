@@ -27,9 +27,22 @@
 		917DC0572F67DDA500D5DAA8 /* HiTripTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HiTripTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		917736B82FD0370300DAF483 /* Exceptions for "HiTrip" folder in "HiTrip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 917DBFCA2F557C9D00D5DAA8 /* HiTrip */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		917DBFCD2F557C9D00D5DAA8 /* HiTrip */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				917736B82FD0370300DAF483 /* Exceptions for "HiTrip" folder in "HiTrip" target */,
+			);
 			path = HiTrip;
 			sourceTree = "<group>";
 		};
@@ -355,6 +368,7 @@
 				DEVELOPMENT_TEAM = SDBJF5F47N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HiTrip/Info.plist;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "주변 관광지 검색을 위해 위치 정보를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -392,6 +406,7 @@
 				DEVELOPMENT_TEAM = SDBJF5F47N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HiTrip/Info.plist;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "주변 관광지 검색을 위해 위치 정보를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

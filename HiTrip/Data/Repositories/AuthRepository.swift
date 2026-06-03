@@ -18,11 +18,13 @@ import RxSwift
 /// - 로그인 성공 시 Keychain에 토큰/유저 정보 자동 저장
 /// - UseCase는 이 구현체를 모르고, Protocol만 알고 호출
 ///
-/// 면접 포인트:
-/// "Repository 패턴의 장점은 무엇인가요?"
-/// → "데이터 소스(네트워크, 로컬DB, 캐시)를 추상화하여
-///    UseCase가 구체적인 구현에 의존하지 않게 합니다.
-///    나중에 CoreData 캐싱을 추가해도 UseCase 코드는 변경 불필요합니다."
+/// API 연동 현황:
+/// - login: POST /api/auth/login/ → AuthLoginResponse (token/key 기반)
+/// - register: POST /api/auth/register/ → ProfileDTO
+/// - profile: GET /api/auth/profile/ → ProfileDTO
+/// - logout: POST /api/auth/logout/
+/// - refreshToken: 서버 미지원 → 기존 토큰 재사용 fallback
+/// - checkNickname: 서버 미지원 → 항상 사용 가능 반환
 
 final class AuthRepository: AuthRepositoryProtocol {
 
@@ -41,45 +43,85 @@ final class AuthRepository: AuthRepositoryProtocol {
 
     /// 로그인 API 호출 + 토큰 자동 저장
     ///
-    /// .do(onSuccess:) 사용 이유:
-    /// - .map은 값을 변환할 때, .do는 부수효과(side effect)를 실행할 때 사용
-    /// - 토큰 저장은 값 변환이 아닌 부수효과이므로 .do가 적합
-    /// - [weak self]로 메모리 누수 방지
+    /// 실제 API: POST /api/auth/login/
+    /// 응답: AuthLoginResponse { token, key, sessionid }
+    /// → 기존 LoginResponse로 변환하여 UseCase/ViewModel 코드 변경 최소화
     func login(request: LoginRequest) -> Single<LoginResponse> {
         let endpoint = APIEndpoint.login(
-            id: request.id,
+            username: request.id,
             password: request.password
         )
 
-        return networkService.request(endpoint, type: LoginResponse.self)
-            .do(onSuccess: { [weak self] response in
-                // 로그인 성공 시 Keychain에 토큰 + 유저 정보 저장
-                self?.keychain.saveToken(response.accessToken)
-                self?.keychain.saveRefreshToken(response.refreshToken)
-                self?.keychain.saveUserId(response.user.id)
-                self?.keychain.saveUserType(response.user.userType.rawValue)
-            })
+        return networkService.request(endpoint, type: AuthLoginResponse.self)
+            .map { [weak self] authResponse in
+                guard let self else { throw HiTripError.invalidResponse }
+
+                // 1) 토큰 저장 (토큰 기반 인증인 경우)
+                let token = authResponse.token ?? authResponse.key ?? "session-auth"
+                self.keychain.saveToken(token)
+
+                // 2) ✅ 서버 UserDetail 정보를 Keychain에 저장
+                let displayName = authResponse.displayName
+                let displayEmail = authResponse.displayEmail
+
+                self.keychain.saveUserName(displayName)
+                self.keychain.saveUserEmail(displayEmail)
+
+                if let userId = authResponse.id {
+                    self.keychain.saveUserId(String(userId))
+                }
+                if let role = authResponse.role {
+                    self.keychain.saveUserType(role)
+                }
+
+                print("✅ [Auth] 유저 정보 저장: name=\(displayName), email=\(displayEmail), role=\(authResponse.role ?? "none")")
+
+                // 3) 기존 LoginResponse 형태로 변환 (UseCase/ViewModel 호환)
+                let userType: UserType = (authResponse.role == "super_admin" || authResponse.role == "coordinator") ? .guide : .tourist
+
+                let userInfo = UserInfo(
+                    id: authResponse.id.map(String.init) ?? "0",
+                    name: displayName,
+                    userType: userType,
+                    phone: authResponse.phone,
+                    country: nil
+                )
+                return LoginResponse(
+                    accessToken: token,
+                    refreshToken: token,
+                    user: userInfo
+                )
+            }
     }
 
     // MARK: - 토큰 갱신
 
-    /// Refresh Token으로 새 Access Token 발급
-    ///
-    /// 호출 시점: Access Token 만료 시 (HTTP 401 응답)
-    /// 동작: Keychain의 Refresh Token → 서버에 갱신 요청 → 새 토큰 저장
+    /// Refresh Token 갱신
+    /// 현재 서버에 refresh 엔드포인트가 없으므로,
+    /// 기존 토큰이 있으면 그대로 반환 (세션 기반 인증)
     func refreshToken() -> Single<LoginResponse> {
-        guard let token = keychain.getRefreshToken() else {
-            return .error(LoginError.invalidCredentials)
+        guard let token = keychain.getToken() else {
+            return .error(HiTripError.unauthorized(
+                ServerErrorDetail(message: "저장된 인증 정보가 없습니다.", fieldErrors: [:], rawBody: nil, statusCode: 401)
+            ))
         }
 
-        return networkService.request(
-            APIEndpoint.refreshToken(token: token),
-            type: LoginResponse.self
-        )
-        .do(onSuccess: { [weak self] response in
-            self?.keychain.saveToken(response.accessToken)
-            self?.keychain.saveRefreshToken(response.refreshToken)
-        })
+        // 서버에 refresh API가 없으므로 기존 토큰으로 프로필 조회하여 유효성 확인
+        return networkService.request(APIEndpoint.profile(), type: ProfileDTO.self)
+            .map { profileDTO in
+                let user = profileDTO.toUser()
+                return LoginResponse(
+                    accessToken: token,
+                    refreshToken: token,
+                    user: UserInfo(
+                        id: user.id.uuidString,
+                        name: user.nickname,
+                        userType: .tourist,
+                        phone: nil,
+                        country: nil
+                    )
+                )
+            }
     }
 
     // MARK: - 토큰 조회
@@ -92,26 +134,61 @@ final class AuthRepository: AuthRepositoryProtocol {
 
     // MARK: - 로그아웃
 
-    /// Keychain의 모든 인증 데이터 삭제
+    /// 서버 로그아웃 호출 + Keychain 데이터 삭제
     func logout() {
+        // 서버에 로그아웃 알림 (실패해도 로컬은 삭제)
+        _ = networkService.request(APIEndpoint.logout(), type: EmptyResponse.self)
+            .subscribe()
         keychain.clearAll()
     }
 
     // MARK: - 닉네임 중복 확인
 
+    /// 현재 서버에 닉네임 중복 확인 API가 없음
+    /// → 항상 사용 가능으로 반환 (서버 추가 시 연동 예정)
     func checkNickname(_ nickname: String) -> Single<NicknameCheckResponse> {
-        let endpoint = APIEndpoint.checkNickname(nickname)
-        return networkService.request(endpoint, type: NicknameCheckResponse.self)
+        return .just(NicknameCheckResponse(isAvailable: true, message: nil))
     }
 
     // MARK: - 회원가입
 
+    /// 회원가입 API: POST /api/auth/register/
+    /// 서버 응답(ProfileDTO)을 기존 SignUpResponse로 변환
     func signUp(request: SignUpRequest) -> Single<SignUpResponse> {
-        let endpoint = APIEndpoint.signUp(
-            nickname: request.nickname,
-            userId: request.userId,
-            password: request.password
+        let endpoint = APIEndpoint.register(
+            username: request.userId,
+            password: request.password,
+            email: "\(request.userId)@hitrip.app"  // 이메일 필수 → userId 기반 자동 생성
         )
-        return networkService.request(endpoint, type: SignUpResponse.self)
+
+        print("📤 [Auth] 회원가입 요청: username=\(request.userId), email=\(request.userId)@hitrip.app")
+
+        return networkService.request(endpoint, type: ProfileDTO.self)
+            .do(onSuccess: { dto in
+                print("✅ [Auth] 회원가입 성공: \(dto)")
+            }, onError: { error in
+                print("❌ [Auth] 회원가입 실패: \(error)")
+            })
+            .map { [weak self] profileDTO in
+                let user = profileDTO.toUser()
+
+                // ✅ 회원가입 후에도 유저 정보를 Keychain에 저장
+                self?.keychain.saveUserName(user.nickname)
+                self?.keychain.saveUserEmail(user.email)
+                if let id = profileDTO.id {
+                    self?.keychain.saveUserId(String(id))
+                }
+
+                return SignUpResponse(
+                    message: "회원가입이 완료되었습니다.",
+                    user: UserInfo(
+                        id: profileDTO.id.map(String.init) ?? user.id.uuidString,
+                        name: user.nickname,
+                        userType: .tourist,
+                        phone: profileDTO.phone,
+                        country: nil
+                    )
+                )
+            }
     }
 }

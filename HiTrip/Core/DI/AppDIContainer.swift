@@ -48,9 +48,13 @@ final class AppDIContainer {
         AuthRepository(networkService: networkService)
     }()
 
-    /// 일정 Repository — 현재 메모리 저장, 나중에 서버 연동으로 교체
+    /// 일정 Repository — 환경에 따라 Mock ↔ Remote 전환
     private lazy var scheduleRepository: ScheduleRepositoryProtocol = {
-        ScheduleRepository()
+        if APIEnvironment.current.useMock {
+            return ScheduleRepository()
+        } else {
+            return RemoteScheduleRepository(networkService: networkService)
+        }
     }()
 
     /// 채팅 Repository — 현재 메모리 저장, 나중에 WebSocket으로 교체
@@ -63,10 +67,14 @@ final class AppDIContainer {
         EmergencyRepository()
     }()
 
-    /// 여행(Trip/Todo/Event) Repository — 현재 Mock, 나중에 서버 연동으로 교체
+    /// 여행(Trip/Todo/Event) Repository — 환경에 따라 Mock ↔ Remote 전환
     /// TripDataStore.shared가 내부적으로 직접 참조하므로 DI 등록은 참조용
     private lazy var tripRepository: TripRepositoryProtocol = {
-        MockTripRepository()
+        if APIEnvironment.current.useMock {
+            return MockTripRepository()
+        } else {
+            return RemoteTripRepository(networkService: networkService)
+        }
     }()
 
     /// 관광지 Repository — TourAPI 실제 연동
