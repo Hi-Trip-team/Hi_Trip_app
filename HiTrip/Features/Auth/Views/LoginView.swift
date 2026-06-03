@@ -69,25 +69,64 @@ struct LoginView: View {
     // MARK: - Input Fields
 
     /// ID, Password 입력 필드
-    /// - submitLabel(.next): 키보드 리턴키를 "다음"으로 표시
-    /// - onSubmit: ID 입력 후 자동으로 Password 필드로 포커스 이동
+    /// - 회원가입과 동일 조건: 아이디 4자+, 비밀번호 8자+
+    /// - 조건 미충족 시 실시간 피드백 표시
     private var inputSection: some View {
-        VStack(spacing: 12) {
-            TextField("ID (성함)", text: $viewModel.id)
-                .padding(14)
-                .background(HiTripColor.inputBackground)
-                .cornerRadius(10)
-                .focused($focusedField, equals: .id)
-                .submitLabel(.next)
-                .onSubmit { focusedField = .password }
+        VStack(spacing: 16) {
+            // 아이디 입력
+            VStack(alignment: .leading, spacing: 6) {
+                TextField("아이디를 입력해주세요 (4자 이상)", text: $viewModel.id)
+                    .padding(14)
+                    .background(HiTripColor.inputBackground)
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(idBorderColor, lineWidth: 1)
+                    )
+                    .focused($focusedField, equals: .id)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .password }
 
-            SecureField("password (생년월일)", text: $viewModel.password)
-                .padding(14)
-                .background(HiTripColor.inputBackground)
-                .cornerRadius(10)
-                .keyboardType(.numberPad)
-                .focused($focusedField, equals: .password)
+                if !viewModel.id.isEmpty && !viewModel.isIdValid {
+                    Text("아이디는 4자 이상이어야 합니다.")
+                        .font(.system(size: 13))
+                        .foregroundColor(HiTripColor.error)
+                }
+            }
+
+            // 비밀번호 입력
+            VStack(alignment: .leading, spacing: 6) {
+                SecureField("비밀번호를 입력해주세요 (8자 이상)", text: $viewModel.password)
+                    .padding(14)
+                    .background(HiTripColor.inputBackground)
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(passwordBorderColor, lineWidth: 1)
+                    )
+                    .focused($focusedField, equals: .password)
+
+                if !viewModel.password.isEmpty && !viewModel.isPasswordValid {
+                    Text("비밀번호는 8자 이상이어야 합니다.")
+                        .font(.system(size: 13))
+                        .foregroundColor(HiTripColor.error)
+                }
+            }
         }
+    }
+
+    // MARK: - Border Colors
+
+    private var idBorderColor: Color {
+        guard !viewModel.id.isEmpty else { return .clear }
+        return viewModel.isIdValid ? HiTripColor.readCheck : HiTripColor.error
+    }
+
+    private var passwordBorderColor: Color {
+        guard !viewModel.password.isEmpty else { return .clear }
+        return viewModel.isPasswordValid ? HiTripColor.readCheck : HiTripColor.error
     }
 
     // MARK: - Error Message
@@ -141,17 +180,19 @@ struct LoginView: View {
         } label: {
             Text("로그인")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(
+                    viewModel.isFormValid ? .white : HiTripColor.buttonDisabledText
+                )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
-                    isFormValid
+                    viewModel.isFormValid
                         ? HiTripColor.buttonPrimary
                         : HiTripColor.buttonDisabled
                 )
                 .cornerRadius(10)
         }
-        .disabled(!isFormValid)
+        .disabled(!viewModel.isFormValid)
     }
 
     // MARK: - Sign Up Button
@@ -181,9 +222,5 @@ struct LoginView: View {
     }
 
     // MARK: - Validation
-
-    /// 폼 유효성: ID + PW 모두 비어있지 않아야 버튼 활성화
-    private var isFormValid: Bool {
-        !viewModel.id.trimmed.isEmpty && !viewModel.password.trimmed.isEmpty
-    }
+    // → viewModel.isFormValid로 이동 (아이디 4자+, 비밀번호 8자+)
 }

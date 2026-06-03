@@ -42,12 +42,18 @@ final class LoginUseCase {
     ///   - password: 사용자 입력 비밀번호 (생년월일)
     /// - Returns: 로그인 성공 시 UserInfo
     func execute(id: String, password: String) -> Single<UserInfo> {
-        // 입력 검증 — 빈 값이면 즉시 에러 반환 (네트워크 호출 불필요)
+        // 입력 검증 — 조건 미충족 시 즉시 에러 반환 (네트워크 호출 불필요)
         guard !id.trimmed.isEmpty else {
             return .error(LoginError.emptyId)
         }
+        guard id.trimmed.count >= 4 else {
+            return .error(LoginError.idTooShort)
+        }
         guard !password.trimmed.isEmpty else {
             return .error(LoginError.emptyPassword)
+        }
+        guard password.count >= 8 else {
+            return .error(LoginError.passwordTooShort)
         }
 
         // Repository에 API 호출 위임
@@ -74,10 +80,14 @@ final class LoginUseCase {
 /// 로그인 관련 에러 정의
 /// LocalizedError 채택 → .localizedDescription으로 한글 메시지 바로 사용 가능
 enum LoginError: LocalizedError, Equatable {
-    /// ID(성함) 미입력
+    /// 아이디 미입력
     case emptyId
-    /// 비밀번호(생년월일) 미입력
+    /// 아이디 4자 미만
+    case idTooShort
+    /// 비밀번호 미입력
     case emptyPassword
+    /// 비밀번호 8자 미만
+    case passwordTooShort
     /// 서버에서 인증 실패 (401)
     case invalidCredentials
     /// 서버 에러 (기타)
@@ -86,11 +96,15 @@ enum LoginError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .emptyId:
-            return "이름을 입력해주세요."
+            return "아이디를 입력해주세요."
+        case .idTooShort:
+            return "아이디는 4자 이상이어야 합니다."
         case .emptyPassword:
-            return "생년월일을 입력해주세요."
+            return "비밀번호를 입력해주세요."
+        case .passwordTooShort:
+            return "비밀번호는 8자 이상이어야 합니다."
         case .invalidCredentials:
-            return "이름 또는 생년월일이 올바르지 않습니다."
+            return "아이디 또는 비밀번호가 올바르지 않습니다."
         case .serverError(let msg):
             return msg
         }

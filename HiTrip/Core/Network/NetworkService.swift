@@ -30,8 +30,7 @@ final class NetworkService {
     /// 프로덕션 전용 싱글턴 초기화
     /// - private으로 외부에서 직접 생성 방지
     private init() {
-        // TODO: 실제 서버 배포 후 URL 변경
-        self.baseURL = "https://api.hitrip.example.com/v1"
+        self.baseURL = APIEnvironment.current.baseURL
         self.session = .shared
     }
 
@@ -66,41 +65,75 @@ final class NetworkService {
         return Single.create { [weak self] single in
             guard let self,
                   let request = self.buildRequest(endpoint) else {
-                single(.failure(NetworkError.invalidURL))
+                print("❌ [Network] URL 생성 실패 | path: \(endpoint.path)")
+                single(.failure(HiTripError.invalidURL))
                 return Disposables.create()
+            }
+
+            // 디버그: 모든 API 요청 로깅
+            let method = endpoint.method.rawValue
+            let url = request.url?.absoluteString ?? ""
+            print("🌐 [Network] \(method) \(url)")
+            if let body = endpoint.body {
+                print("   📦 Body: \(body)")
             }
 
             let task = self.session.dataTask(with: request) { data, response, error in
                 // 1) 네트워크 에러 (인터넷 끊김, 타임아웃 등)
                 if let error {
-                    single(.failure(NetworkError.requestFailed(error.localizedDescription)))
+                    let hiTripError = HiTripError.from(urlError: error)
+                    print("❌ [Network] \(hiTripError.debugDescription) | \(url)")
+                    single(.failure(hiTripError))
                     return
                 }
 
                 // 2) HTTPURLResponse 캐스팅 확인
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    single(.failure(NetworkError.invalidResponse))
+                    single(.failure(HiTripError.invalidResponse))
                     return
                 }
 
-                // 3) HTTP 상태코드 검증
+                // 3) HTTP 상태코드 검증 — 서버 에러 body를 파싱하여 구체적인 에러 생성
                 guard (200...299).contains(httpResponse.statusCode) else {
-                    single(.failure(NetworkError.httpError(httpResponse.statusCode)))
+                    let hiTripError = HiTripError.from(statusCode: httpResponse.statusCode, data: data)
+                    print("❌ [Network] \(hiTripError.debugDescription) | URL: \(url)")
+
+                    // 401 토큰 만료 시 자동 로그아웃 알림 (NotificationCenter)
+                    if hiTripError.requiresReauth {
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(
+                                name: .hiTripTokenExpired,
+                                object: nil,
+                                userInfo: ["error": hiTripError]
+                            )
+                        }
+                    }
+
+                    single(.failure(hiTripError))
                     return
                 }
 
                 // 4) 데이터 존재 확인
                 guard let data else {
-                    single(.failure(NetworkError.noData))
+                    single(.failure(HiTripError.noData))
                     return
+                }
+
+                // 디버그: 성공 응답 본문 출력
+                if let body = String(data: data, encoding: .utf8) {
+                    print("✅ [Network] HTTP \(httpResponse.statusCode) | URL: \(url) | Body: \(body.prefix(500))")
                 }
 
                 // 5) JSON 디코딩
                 do {
-                    let decoded = try JSONDecoder().decode(T.self, from: data)
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .custom(NetworkService.flexibleDateDecoder)
+                    decoder.keyDecodingStrategy = .convertFromSnakeCase
+                    let decoded = try decoder.decode(T.self, from: data)
                     single(.success(decoded))
                 } catch {
-                    single(.failure(NetworkError.decodingFailed(error.localizedDescription)))
+                    print("❌ [Network] 디코딩 실패 | Type: \(T.self) | Error: \(error)")
+                    single(.failure(HiTripError.decodingFailed(error.localizedDescription)))
                 }
             }
 
@@ -121,20 +154,75 @@ final class NetworkService {
         type: T.Type
     ) async throws -> T {
         guard let request = buildRequest(endpoint) else {
-            throw NetworkError.invalidURL
+            throw HiTripError.invalidURL
         }
 
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw HiTripError.from(urlError: error)
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
+            throw HiTripError.invalidResponse
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.httpError(httpResponse.statusCode)
+            let hiTripError = HiTripError.from(statusCode: httpResponse.statusCode, data: data)
+            if hiTripError.requiresReauth {
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .hiTripTokenExpired, object: nil)
+                }
+            }
+            throw hiTripError
         }
 
-        return try JSONDecoder().decode(T.self, from: data)
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .custom(NetworkService.flexibleDateDecoder)
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw HiTripError.decodingFailed(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Date Decoder
+
+    /// 백엔드에서 오는 다양한 날짜 포맷을 유연하게 파싱
+    /// - ISO 8601 datetime: "2025-03-08T02:46:56.037Z"
+    /// - Date only: "2025-03-08"
+    static func flexibleDateDecoder(_ decoder: Decoder) throws -> Date {
+        let container = try decoder.singleValueContainer()
+        let dateString = try container.decode(String.self)
+
+        // ISO 8601 with fractional seconds
+        let iso8601Formatter = ISO8601DateFormatter()
+        iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso8601Formatter.date(from: dateString) {
+            return date
+        }
+
+        // ISO 8601 without fractional seconds
+        iso8601Formatter.formatOptions = [.withInternetDateTime]
+        if let date = iso8601Formatter.date(from: dateString) {
+            return date
+        }
+
+        // Date only (yyyy-MM-dd)
+        let dateOnly = DateFormatter()
+        dateOnly.dateFormat = "yyyy-MM-dd"
+        dateOnly.locale = Locale(identifier: "en_US_POSIX")
+        if let date = dateOnly.date(from: dateString) {
+            return date
+        }
+
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Cannot decode date: \(dateString)"
+        )
     }
 
     // MARK: - Private: URLRequest 빌드
@@ -173,10 +261,17 @@ final class NetworkService {
     }
 }
 
-// MARK: - NetworkError
+// MARK: - Notification Names
 
-/// 네트워크 에러 타입 정의
-/// LocalizedError 채택으로 .localizedDescription에서 한글 메시지 반환
+extension Notification.Name {
+    /// 토큰 만료 시 발송 — AppDelegate/SceneDelegate에서 수신하여 로그인 화면으로 전환
+    static let hiTripTokenExpired = Notification.Name("hiTripTokenExpired")
+}
+
+// MARK: - NetworkError (Deprecated — 호환용)
+
+/// 기존 네트워크 에러 타입 (HiTripError로 마이그레이션 권장)
+/// @available(*, deprecated, message: "Use HiTripError instead")
 enum NetworkError: LocalizedError {
     /// URL 조합 실패
     case invalidURL

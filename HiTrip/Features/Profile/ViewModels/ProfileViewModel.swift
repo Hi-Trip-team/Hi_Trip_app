@@ -1,15 +1,13 @@
 import Foundation
 import Combine
+import RxSwift
 
 // MARK: - ProfileViewModel
 /// 프로필 화면의 ViewModel
 ///
-/// 유저 정보(이름, 이메일)와 통계 수치를 중앙 관리.
-/// KeychainManager에서 유저 기본 정보를 읽고,
-/// 프로필 수정 시 저장까지 담당한다.
-///
-/// 추후 API 연동 시 UserRepository를 주입받아
-/// 서버에서 프로필 데이터를 fetch/update하도록 확장한다.
+/// 1차: Keychain에서 로그인 시 저장한 유저 정보를 즉시 표시
+/// 2차: 서버 GET /api/auth/profile/ 호출하여 최신 정보로 갱신
+/// 프로필 수정 시 서버 PUT /api/auth/profile/ + Keychain 동기화
 
 final class ProfileViewModel: ObservableObject {
 
@@ -17,8 +15,10 @@ final class ProfileViewModel: ObservableObject {
 
     @Published var userName: String = ""
     @Published var userEmail: String = ""
+    @Published var userPhone: String = ""
+    @Published var userRole: String = ""
 
-    // MARK: - Published: 통계 (추후 API로 대체)
+    // MARK: - Published: 통계
 
     @Published var points: Int = 0
     @Published var tripCount: Int = 0
@@ -39,6 +39,8 @@ final class ProfileViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let keychain = KeychainManager.shared
+    private let networkService = NetworkService.shared
+    private let disposeBag = DisposeBag()
 
     // MARK: - Init
 
@@ -48,40 +50,96 @@ final class ProfileViewModel: ObservableObject {
 
     // MARK: - Load Profile
 
-    /// Keychain + Mock 통계 데이터 로드
-    /// 추후 API 연동 시 이 메서드 내부를 서버 호출로 교체
+    /// 1) Keychain 캐시에서 즉시 로드 (빠른 표시)
+    /// 2) 서버에서 최신 프로필 가져와서 갱신
     func loadProfile() {
-        // 유저 기본 정보 (Keychain에서 읽기)
-        userName = keychain.getUserName() ?? keychain.getUserId() ?? "사용자"
+        // 1차: Keychain 캐시 (즉시 표시)
+        userName = keychain.getUserName() ?? "사용자"
         userEmail = keychain.getUserEmail() ?? "이메일 없음"
+        userRole = keychain.getUserType() ?? ""
 
-        // 통계 데이터 (추후 API 응답으로 대체)
-        // TODO: UserRepository.fetchStats() → points, tripCount, bucketListCount
+        // 통계 데이터
         points = 50
         tripCount = TripDataStore.shared.trips.count
         bucketListCount = 200
 
-        // 편집 폼 초기값 세팅
+        // 편집 폼 초기값
         editNickname = userName
+
+        // 2차: 서버에서 최신 프로필 갱신
+        fetchProfileFromServer()
+    }
+
+    /// 서버 GET /api/auth/profile/ 호출하여 최신 유저 정보로 갱신
+    private func fetchProfileFromServer() {
+        networkService.request(.profile(), type: ProfileDTO.self)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] dto in
+                    guard let self else { return }
+                    let name = dto.fullNameKr ?? dto.username ?? self.userName
+                    let email = dto.email ?? self.userEmail
+
+                    // UI 갱신
+                    self.userName = name
+                    self.userEmail = email
+                    self.userPhone = dto.phone ?? ""
+                    self.userRole = dto.role ?? ""
+                    self.editNickname = name
+                    self.editPhoneNumber = dto.phone ?? ""
+
+                    // Keychain 동기화 (다른 화면에서도 최신 정보 사용)
+                    self.keychain.saveUserName(name)
+                    self.keychain.saveUserEmail(email)
+                    if let role = dto.role {
+                        self.keychain.saveUserType(role)
+                    }
+
+                    print("✅ [Profile] 서버 프로필 갱신: \(name), \(email)")
+                },
+                onFailure: { error in
+                    // 서버 실패 시 Keychain 캐시 데이터 유지 (오프라인 대응)
+                    print("⚠️ [Profile] 서버 프로필 조회 실패, 캐시 사용: \(error.localizedDescription)")
+                }
+            )
+            .disposed(by: disposeBag)
     }
 
     // MARK: - Save Profile
 
-    /// 프로필 수정 저장
-    /// 추후 API 연동 시 UserRepository.updateProfile()로 교체
+    /// 프로필 수정 저장 — 서버 + Keychain 동기화
     func saveProfile() {
-        // Keychain에 업데이트
-        if !editNickname.trimmed.isEmpty {
-            keychain.saveUserName(editNickname.trimmed)
-        }
+        let newName = editNickname.trimmed.isEmpty ? userName : editNickname.trimmed
 
-        // 로컬 상태 반영
-        userName = editNickname.trimmed.isEmpty ? userName : editNickname.trimmed
+        // 서버에 프로필 업데이트
+        let body: [String: Any] = [
+            "first_name_kr": newName,
+            "phone": editPhoneNumber
+        ]
 
-        // TODO: API 연동 시 서버에도 저장
-        // userRepository.updateProfile(nickname: editNickname, birthday: editBirthday, ...)
-
-        showSaveAlert = true
+        networkService.request(.profileUpdate(body: body), type: ProfileDTO.self)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] dto in
+                    guard let self else { return }
+                    let updatedName = dto.fullNameKr ?? dto.username ?? newName
+                    self.userName = updatedName
+                    self.keychain.saveUserName(updatedName)
+                    if let email = dto.email {
+                        self.keychain.saveUserEmail(email)
+                    }
+                    self.showSaveAlert = true
+                    print("✅ [Profile] 프로필 수정 완료: \(updatedName)")
+                },
+                onFailure: { [weak self] error in
+                    // 서버 실패 시 로컬만 업데이트
+                    print("⚠️ [Profile] 서버 프로필 수정 실패, 로컬 저장: \(error.localizedDescription)")
+                    self?.userName = newName
+                    self?.keychain.saveUserName(newName)
+                    self?.showSaveAlert = true
+                }
+            )
+            .disposed(by: disposeBag)
     }
 
     // MARK: - Computed
