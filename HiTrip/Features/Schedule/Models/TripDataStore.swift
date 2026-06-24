@@ -54,8 +54,8 @@ final class TripDataStore: ObservableObject {
 
     // MARK: - Public API
 
-    func reload() {
-        loadInitialData()
+    func reload(onReady: (() -> Void)? = nil) {
+        loadInitialData(onReady: onReady)
     }
 
     func clear() {
@@ -83,7 +83,7 @@ final class TripDataStore: ObservableObject {
 
     // MARK: - Initial Load
 
-    private func loadInitialData() {
+    private func loadInitialData(onReady: (() -> Void)? = nil) {
         isLoading = true
         print("🔄 [TripDataStore] 데이터 로드 시작")
 
@@ -103,11 +103,14 @@ final class TripDataStore: ObservableObject {
                     self.loadChecklists()
                     self.loadSpots()
                     self.loadManagerContact()
+
+                    onReady?()
                 },
                 onFailure: { [weak self] error in
                     self?.isLoading = false
                     self?.isDataLoaded = true
                     print("⚠️ [TripDataStore] 여행 로드 실패: \(error.localizedDescription)")
+                    onReady?()
                 }
             )
             .disposed(by: disposeBag)
