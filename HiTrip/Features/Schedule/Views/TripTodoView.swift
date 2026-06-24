@@ -1,138 +1,128 @@
 import SwiftUI
 
 // MARK: - TripTodoView
-/// 할 일 탭 — 체크리스트
+/// 할 일 탭 — 서버 체크리스트 표시
 ///
-/// 피그마 디자인:
-/// - "✈️ 오늘 일정 준비" 섹션 (배경 #F4F3F9, radius 18)
-/// - "🧳 여행 준비 & 관리" 섹션
-/// - 각 항목: 체크 원(고정 22x22) + 텍스트 + 더보기(...)
-/// - "체크리스트를 추가하세요." placeholder
-///
-/// 주간 캘린더 스트립은 TripDetailView에서 공용으로 표시
+/// 데이터: GET /api/traveler/checklists/ (여행사 설정, 읽기 전용)
+/// 허용 동작: 토글(체크/해제) → PATCH /api/traveler/checklists/{id}/
+/// 불가 동작: 추가/수정/삭제 (여행사 전용 권한)
 
 struct TripTodoView: View {
 
     @ObservedObject var viewModel: TripDetailViewModel
-    @State private var newTodoText: String = ""
-    @State private var addingSection: TripTodo.Section?
-
-    /// 수정 모드: 편집 중인 Todo ID + 텍스트
-    @State private var editingTodoId: UUID?
-    @State private var editingTodoText: String = ""
-
-    /// 섹션 헤더 배경색
-    private let sectionTagBackground = HiTripColor.sectionTagBackground
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
-                // "오늘 일정 준비" 섹션
-                todoSection(
-                    title: "오늘 일정 준비",
-                    emoji: "✈️",
-                    section: .todayPrep,
-                    todos: viewModel.todayPrepTodos
-                )
-                .padding(.top, 20)
-
-                // "여행 준비 & 관리" 섹션
-                todoSection(
-                    title: "여행 준비 & 관리",
-                    emoji: "🧳",
-                    section: .travelPrep,
-                    todos: viewModel.travelPrepTodos
-                )
-                .padding(.top, 24)
+            VStack(alignment: .leading, spacing: 0) {
+                if viewModel.allTodos.isEmpty {
+                    emptyState
+                        .padding(.top, 60)
+                } else {
+                    checklistContent
+                        .padding(.top, 20)
+                        .padding(.horizontal, 20)
+                }
 
                 Spacer().frame(height: 40)
             }
         }
+        .background(HiTripColor.screenBackground)
     }
 
-    // MARK: - Todo Section
+    // MARK: - 체크리스트 콘텐츠
 
-    private func todoSection(
-        title: String,
-        emoji: String,
-        section: TripTodo.Section,
-        todos: [TripTodo]
-    ) -> some View {
+    private var checklistContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 섹션 헤더 태그 (pill, 배경 #F4F3F9, radius 18)
-            HStack(spacing: 4) {
-                Text(emoji)
-                    .font(.system(size: 13))
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(HiTripColor.textBlack)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(sectionTagBackground)
-            .cornerRadius(18)
-            .padding(.bottom, 14)
+            // 진행 현황 요약
+            progressSummary
+                .padding(.bottom, 20)
 
-            // "체크리스트를 추가하세요" placeholder + 추가 기능
-            addTodoRow(section: section)
+            // 미완료 항목
+            if !viewModel.pendingTodos.isEmpty {
+                sectionHeader(title: "할 일", emoji: "⬜", count: viewModel.pendingTodos.count)
+                    .padding(.bottom, 10)
 
-            // 체크리스트 항목들
-            ForEach(todos) { todo in
-                todoRow(todo)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-    }
-
-    // MARK: - Add Todo Row
-
-    private func addTodoRow(section: TripTodo.Section) -> some View {
-        Group {
-            if addingSection == section {
-                // 입력 모드
-                HStack(spacing: 10) {
-                    Circle()
-                        .stroke(HiTripColor.gray300, lineWidth: 1.5)
-                        .frame(width: 22, height: 22)
-
-                    TextField("할 일을 입력하세요", text: $newTodoText)
-                        .font(.system(size: 15))
-                        .onSubmit {
-                            if !newTodoText.trimmed.isEmpty {
-                                viewModel.addTodo(title: newTodoText.trimmed, section: section)
-                                newTodoText = ""
-                            }
-                            addingSection = nil
-                        }
-                }
-                .padding(.vertical, 4)
-            } else {
-                // placeholder 모드
-                Button {
-                    addingSection = section
-                } label: {
-                    HStack(spacing: 10) {
-                        Circle()
-                            .stroke(HiTripColor.gray300.opacity(0.5), lineWidth: 1.5)
-                            .frame(width: 22, height: 22)
-
-                        Text("체크리스트를 추가하세요.")
-                            .font(.system(size: 15))
-                            .foregroundColor(HiTripColor.gray300)
+                VStack(spacing: 2) {
+                    ForEach(viewModel.pendingTodos) { todo in
+                        todoRow(todo)
                     }
-                    .padding(.vertical, 4)
                 }
-                .buttonStyle(.plain)
+                .padding(.bottom, 24)
+            }
+
+            // 완료 항목
+            if !viewModel.completedTodos.isEmpty {
+                sectionHeader(title: "완료", emoji: "✅", count: viewModel.completedTodos.count)
+                    .padding(.bottom, 10)
+
+                VStack(spacing: 2) {
+                    ForEach(viewModel.completedTodos) { todo in
+                        todoRow(todo)
+                    }
+                }
             }
         }
     }
 
-    // MARK: - Todo Row
+    // MARK: - 진행 현황
+
+    private var progressSummary: some View {
+        let total = viewModel.allTodos.count
+        let done = viewModel.completedTodos.count
+        let ratio = total > 0 ? CGFloat(done) / CGFloat(total) : 0
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("체크리스트")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(HiTripColor.textBlack)
+                Spacer()
+                Text("\(done) / \(total) 완료")
+                    .font(.system(size: 13))
+                    .foregroundColor(HiTripColor.gray500)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(HiTripColor.gray200)
+                        .frame(height: 6)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(HiTripColor.primary800)
+                        .frame(width: geo.size.width * ratio, height: 6)
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(14)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+    }
+
+    // MARK: - 섹션 헤더
+
+    private func sectionHeader(title: String, emoji: String, count: Int) -> some View {
+        HStack(spacing: 4) {
+            Text(emoji).font(.system(size: 13))
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(HiTripColor.textBlack)
+            Text("(\(count))")
+                .font(.system(size: 13))
+                .foregroundColor(HiTripColor.gray400)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(HiTripColor.sectionTagBackground)
+        .cornerRadius(18)
+    }
+
+    // MARK: - 체크리스트 행
 
     private func todoRow(_ todo: TripTodo) -> some View {
-        HStack(spacing: 10) {
-            // 체크 원 — 고정 프레임으로 위치 이동 방지
+        HStack(alignment: .top, spacing: 12) {
+            // 체크 버튼
             Button {
                 viewModel.toggleTodo(todo.id)
             } label: {
@@ -144,54 +134,54 @@ struct TripTodoView: View {
                     } else {
                         Circle()
                             .stroke(HiTripColor.gray300, lineWidth: 1.5)
+                            .frame(width: 22, height: 22)
                     }
                 }
                 .frame(width: 22, height: 22)
             }
             .buttonStyle(.plain)
+            .padding(.top, 2)
 
-            // 텍스트 (수정 모드 / 표시 모드)
-            if editingTodoId == todo.id {
-                TextField("할 일 수정", text: $editingTodoText)
-                    .font(.system(size: 15))
-                    .onSubmit {
-                        if !editingTodoText.trimmed.isEmpty {
-                            viewModel.updateTodo(todo.id, newTitle: editingTodoText.trimmed)
-                        }
-                        editingTodoId = nil
-                    }
-            } else {
+            // 텍스트
+            VStack(alignment: .leading, spacing: 3) {
                 Text(todo.title)
                     .font(.system(size: 15))
-                    .foregroundColor(
-                        todo.isCompleted ? HiTripColor.gray400 : HiTripColor.textBlack
-                    )
+                    .foregroundColor(todo.isCompleted ? HiTripColor.gray400 : HiTripColor.textBlack)
                     .strikethrough(todo.isCompleted, color: HiTripColor.gray400)
+
+                if let subtitle = todo.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(HiTripColor.gray400)
+                }
             }
 
             Spacer()
-
-            // 더보기(...) 메뉴 — 수정/삭제
-            Menu {
-                Button {
-                    editingTodoText = todo.title
-                    editingTodoId = todo.id
-                } label: {
-                    Label("수정", systemImage: "pencil")
-                }
-
-                Button(role: .destructive) {
-                    withAnimation { viewModel.deleteTodo(todo.id) }
-                } label: {
-                    Label("삭제", systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 16))
-                    .foregroundColor(HiTripColor.gray400)
-                    .frame(width: 28, height: 28)
-            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+        .contentShape(Rectangle())
+        .onTapGesture { viewModel.toggleTodo(todo.id) }
+    }
+
+    // MARK: - 빈 상태
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "checklist")
+                .font(.system(size: 40))
+                .foregroundColor(HiTripColor.gray300)
+
+            Text("체크리스트가 없습니다")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(HiTripColor.textBlack)
+
+            Text("여행사에서 체크리스트를 등록하면 표시됩니다")
+                .font(.system(size: 14))
+                .foregroundColor(HiTripColor.gray500)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 32)
     }
 }

@@ -280,7 +280,7 @@ struct TravelerMessageCreateRequest: Encodable {
 
 // MARK: - Spots (Popular / Recommended)
 
-struct TravelerSpotDTO: Decodable, Identifiable {
+struct TravelerSpotDTO: Decodable, Identifiable, Hashable {
     let id: Int
     let spotType: String        // "recommended", "popular"
     let title: String
@@ -293,7 +293,7 @@ struct TravelerSpotDTO: Decodable, Identifiable {
     let updatedAt: String?
 }
 
-struct TripSpotPlaceDTO: Decodable {
+struct TripSpotPlaceDTO: Decodable, Hashable {
     let id: Int
     let name: String
     let address: String?
@@ -363,9 +363,9 @@ extension TravelerChecklistItemDTO {
         TripTodo(
             serverId: id,
             title: title,
+            subtitle: description.isEmpty ? nil : description,
             isCompleted: isChecked,
-            section: displayOrder % 2 == 0 ? .travelPrep : .todayPrep,
-            date: Date(),
+            displayOrder: displayOrder,
             tripId: tripId
         )
     }
@@ -386,16 +386,6 @@ extension TravelerNoticeDTO {
     }
 }
 
-extension TravelerSpotDTO {
-    func toNearbySpot() -> TripNearbySpot {
-        TripNearbySpot(
-            name: title,
-            distance: "",
-            category: place.categoryName ?? spotType,
-            imageURL: imageUrl.isEmpty ? nil : imageUrl
-        )
-    }
-}
 
 extension TravelerMessageThreadDTO {
     func toChatRoom() -> ChatRoom {

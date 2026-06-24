@@ -44,9 +44,6 @@ struct TripPackage: Identifiable, Codable, Equatable {
     // 공식 일정 (여행사가 등록한 타임라인)
     var officialSchedules: [TripOfficialSchedule]
 
-    // 추천 장소
-    var nearbySpots: [TripNearbySpot]
-
     // 번역 모음
     var translations: [TripTranslation]
 
@@ -64,7 +61,6 @@ struct TripPackage: Identifiable, Codable, Equatable {
         notices: [TripNotice] = [],
         missions: [TripMission] = [],
         officialSchedules: [TripOfficialSchedule] = [],
-        nearbySpots: [TripNearbySpot] = [],
         translations: [TripTranslation] = [],
         createdAt: Date = Date()
     ) {
@@ -79,7 +75,6 @@ struct TripPackage: Identifiable, Codable, Equatable {
         self.notices = notices
         self.missions = missions
         self.officialSchedules = officialSchedules
-        self.nearbySpots = nearbySpots
         self.translations = translations
         self.createdAt = createdAt
     }
@@ -236,31 +231,6 @@ struct TripOfficialSchedule: Identifiable, Codable, Equatable {
         if let tr = transport, !tr.isEmpty { parts.append(tr) }
         if let dur = durationDisplay, !dur.isEmpty { parts.append(dur) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
-}
-
-// MARK: - TripNearbySpot
-/// 추천 장소 (여행사가 등록)
-
-struct TripNearbySpot: Identifiable, Codable, Equatable {
-    let id: UUID
-    var name: String           // "협재 해수욕장"
-    var distance: String       // "도보 8분"
-    var category: String       // "beach", "leaf", "mountain", "water"
-    var imageURL: String?      // 이미지 URL (nil이면 placeholder)
-
-    init(
-        id: UUID = UUID(),
-        name: String,
-        distance: String,
-        category: String,
-        imageURL: String? = nil
-    ) {
-        self.id = id
-        self.name = name
-        self.distance = distance
-        self.category = category
-        self.imageURL = imageURL
     }
 }
 

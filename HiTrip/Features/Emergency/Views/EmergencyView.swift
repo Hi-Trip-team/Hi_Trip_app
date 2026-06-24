@@ -4,27 +4,28 @@ import SwiftUI
 /// 긴급 연락처 화면
 ///
 /// 구성:
-/// - 상단: 긴급 전화 퀵버튼 (112, 119 원탭 호출)
-/// - 중간: 카테고리별 연락처 리스트 (긴급/의료/관광/개인)
-/// - 개인 연락처 추가/삭제 가능
-///
-/// 새로운 패턴:
-/// - openURL: 전화 걸기 (tel://) 용
-/// - Section + ForEach with category: enum 기반 그룹핑
+/// - 상단: 112 / 119 퀵 전화 버튼
+/// - 담당자: 서버에서 받은 여행사 담당자 연락처
+/// - 긴급 요청 전송: POST /api/traveler/emergency-requests/
+/// - 카테고리별 연락처 리스트 (긴급/의료/관광/개인)
 
 struct EmergencyView: View {
 
     @ObservedObject var viewModel: EmergencyViewModel
     @Environment(\.openURL) private var openURL
     @State private var showAddSheet = false
+    @State private var showEmergencyRequest = false
 
     var body: some View {
         NavigationStack {
             List {
-                // MARK: - 긴급 전화 퀵버튼
+                // 112 / 119 퀵버튼
                 quickCallSection
 
-                // MARK: - 카테고리별 연락처
+                // 담당자에게 긴급 요청 전송
+                emergencyRequestSection
+
+                // 카테고리별 연락처
                 ForEach(ContactCategory.allCases, id: \.self) { category in
                     let categoryContacts = viewModel.contactsByCategory(category)
                     if !categoryContacts.isEmpty {
@@ -43,9 +44,7 @@ struct EmergencyView: View {
             .navigationTitle("긴급 연락")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showAddSheet = true
-                    } label: {
+                    Button { showAddSheet = true } label: {
                         Image(systemName: "plus")
                     }
                 }
@@ -53,11 +52,19 @@ struct EmergencyView: View {
             .sheet(isPresented: $showAddSheet) {
                 EmergencyAddView(viewModel: viewModel)
             }
+            .sheet(isPresented: $showEmergencyRequest) {
+                emergencyRequestSheet
+            }
             .onChange(of: showAddSheet) { isPresented in
                 if !isPresented {
                     viewModel.fetchContacts()
                     viewModel.resetForm()
                 }
+            }
+            .alert("긴급 요청 전송 완료", isPresented: $viewModel.emergencySentSuccess) {
+                Button("확인", role: .cancel) {}
+            } message: {
+                Text("담당자에게 긴급 요청이 전송됐습니다. 잠시만 기다려주세요.")
             }
             .onAppear {
                 viewModel.fetchContacts()
@@ -65,55 +72,26 @@ struct EmergencyView: View {
         }
     }
 
-    // MARK: - 긴급 전화 퀵버튼
+    // MARK: - 112 / 119 퀵버튼
 
-    /// 112, 119 원탭 전화 버튼
-    /// 화면 최상단에 크게 배치하여 긴급 상황에서 빠르게 접근
     private var quickCallSection: some View {
         Section {
             HStack(spacing: 12) {
-                quickCallButton(
-                    title: "경찰",
-                    number: "112",
-                    icon: "shield.fill",
-                    color: .blue
-                )
-
-                quickCallButton(
-                    title: "소방/구급",
-                    number: "119",
-                    icon: "flame.fill",
-                    color: .red
-                )
+                quickCallButton(title: "경찰", number: "112", icon: "shield.fill", color: .blue)
+                quickCallButton(title: "소방/구급", number: "119", icon: "flame.fill", color: .red)
             }
             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
         }
     }
 
-    /// 퀵 전화 버튼 개별 UI
-    private func quickCallButton(
-        title: String,
-        number: String,
-        icon: String,
-        color: Color
-    ) -> some View {
+    private func quickCallButton(title: String, number: String, icon: String, color: Color) -> some View {
         Button {
-            if let url = viewModel.makeCallURL(phoneNumber: number) {
-                openURL(url)
-            }
+            if let url = viewModel.makeCallURL(phoneNumber: number) { openURL(url) }
         } label: {
             VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 28))
-                    .foregroundColor(.white)
-
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-
-                Text(number)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
+                Image(systemName: icon).font(.system(size: 28)).foregroundColor(.white)
+                Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                Text(number).font(.system(size: 20, weight: .bold)).foregroundColor(.white)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
@@ -123,29 +101,124 @@ struct EmergencyView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - 긴급 요청 전송
+
+    private var emergencyRequestSection: some View {
+        Section {
+            Button {
+                showEmergencyRequest = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                        .frame(width: 36, height: 36)
+                        .background(Color.orange)
+                        .cornerRadius(8)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("담당자에게 긴급 요청")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(HiTripColor.textBlack)
+                        Text("도움 메시지를 여행사 담당자에게 전송합니다")
+                            .font(.system(size: 12))
+                            .foregroundColor(HiTripColor.gray400)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(HiTripColor.gray300)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - 긴급 요청 시트
+
+    private var emergencyRequestSheet: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.orange)
+                    .padding(.top, 32)
+
+                Text("긴급 요청 메시지")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(HiTripColor.textBlack)
+
+                Text("담당자에게 전달할 내용을 입력하세요")
+                    .font(.system(size: 14))
+                    .foregroundColor(HiTripColor.gray500)
+
+                TextEditor(text: $viewModel.emergencyMessage)
+                    .frame(minHeight: 120)
+                    .padding(12)
+                    .background(HiTripColor.screenBackground)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(HiTripColor.gray200, lineWidth: 1)
+                    )
+                    .padding(.horizontal, 20)
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.system(size: 13))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 20)
+                }
+
+                Button {
+                    viewModel.sendEmergencyRequest()
+                    showEmergencyRequest = false
+                } label: {
+                    HStack {
+                        if viewModel.isSendingEmergency {
+                            ProgressView().tint(.white)
+                        }
+                        Text("긴급 요청 전송")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.orange)
+                    .cornerRadius(14)
+                    .padding(.horizontal, 20)
+                }
+                .disabled(viewModel.isSendingEmergency)
+
+                Spacer()
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("취소") { showEmergencyRequest = false }
+                }
+            }
+        }
+    }
+
     // MARK: - 연락처 행
 
-    /// 각 연락처의 한 줄 표시
-    /// 탭하면 전화 연결
     private func contactRow(_ contact: EmergencyContact) -> some View {
         Button {
-            if let url = viewModel.makeCallURL(phoneNumber: contact.phoneNumber) {
-                openURL(url)
-            }
+            if let url = viewModel.makeCallURL(phoneNumber: contact.phoneNumber) { openURL(url) }
         } label: {
             HStack(spacing: 12) {
-                // 아이콘
                 Image(systemName: contact.iconName)
                     .font(.system(size: 18))
                     .foregroundColor(iconColor(for: contact.category))
                     .frame(width: 32, height: 32)
 
-                // 이름 + 전화번호
                 VStack(alignment: .leading, spacing: 2) {
                     Text(contact.name)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(HiTripColor.textGrayA)
-
                     Text(contact.phoneNumber)
                         .font(.system(size: 14))
                         .foregroundColor(HiTripColor.gray400)
@@ -153,7 +226,6 @@ struct EmergencyView: View {
 
                 Spacer()
 
-                // 전화 아이콘
                 Image(systemName: "phone.fill")
                     .font(.system(size: 16))
                     .foregroundColor(HiTripColor.primary800)
@@ -164,9 +236,9 @@ struct EmergencyView: View {
 
     // MARK: - 헬퍼
 
-    /// 카테고리별 아이콘 색상
     private func iconColor(for category: ContactCategory) -> Color {
         switch category {
+        case .manager:   return HiTripColor.primary800
         case .emergency: return .red
         case .medical:   return .orange
         case .tourism:   return HiTripColor.primary800
@@ -174,16 +246,10 @@ struct EmergencyView: View {
         }
     }
 
-    /// 스와이프 삭제 처리 — 프리셋은 삭제 불가
-    private func deleteContacts(
-        in categoryContacts: [EmergencyContact],
-        at indexSet: IndexSet
-    ) {
+    private func deleteContacts(in categoryContacts: [EmergencyContact], at indexSet: IndexSet) {
         for index in indexSet {
             let contact = categoryContacts[index]
-            if !contact.isPreset {
-                viewModel.deleteContact(id: contact.id)
-            }
+            if !contact.isPreset { viewModel.deleteContact(id: contact.id) }
         }
     }
 }
