@@ -21,6 +21,8 @@ final class AppRouter: ObservableObject {
         case splash
         case login
         case signUp
+        case inviteLogin      // 초대코드 로그인 플로우
+        case agreement        // 약관 동의 (requiresAgreement == true)
         case home
     }
 
@@ -32,6 +34,14 @@ final class AppRouter: ObservableObject {
 
     func navigateToSignUp() {
         currentScreen = .signUp
+    }
+
+    func navigateToInviteLogin() {
+        currentScreen = .inviteLogin
+    }
+
+    func navigateToAgreement() {
+        currentScreen = .agreement
     }
 
     func navigateToHome() {

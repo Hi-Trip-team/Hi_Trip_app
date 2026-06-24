@@ -40,6 +40,8 @@ struct LoginView: View {
                 loginButton
                 Spacer().frame(height: 12)
                 signUpButton
+                Spacer().frame(height: 24)
+                inviteLoginButton
                 Spacer()
                 copyrightSection
             }
@@ -207,6 +209,45 @@ struct LoginView: View {
                 .underline()
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Invite Login Button
+
+    private var inviteLoginButton: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Rectangle()
+                    .fill(HiTripColor.gray300)
+                    .frame(height: 0.5)
+                Text("또는")
+                    .font(.system(size: 13))
+                    .foregroundColor(HiTripColor.gray400)
+                Rectangle()
+                    .fill(HiTripColor.gray300)
+                    .frame(height: 0.5)
+            }
+
+            Button {
+                router.navigateToInviteLogin()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "ticket.fill")
+                        .font(.system(size: 16))
+                    Text("초대코드로 로그인")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(HiTripColor.primary800)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(HiTripColor.primary800.opacity(0.08))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(HiTripColor.primary800.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: - Copyright

@@ -46,6 +46,11 @@ struct TripListView: View {
                     // 오늘의 일정
                     todayScheduleSection
 
+                    // 내일의 일정 (있을 때만 표시)
+                    if !viewModel.tomorrowSchedules.isEmpty {
+                        tomorrowScheduleSection
+                    }
+
                     // 지금 갈만한 곳
                     nearbySpotSection
 
@@ -67,7 +72,7 @@ struct TripListView: View {
                 NoticeListView(viewModel: viewModel)
             }
             .navigationDestination(isPresented: $showTodaySchedule) {
-                TodayScheduleView(viewModel: viewModel)
+                ScheduleListView()
             }
             .navigationBarHidden(true)
         }
@@ -186,9 +191,9 @@ struct TripListView: View {
 
     // MARK: - Mission Card
 
-    /// 오늘의 미션 카드
+    /// 오늘의 미션 카드 (서비스 준비 중)
     private var missionCard: some View {
-        infoCard(emoji: "🎯", title: "오늘의 미션", content: viewModel.missionText)
+        infoCard(emoji: "🎯", title: "오늘의 미션", content: "서비스 준비 중입니다")
     }
 
     /// 공통 정보 카드 (공지, 미션 등)
@@ -241,9 +246,17 @@ struct TripListView: View {
             }
             .padding(.bottom, 12)
 
-            // 일정 리스트
+            // 일정 리스트 (최대 3개) 또는 빈 상태
+            if viewModel.todaySchedules.isEmpty {
+                Text("오늘은 일정이 없습니다.")
+                    .font(.system(size: 14))
+                    .foregroundColor(HiTripColor.gray400)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 12)
+            }
+
             VStack(spacing: 0) {
-                ForEach(Array(viewModel.todaySchedules.enumerated()), id: \.element.id) { index, schedule in
+                ForEach(Array(viewModel.todaySchedules.prefix(3).enumerated()), id: \.element.id) { index, schedule in
                     HStack {
                         HStack(spacing: 6) {
                             Text(schedule.emoji)
@@ -261,11 +274,75 @@ struct TripListView: View {
                     }
                     .padding(.vertical, 14)
 
-                    if index < viewModel.todaySchedules.count - 1 {
+                    if index < min(viewModel.todaySchedules.count, 3) - 1 {
+                        Divider()
+                    }
+                }
+
+                // 3개 초과 시 나머지 개수 표시
+                if viewModel.todaySchedules.count > 3 {
+                    Button {
+                        showTodaySchedule = true
+                    } label: {
+                        Text("+ \(viewModel.todaySchedules.count - 3)개 더 보기")
+                            .font(.system(size: 13))
+                            .foregroundColor(HiTripColor.accentLink)
+                            .padding(.vertical, 10)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Tomorrow Schedule Section
+
+    /// 내일의 일정 미리보기 섹션
+    private var tomorrowScheduleSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("내일의 일정")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(HiTripColor.textBlack)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                ForEach(Array(viewModel.tomorrowSchedules.prefix(3).enumerated()), id: \.element.id) { index, schedule in
+                    HStack {
+                        HStack(spacing: 6) {
+                            Text(schedule.emoji)
+                                .font(.system(size: 16))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(schedule.placeName ?? schedule.title)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(HiTripColor.textBlack)
+                                    .lineLimit(1)
+                                if let content = schedule.mainContent, schedule.placeName != nil {
+                                    Text(content)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(HiTripColor.gray500)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                        Spacer()
+                        Text(schedule.timeText)
+                            .font(.system(size: 13))
+                            .foregroundColor(HiTripColor.gray400)
+                    }
+                    .padding(.vertical, 12)
+
+                    if index < min(viewModel.tomorrowSchedules.count, 3) - 1 {
                         Divider()
                     }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+            .background(Color.white)
+            .cornerRadius(16)
+            .shadow(color: Color(hex: "B4BCC9").opacity(0.12), radius: 12, x: 0, y: 4)
         }
         .padding(.horizontal, 4)
         .padding(.top, 8)

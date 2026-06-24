@@ -137,7 +137,7 @@ final class AuthRepository: AuthRepositoryProtocol {
     /// 서버 로그아웃 호출 + Keychain 데이터 삭제
     func logout() {
         // 서버에 로그아웃 알림 (실패해도 로컬은 삭제)
-        _ = networkService.request(APIEndpoint.logout(), type: EmptyResponse.self)
+        _ = networkService.request(APIEndpoint.logout(), type: TravelerLogoutResponseDTO.self)
             .subscribe()
         keychain.clearAll()
     }

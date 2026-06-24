@@ -68,7 +68,7 @@ struct ProfileView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showEditProfile = true } label: {
-                        Image(systemName: "pencil")
+                        Image(systemName: "info.circle")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(HiTripColor.primary800)
                             .frame(width: 40, height: 40)
@@ -87,6 +87,7 @@ struct ProfileView: View {
             .alert("로그아웃", isPresented: $showLogoutAlert) {
                 Button("로그아웃", role: .destructive) {
                     KeychainManager.shared.clearAll()
+                    TripDataStore.shared.clear()
                     router.navigateToLogin()
                 }
                 Button("취소", role: .cancel) {}
@@ -127,17 +128,25 @@ struct ProfileView: View {
 
     private var statsCard: some View {
         HStack(spacing: 0) {
-            statItem(title: "포인트", value: viewModel.pointsText)
-
-            Divider()
-                .frame(height: 40)
-
             statItem(title: "여행", value: viewModel.tripCountText)
 
             Divider()
                 .frame(height: 40)
 
-            statItem(title: "버킷리스트", value: viewModel.bucketListCountText)
+            statItem(
+                title: "여권",
+                value: viewModel.passportVerified ? "확인" : "미확인",
+                color: viewModel.passportVerified ? .green : .orange
+            )
+
+            Divider()
+                .frame(height: 40)
+
+            statItem(
+                title: "예약",
+                value: viewModel.bookingVerified ? "확인" : "미확인",
+                color: viewModel.bookingVerified ? .green : .orange
+            )
         }
         .padding(.vertical, 18)
         .background(Color.white)
@@ -145,7 +154,7 @@ struct ProfileView: View {
         .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
     }
 
-    private func statItem(title: String, value: String) -> some View {
+    private func statItem(title: String, value: String, color: Color = HiTripColor.primary800) -> some View {
         VStack(spacing: 6) {
             Text(title)
                 .font(.system(size: 13))
@@ -153,7 +162,7 @@ struct ProfileView: View {
 
             Text(value)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(HiTripColor.primary800)
+                .foregroundColor(color)
         }
         .frame(maxWidth: .infinity)
     }
@@ -162,7 +171,7 @@ struct ProfileView: View {
 
     private var menuList: some View {
         VStack(spacing: 0) {
-            menuRow(icon: "person.crop.circle", title: "프로필") {
+            menuRow(icon: "person.crop.circle", title: "내 정보") {
                 showEditProfile = true
             }
 

@@ -28,6 +28,11 @@ struct TripScheduleDetailView: View {
 
                         Divider()
 
+                        // 상태 태그
+                        if let status = trip.status {
+                            statusBadge(status)
+                        }
+
                         // 날짜
                         infoRow(
                             icon: "calendar",
@@ -39,17 +44,26 @@ struct TripScheduleDetailView: View {
                         if !trip.location.isEmpty {
                             infoRow(
                                 icon: "mappin.and.ellipse",
-                                title: "위치",
+                                title: "목적지",
                                 content: trip.location
                             )
                         }
 
-                        // 멤버
-                        if !trip.memberAvatars.isEmpty {
+                        // 초대코드
+                        if let code = trip.inviteCode, !code.isEmpty {
+                            infoRow(
+                                icon: "ticket.fill",
+                                title: "초대코드",
+                                content: code
+                            )
+                        }
+
+                        // 참여자 수 (TripDataStore의 패키지에서)
+                        if let pkg = TripDataStore.shared.currentPackage {
                             infoRow(
                                 icon: "person.2.fill",
-                                title: "참여 멤버",
-                                content: "\(trip.memberAvatars.count)명"
+                                title: "참여자",
+                                content: "\(pkg.currentParticipants) / \(pkg.totalParticipants)명"
                             )
                         }
 
@@ -147,6 +161,30 @@ struct TripScheduleDetailView: View {
                     .foregroundColor(HiTripColor.textGrayA)
             }
         }
+    }
+
+    // MARK: - Status Badge
+
+    private func statusBadge(_ status: String) -> some View {
+        let (text, color): (String, Color) = {
+            switch status {
+            case "ongoing":   return ("진행 중", Color.green)
+            case "planning":  return ("계획 중", Color.orange)
+            case "completed": return ("완료", Color.gray)
+            default:          return (status, Color.blue)
+            }
+        }()
+
+        return HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(color)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
     }
 
     // MARK: - Helpers

@@ -1,147 +1,150 @@
 import SwiftUI
 
 // MARK: - ScheduleListView
-/// 일정 목록 화면 — CRUD의 [R] Read 담당
+/// 서버 공식 일정 목록 화면 (읽기 전용)
 ///
-/// UI 구성:
-/// - 네비게이션 바 (타이틀 + "+" 추가 버튼)
-/// - 일정이 없으면 빈 상태 안내
-/// - 일정이 있으면 리스트로 표시 (날짜순 정렬)
-/// - 각 항목 탭 → 상세 화면으로 이동
-/// - 스와이프 → 삭제
+/// 데이터: TripDataStore → ScheduleViewModel → officialSchedulesByDay
+/// 구성: 일차 탭 선택 → 해당 일차 일정 타임라인
 
 struct ScheduleListView: View {
 
-    @ObservedObject var viewModel: ScheduleViewModel
-
-    /// 일정 생성 화면 표시 여부
-    @State private var showCreateView = false
-
-    /// 상세 화면으로 이동할 일정
-    @State private var selectedSchedule: Schedule?
+    @StateObject private var viewModel = ScheduleViewModel()
 
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.schedules.isEmpty && !viewModel.isLoading {
-                    // 빈 상태
-                    emptyStateView
+                if viewModel.isLoading {
+                    loadingView
+                } else if viewModel.isEmpty {
+                    emptyView
                 } else {
-                    // 일정 목록
-                    scheduleListContent
+                    scheduleContent
                 }
             }
-            .navigationTitle("일정")
-            .toolbar {
-                // 오른쪽 상단 "+" 버튼
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        viewModel.resetForm()
-                        showCreateView = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundColor(HiTripColor.primary800)
+            .navigationTitle("공식 일정")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    // MARK: - Day Selector + Content
+
+    private var scheduleContent: some View {
+        VStack(spacing: 0) {
+            dayTabBar
+            Divider()
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(viewModel.schedulesForSelectedDay) { schedule in
+                        OfficialScheduleRow(schedule: schedule)
                     }
                 }
-            }
-            // 생성 화면 (시트로 표시)
-            .sheet(isPresented: $showCreateView) {
-                ScheduleCreateView(viewModel: viewModel)
-            }
-            // 상세 화면 (시트로 표시)
-            .sheet(item: $selectedSchedule) { schedule in
-                ScheduleDetailView(viewModel: viewModel, schedule: schedule)
-            }
-            // 생성/수정 화면 닫힌 후 목록 새로고침
-            .onChange(of: showCreateView) { isShowing in
-                if !isShowing { viewModel.fetchSchedules() }
-            }
-            .onChange(of: selectedSchedule) { selected in
-                if selected == nil { viewModel.fetchSchedules() }
-            }
-            // 화면 진입 시 목록 로드
-            .onAppear {
-                viewModel.fetchSchedules()
+                .padding(.vertical, 12)
             }
         }
     }
 
-    // MARK: - Empty State
+    // MARK: - Day Tab Bar
 
-    /// 일정이 없을 때 표시하는 안내 화면
-    private var emptyStateView: some View {
+    private var dayTabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(viewModel.sortedDayNumbers, id: \.self) { day in
+                    Button {
+                        viewModel.selectedDayNumber = day
+                    } label: {
+                        Text(viewModel.dayLabel(day))
+                            .font(.system(size: 14, weight: viewModel.selectedDayNumber == day ? .semibold : .regular))
+                            .foregroundColor(viewModel.selectedDayNumber == day ? .white : HiTripColor.gray500)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(viewModel.selectedDayNumber == day ? HiTripColor.primary800 : Color.clear)
+                            )
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+    }
+
+    // MARK: - States
+
+    private var loadingView: some View {
+        VStack { Spacer(); ProgressView("일정 불러오는 중..."); Spacer() }
+    }
+
+    private var emptyView: some View {
         VStack(spacing: 16) {
             Spacer()
-
-            Image(systemName: "calendar.badge.plus")
+            Image(systemName: "calendar")
                 .font(.system(size: 50))
                 .foregroundColor(HiTripColor.gray300)
-
-            Text("등록된 일정이 없습니다")
+            Text("등록된 공식 일정이 없습니다")
                 .font(.system(size: 17, weight: .medium))
                 .foregroundColor(HiTripColor.gray500)
-
-            Text("오른쪽 상단 +를 눌러 일정을 추가해보세요")
-                .font(.system(size: 14))
-                .foregroundColor(HiTripColor.gray400)
-
             Spacer()
         }
     }
+}
 
-    // MARK: - Schedule List
+// MARK: - OfficialScheduleRow
 
-    /// 일정 목록 리스트
-    private var scheduleListContent: some View {
-        List {
-            ForEach(viewModel.schedules) { schedule in
-                scheduleRow(schedule)
-                    .contentShape(Rectangle()) // 전체 영역 탭 가능
-                    .onTapGesture {
-                        selectedSchedule = schedule
-                    }
+struct OfficialScheduleRow: View {
+
+    let schedule: TripOfficialSchedule
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 0) {
+                Text(schedule.emoji ?? "📍")
+                    .font(.system(size: 20))
+                Rectangle()
+                    .fill(HiTripColor.gray200)
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
             }
-            // 스와이프 삭제
-            .onDelete { indexSet in
-                for index in indexSet {
-                    let schedule = viewModel.schedules[index]
-                    viewModel.deleteSchedule(id: schedule.id)
+            .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(timeRange)
+                    .font(.system(size: 12))
+                    .foregroundColor(HiTripColor.gray400)
+
+                Text(schedule.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(HiTripColor.textBlack)
+
+                if let place = schedule.placeName, !place.isEmpty {
+                    Label(place, systemImage: "mappin.and.ellipse")
+                        .font(.system(size: 13))
+                        .foregroundColor(HiTripColor.gray500)
+                }
+
+                if let transport = schedule.transport, !transport.isEmpty {
+                    Label(transport, systemImage: "figure.walk")
+                        .font(.system(size: 12))
+                        .foregroundColor(HiTripColor.gray400)
+                }
+
+                if let content = schedule.mainContent, !content.isEmpty {
+                    Text(content)
+                        .font(.system(size: 13))
+                        .foregroundColor(HiTripColor.gray500)
+                        .lineLimit(2)
                 }
             }
+            .padding(.bottom, 20)
+
+            Spacer()
         }
-        .listStyle(.plain)
+        .padding(.horizontal, 16)
     }
 
-    // MARK: - Schedule Row
-
-    /// 목록에서 하나의 일정을 표시하는 행
-    private func scheduleRow(_ schedule: Schedule) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // 제목
-            Text(schedule.title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(HiTripColor.textBlack)
-
-            // 날짜
-            HStack(spacing: 4) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 12))
-                Text(schedule.date.formatted(date: .abbreviated, time: .shortened))
-                    .font(.system(size: 13))
-            }
-            .foregroundColor(HiTripColor.gray500)
-
-            // 장소 (있을 때만)
-            if !schedule.location.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "mappin")
-                        .font(.system(size: 12))
-                    Text(schedule.location)
-                        .font(.system(size: 13))
-                }
-                .foregroundColor(HiTripColor.gray400)
-            }
-        }
-        .padding(.vertical, 4)
+    private var timeRange: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "HH:mm"
+        return "\(fmt.string(from: schedule.startTime)) ~ \(fmt.string(from: schedule.endTime))"
     }
 }

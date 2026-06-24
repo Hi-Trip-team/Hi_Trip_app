@@ -81,19 +81,52 @@ struct TodayScheduleView: View {
 
             // 오른쪽: 일정 카드
             VStack(alignment: .leading, spacing: 8) {
-                // 시간
-                Text(schedule.timeText)
-                    .font(.system(size: 13))
-                    .foregroundColor(HiTripColor.gray500)
+                // 시간 + 소요시간
+                HStack {
+                    Text(schedule.timeText)
+                        .font(.system(size: 13))
+                        .foregroundColor(HiTripColor.gray500)
+
+                    if let dur = schedule.durationDisplay {
+                        Text("(\(dur))")
+                            .font(.system(size: 12))
+                            .foregroundColor(HiTripColor.gray400)
+                    }
+                }
 
                 // 이모지 + 제목
                 HStack(spacing: 8) {
                     Text(schedule.emoji)
                         .font(.system(size: 24))
 
-                    Text(schedule.title)
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(HiTripColor.textBlack)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(schedule.placeName ?? schedule.title)
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(HiTripColor.textBlack)
+
+                        if let content = schedule.mainContent, !content.isEmpty,
+                           schedule.placeName != nil {
+                            Text(content)
+                                .font(.system(size: 13))
+                                .foregroundColor(HiTripColor.gray500)
+                        }
+                    }
+                }
+
+                // 상세 정보 (집합장소, 이동수단)
+                if let detail = schedule.detailText {
+                    HStack(spacing: 4) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 11))
+                            .foregroundColor(HiTripColor.primary800.opacity(0.7))
+                        Text(detail)
+                            .font(.system(size: 12))
+                            .foregroundColor(HiTripColor.primary800.opacity(0.8))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(HiTripColor.primary800.opacity(0.06))
+                    .cornerRadius(8)
                 }
             }
             .padding(.vertical, 12)
