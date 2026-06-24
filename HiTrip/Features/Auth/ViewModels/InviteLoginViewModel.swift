@@ -169,8 +169,9 @@ final class InviteLoginViewModel: ObservableObject {
                     self.requiresAgreement = true
                     print("✅ [InviteLogin] 로그인 성공 (약관 동의 필요): \(traveler.fullNameKr)")
                 } else {
-                    TripDataStore.shared.reload()
-                    self.loginSuccess = true
+                    TripDataStore.shared.reload {
+                        self.loginSuccess = true
+                    }
                     print("✅ [InviteLogin] 로그인 성공: \(traveler.fullNameKr), trip: \(response.trip.title)")
                 }
             },

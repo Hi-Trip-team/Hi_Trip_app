@@ -27,6 +27,9 @@ struct TripListView: View {
     /// 오늘의 일정 전체 보기 이동
     @State private var showTodaySchedule: Bool = false
 
+    /// 선택된 스팟 상세보기
+    @State private var selectedSpot: TravelerSpotDTO?
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -72,7 +75,10 @@ struct TripListView: View {
                 NoticeListView(viewModel: viewModel)
             }
             .navigationDestination(isPresented: $showTodaySchedule) {
-                ScheduleListView()
+                TodayScheduleView(viewModel: viewModel)
+            }
+            .sheet(item: $selectedSpot) { spot in
+                TravelerSpotDetailView(spot: spot)
             }
             .navigationBarHidden(true)
         }
@@ -350,78 +356,88 @@ struct TripListView: View {
 
     // MARK: - Nearby Spot Section
 
-    /// 지금 갈만한 곳 (가로 스크롤)
     private var nearbySpotSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // 헤더
-            HStack {
-                HStack(spacing: 4) {
-                    Text("📍")
-                        .font(.system(size: 14))
-                    Text("지금 갈만한 곳")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(HiTripColor.textBlack)
-                }
-
-                Spacer()
-
-                Text("가이드 추천 더보기 >")
-                    .font(.system(size: 13))
-                    .foregroundColor(HiTripColor.accentLink)
+            HStack(spacing: 4) {
+                Text("📍")
+                    .font(.system(size: 14))
+                Text("지금 갈만한 곳")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(HiTripColor.textBlack)
             }
 
-            // 가로 스크롤 카드
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(viewModel.nearbySpots) { spot in
-                        nearbySpotCard(spot)
+            if viewModel.nearbySpotDTOs.isEmpty {
+                Text("등록된 추천 장소가 없습니다.")
+                    .font(.system(size: 14))
+                    .foregroundColor(HiTripColor.gray400)
+                    .padding(.vertical, 8)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(viewModel.nearbySpotDTOs) { spot in
+                            nearbySpotCard(spot)
+                                .onTapGesture { selectedSpot = spot }
+                        }
                     }
+                    .padding(.leading, 4)
                 }
-                .padding(.leading, 4)
             }
         }
         .hiTripCard(padding: 16)
     }
 
-    /// 추천 ���소 개별 카드
-    private func nearbySpotCard(_ spot: TripNearbySpot) -> some View {
+    private func nearbySpotCard(_ spot: TravelerSpotDTO) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 썸네일 placeholder
-            RoundedRectangle(cornerRadius: 12)
-                .fill(HiTripColor.gray200)
-                .frame(height: 80)
-                .overlay(
-                    Image(systemName: spotIcon(spot.category))
-                        .font(.system(size: 20))
-                        .foregroundColor(HiTripColor.gray400)
-                )
+            // 썸네일
+            Group {
+                if let url = URL(string: spot.imageUrl), !spot.imageUrl.isEmpty {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let img) = phase {
+                            img.resizable().scaledToFill()
+                        } else {
+                            spotPlaceholder(spot)
+                        }
+                    }
+                } else {
+                    spotPlaceholder(spot)
+                }
+            }
+            .frame(width: 110, height: 80)
+            .clipped()
+            .cornerRadius(10)
 
-            Spacer().frame(height: 8)
+            Spacer().frame(height: 6)
 
-            // 거리
-            Text(spot.distance)
-                .font(.system(size: 11))
-                .foregroundColor(HiTripColor.gray500)
+            // 유형 뱃지
+            Text(spot.spotType == "recommended" ? "🌟 추천" : "🔥 인기")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(spot.spotType == "recommended" ? .orange : .red)
 
             Spacer().frame(height: 2)
 
-            // 장소 이름
-            Text(spot.name)
-                .font(.system(size: 13, weight: .medium))
+            // 장소명
+            Text(spot.title)
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(HiTripColor.textBlack)
                 .lineLimit(1)
+
+            // 카테고리
+            if let cat = spot.place.categoryName {
+                Text(cat)
+                    .font(.system(size: 11))
+                    .foregroundColor(HiTripColor.gray400)
+                    .lineLimit(1)
+            }
         }
-        .frame(width: 100)
+        .frame(width: 110)
     }
 
-    /// 장소 타입별 아이콘
-    private func spotIcon(_ imageName: String) -> String {
-        switch imageName {
-        case "beach":    return "water.waves"
-        case "leaf":     return "leaf.fill"
-        case "mountain": return "mountain.2.fill"
-        case "water":    return "water.waves"
-        default:         return "mappin.circle.fill"
+    private func spotPlaceholder(_ spot: TravelerSpotDTO) -> some View {
+        ZStack {
+            HiTripColor.gray200
+            Image(systemName: "mappin.circle.fill")
+                .font(.system(size: 22))
+                .foregroundColor(HiTripColor.gray400)
         }
     }
 

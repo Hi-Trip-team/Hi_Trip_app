@@ -133,10 +133,12 @@ final class TripListViewModel: ObservableObject {
         store.officialSchedulesByDay()
     }
 
-    // MARK: - 지금 갈만한 곳 (Store 기반)
+    // MARK: - 지금 갈만한 곳 (서버 스팟 DTO 직접 노출)
 
-    var nearbySpots: [TripNearbySpot] {
-        store.currentPackage?.nearbySpots ?? []
+    /// 추천 + 인기 스팟 합산 (displayOrder 기준 정렬)
+    var nearbySpotDTOs: [TravelerSpotDTO] {
+        let all = store.recommendedSpots + store.popularSpots
+        return all.sorted { $0.displayOrder < $1.displayOrder }
     }
 
     // MARK: - 여행 필수 번역 (Store 기반)
@@ -157,18 +159,12 @@ final class TripListViewModel: ObservableObject {
         store.trip(for: tripId)
     }
 
-    // MARK: - Todo / Event (기존 유지)
+    // MARK: - Todo / Event
 
-    var todosForSelectedDate: [TripTodo] {
-        store.todos(for: selectedDate)
-    }
-
-    var eventsForSelectedDate: [TripEvent] {
-        store.events(for: selectedDate)
-    }
+    var allTodos: [TripTodo] { store.todos }
 
     var hasScheduleForSelectedDate: Bool {
-        !todosForSelectedDate.isEmpty || !eventsForSelectedDate.isEmpty
+        !allTodos.isEmpty
     }
 
     func toggleTodo(_ todoId: UUID) {

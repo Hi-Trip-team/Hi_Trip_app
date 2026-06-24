@@ -25,11 +25,11 @@ final class TripDataStore: ObservableObject {
 
     @Published var currentPackage: TripPackage?
     @Published var trips: [Trip] = []
-    @Published var todos: [TripTodo] = []        // 서버 체크리스트 + 로컬 추가 항목 혼합
-    @Published var events: [TripEvent] = []      // 로컬 전용 (서버 API 없음)
+    @Published var todos: [TripTodo] = []
     @Published var notices: [TripNotice] = []
     @Published var recommendedSpots: [TravelerSpotDTO] = []
     @Published var popularSpots: [TravelerSpotDTO] = []
+    @Published var managerContact: [String: String]? = nil
     @Published var isLoading: Bool = false
     private(set) var isDataLoaded: Bool = false
 
@@ -54,18 +54,18 @@ final class TripDataStore: ObservableObject {
 
     // MARK: - Public API
 
-    func reload() {
-        loadInitialData()
+    func reload(onReady: (() -> Void)? = nil) {
+        loadInitialData(onReady: onReady)
     }
 
     func clear() {
         currentPackage = nil
         trips = []
         todos = []
-        events = []
         notices = []
         recommendedSpots = []
         popularSpots = []
+        managerContact = nil
         isDataLoaded = false
     }
 
@@ -83,7 +83,7 @@ final class TripDataStore: ObservableObject {
 
     // MARK: - Initial Load
 
-    private func loadInitialData() {
+    private func loadInitialData(onReady: (() -> Void)? = nil) {
         isLoading = true
         print("🔄 [TripDataStore] 데이터 로드 시작")
 
@@ -102,11 +102,15 @@ final class TripDataStore: ObservableObject {
                     self.loadNotices()
                     self.loadChecklists()
                     self.loadSpots()
+                    self.loadManagerContact()
+
+                    onReady?()
                 },
                 onFailure: { [weak self] error in
                     self?.isLoading = false
                     self?.isDataLoaded = true
                     print("⚠️ [TripDataStore] 여행 로드 실패: \(error.localizedDescription)")
+                    onReady?()
                 }
             )
             .disposed(by: disposeBag)
@@ -164,9 +168,9 @@ final class TripDataStore: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] dtos in
                     guard let self, let tripId = self.trips.first?.id else { return }
-                    let serverTodos = dtos.map { $0.toTripTodo(tripId: tripId) }
-                    let localOnly = self.todos.filter { !$0.isServerManaged }
-                    self.todos = serverTodos + localOnly
+                    self.todos = dtos
+                        .map { $0.toTripTodo(tripId: tripId) }
+                        .sorted { $0.displayOrder < $1.displayOrder }
                     print("✅ [TripDataStore] 체크리스트 \(dtos.count)개 로드")
                 },
                 onFailure: { error in
@@ -182,7 +186,6 @@ final class TripDataStore: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] dtos in
                     self?.recommendedSpots = dtos
-                    self?.syncNearbySpots()
                     print("✅ [TripDataStore] 추천 스팟 \(dtos.count)개 로드")
                 },
                 onFailure: { error in
@@ -196,7 +199,6 @@ final class TripDataStore: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] dtos in
                     self?.popularSpots = dtos
-                    self?.syncNearbySpots()
                     print("✅ [TripDataStore] 인기 스팟 \(dtos.count)개 로드")
                 },
                 onFailure: { error in
@@ -206,10 +208,19 @@ final class TripDataStore: ObservableObject {
             .disposed(by: disposeBag)
     }
 
-    private func syncNearbySpots() {
-        guard var pkg = currentPackage else { return }
-        pkg.nearbySpots = (recommendedSpots + popularSpots).map { $0.toNearbySpot() }
-        currentPackage = pkg
+    private func loadManagerContact() {
+        repository.fetchManagerContact()
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] dto in
+                    self?.managerContact = dto.manager
+                    print("✅ [TripDataStore] 매니저 연락처 로드: \(dto.manager ?? [:])")
+                },
+                onFailure: { error in
+                    print("⚠️ [TripDataStore] 매니저 연락처 로드 실패: \(error.localizedDescription)")
+                }
+            )
+            .disposed(by: disposeBag)
     }
 
     // MARK: - Checklist Toggle (서버 동기화)
@@ -285,69 +296,13 @@ final class TripDataStore: ObservableObject {
 
     // MARK: - Todo Helpers
 
-    func todos(for tripId: UUID, date: Date, section: TripTodo.Section) -> [TripTodo] {
-        let cal = Calendar.current
-        return todos
-            .filter { $0.tripId == tripId && $0.section == section && cal.isDate($0.date, inSameDayAs: date) }
-            .sorted { !$0.isCompleted && $1.isCompleted }
+    /// 전체 체크리스트 (서버 순서 유지)
+    func todos(for tripId: UUID) -> [TripTodo] {
+        todos.filter { $0.tripId == tripId }
     }
 
-    func todos(for date: Date) -> [TripTodo] {
-        let cal = Calendar.current
-        return todos.filter { cal.isDate($0.date, inSameDayAs: date) }.sorted { !$0.isCompleted && $1.isCompleted }
-    }
+    /// 완료/미완료 기준 그룹
+    var pendingTodos: [TripTodo] { todos.filter { !$0.isCompleted } }
+    var completedTodos: [TripTodo] { todos.filter { $0.isCompleted } }
 
-    func todos(for tripId: UUID) -> [TripTodo] { todos.filter { $0.tripId == tripId } }
-
-    /// 로컬 전용 항목 추가 (앱 재시작 시 초기화 — UserDefaults 저장은 별도 작업)
-    func addTodo(title: String, section: TripTodo.Section, date: Date, tripId: UUID) {
-        todos.append(TripTodo(title: title, section: section, date: date, tripId: tripId))
-    }
-
-    func updateTodo(_ todoId: UUID, newTitle: String) {
-        if let i = todos.firstIndex(where: { $0.id == todoId }) { todos[i].title = newTitle }
-    }
-
-    /// 서버 관리 항목은 삭제 불가 (DELETE 엔드포인트 없음)
-    func deleteTodo(_ todoId: UUID) {
-        guard let todo = todos.first(where: { $0.id == todoId }), !todo.isServerManaged else { return }
-        todos.removeAll { $0.id == todoId }
-    }
-
-    // MARK: - Event Helpers (로컬 전용)
-
-    func events(for date: Date) -> [TripEvent] {
-        let cal = Calendar.current
-        return events.filter { cal.isDate($0.startTime, inSameDayAs: date) }.sorted { $0.startTime < $1.startTime }
-    }
-
-    func events(for tripId: UUID, date: Date) -> [TripEvent] {
-        let cal = Calendar.current
-        return events.filter { $0.tripId == tripId && cal.isDate($0.startTime, inSameDayAs: date) }.sorted { $0.startTime < $1.startTime }
-    }
-
-    func events(for tripId: UUID) -> [TripEvent] { events.filter { $0.tripId == tripId } }
-
-    func eventCategories(for tripId: UUID, date: Date) -> [TripEvent.Category] {
-        let cal = Calendar.current
-        var seen = Set<TripEvent.Category>()
-        return events
-            .filter { $0.tripId == tripId && cal.isDate($0.startTime, inSameDayAs: date) }
-            .compactMap { seen.insert($0.category).inserted ? $0.category : nil }
-    }
-
-    func addEvent(title: String, startTime: Date, endTime: Date, category: TripEvent.Category, tripId: UUID) {
-        events.append(TripEvent(title: title, startTime: startTime, endTime: endTime, category: category, tripId: tripId))
-    }
-
-    func updateEvent(_ eventId: UUID, title: String, startTime: Date, endTime: Date, category: TripEvent.Category) {
-        if let i = events.firstIndex(where: { $0.id == eventId }) {
-            events[i].title = title
-            events[i].startTime = startTime
-            events[i].endTime = endTime
-            events[i].category = category
-        }
-    }
-
-    func deleteEvent(_ eventId: UUID) { events.removeAll { $0.id == eventId } }
 }

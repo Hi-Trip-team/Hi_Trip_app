@@ -1,48 +1,39 @@
 import Foundation
 
 // MARK: - TripTodo
-/// 여행 할일 (체크리스트) 모델
+/// 여행 체크리스트 아이템
 ///
-/// 서버 체크리스트(TravelerChecklistItemDTO)에서 변환되거나
-/// 로컬에서 추가한 항목으로 채워짐.
-/// serverId가 있으면 PATCH /api/traveler/checklists/{id}/ 로 동기화.
+/// 서버 GET /api/traveler/checklists/ 에서 로드.
+/// 토글(완료 체크)만 허용 — PATCH /api/traveler/checklists/{id}/
+/// 여행객 앱에서 직접 추가/수정/삭제 불가 (여행사에서 관리).
 
 struct TripTodo: Identifiable, Codable, Equatable {
 
     let id: UUID
-    var serverId: Int?      // 서버 체크리스트 ID — PATCH 호출 시 사용, nil이면 로컬 전용
+    let serverId: Int?          // PATCH 호출 시 사용
     var title: String
+    var subtitle: String?       // 서버 description 필드
     var isCompleted: Bool
-    var section: Section
-    var date: Date          // 이 할일이 속한 날짜 (날짜별 필터링용)
-    let tripId: UUID        // 소속 여행
-    let createdAt: Date
+    var displayOrder: Int       // 서버 정렬 순서
+    let tripId: UUID
 
-    /// 체크리스트 섹션 구분
-    enum Section: String, Codable, CaseIterable {
-        case todayPrep = "오늘 일정 준비"
-        case travelPrep = "여행 준비 & 관리"
-    }
+    var isServerManaged: Bool { serverId != nil }
 
     init(
         id: UUID = UUID(),
         serverId: Int? = nil,
         title: String,
+        subtitle: String? = nil,
         isCompleted: Bool = false,
-        section: Section = .todayPrep,
-        date: Date = Date(),
-        tripId: UUID,
-        createdAt: Date = Date()
+        displayOrder: Int = 0,
+        tripId: UUID
     ) {
         self.id = id
         self.serverId = serverId
         self.title = title
+        self.subtitle = subtitle
         self.isCompleted = isCompleted
-        self.section = section
-        self.date = date
+        self.displayOrder = displayOrder
         self.tripId = tripId
-        self.createdAt = createdAt
     }
-
-    var isServerManaged: Bool { serverId != nil }
 }

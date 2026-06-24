@@ -63,6 +63,8 @@ struct EmergencyContact: Identifiable, Codable, Equatable {
 ///
 /// 화면에서 섹션별로 그룹핑하기 위한 카테고리
 enum ContactCategory: String, Codable, CaseIterable, Equatable {
+    /// 여행사 담당자 (서버에서 제공)
+    case manager = "담당자"
     /// 긴급 기관 (경찰, 소방)
     case emergency = "긴급"
     /// 의료 기관 (응급의료정보센터)
