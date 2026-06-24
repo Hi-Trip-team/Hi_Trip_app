@@ -180,11 +180,19 @@ struct TripMission: Identifiable, Codable, Equatable {
 
 struct TripOfficialSchedule: Identifiable, Codable, Equatable {
     let id: UUID
-    var emoji: String          // "🏠", "🌅"
-    var title: String          // "숙소로 이동"
+    var emoji: String          // "🚌", "🚶"
+    var title: String          // "인천국제공항 T1 — 탑승 수속 및 출국"
     var startTime: Date        // 시작 시간
     var endTime: Date          // 종료 시간
     var date: Date             // 해당 날짜
+
+    // 서버 상세 데이터 (선택)
+    var placeName: String?     // "인천국제공항 T1"
+    var mainContent: String?   // "탑승 수속 및 출국"
+    var meetingPoint: String?  // "T1 3층 출발홀"
+    var transport: String?     // "자가용", "도보"
+    var durationDisplay: String? // "2시간"
+    var dayNumber: Int?        // 1, 2, 3...
 
     init(
         id: UUID = UUID(),
@@ -192,7 +200,13 @@ struct TripOfficialSchedule: Identifiable, Codable, Equatable {
         title: String,
         startTime: Date,
         endTime: Date,
-        date: Date
+        date: Date,
+        placeName: String? = nil,
+        mainContent: String? = nil,
+        meetingPoint: String? = nil,
+        transport: String? = nil,
+        durationDisplay: String? = nil,
+        dayNumber: Int? = nil
     ) {
         self.id = id
         self.emoji = emoji
@@ -200,6 +214,12 @@ struct TripOfficialSchedule: Identifiable, Codable, Equatable {
         self.startTime = startTime
         self.endTime = endTime
         self.date = date
+        self.placeName = placeName
+        self.mainContent = mainContent
+        self.meetingPoint = meetingPoint
+        self.transport = transport
+        self.durationDisplay = durationDisplay
+        self.dayNumber = dayNumber
     }
 
     /// 표시용 시간 문자열 "15:00 – 16:00"
@@ -207,6 +227,15 @@ struct TripOfficialSchedule: Identifiable, Codable, Equatable {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return "\(formatter.string(from: startTime)) – \(formatter.string(from: endTime))"
+    }
+
+    /// 상세 정보 텍스트 (집합 장소 + 이동수단 + 소요시간)
+    var detailText: String? {
+        var parts: [String] = []
+        if let mp = meetingPoint, !mp.isEmpty { parts.append("집합: \(mp)") }
+        if let tr = transport, !tr.isEmpty { parts.append(tr) }
+        if let dur = durationDisplay, !dur.isEmpty { parts.append(dur) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }
 

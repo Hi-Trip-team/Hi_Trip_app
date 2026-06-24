@@ -108,14 +108,29 @@ final class TripListViewModel: ObservableObject {
     // MARK: - 오늘의 미션 (Store 기반)
 
     var missionText: String {
-        let missions = store.todayMissions()
-        return missions.first?.content ?? "등록된 미션이 없습니다"
+        // 미션 기능은 서비스 준비 중 (흔적 유지)
+        return "서비스 준비 중입니다"
     }
 
     // MARK: - 오늘의 일정 (Store 기반 — 여행사 공식 일정)
 
     var todaySchedules: [TripOfficialSchedule] {
         store.todayOfficialSchedules()
+    }
+
+    /// 내일의 일정
+    var tomorrowSchedules: [TripOfficialSchedule] {
+        store.tomorrowOfficialSchedules()
+    }
+
+    /// 오늘이 몇 일차인지
+    var currentDayNumber: Int {
+        store.currentPackage?.currentDay() ?? 1
+    }
+
+    /// 전체 일정을 일차별로 묶음
+    var schedulesByDay: [Int: [TripOfficialSchedule]] {
+        store.officialSchedulesByDay()
     }
 
     // MARK: - 지금 갈만한 곳 (Store 기반)

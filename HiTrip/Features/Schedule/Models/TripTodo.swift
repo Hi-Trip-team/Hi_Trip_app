@@ -3,12 +3,14 @@ import Foundation
 // MARK: - TripTodo
 /// 여행 할일 (체크리스트) 모델
 ///
-/// 피그마 화면2의 체크리스트 항목
-/// 섹션별로 그룹핑: "오늘 일정 준비", "여행 준비 & 관리"
+/// 서버 체크리스트(TravelerChecklistItemDTO)에서 변환되거나
+/// 로컬에서 추가한 항목으로 채워짐.
+/// serverId가 있으면 PATCH /api/traveler/checklists/{id}/ 로 동기화.
 
 struct TripTodo: Identifiable, Codable, Equatable {
 
     let id: UUID
+    var serverId: Int?      // 서버 체크리스트 ID — PATCH 호출 시 사용, nil이면 로컬 전용
     var title: String
     var isCompleted: Bool
     var section: Section
@@ -24,6 +26,7 @@ struct TripTodo: Identifiable, Codable, Equatable {
 
     init(
         id: UUID = UUID(),
+        serverId: Int? = nil,
         title: String,
         isCompleted: Bool = false,
         section: Section = .todayPrep,
@@ -32,6 +35,7 @@ struct TripTodo: Identifiable, Codable, Equatable {
         createdAt: Date = Date()
     ) {
         self.id = id
+        self.serverId = serverId
         self.title = title
         self.isCompleted = isCompleted
         self.section = section
@@ -39,4 +43,6 @@ struct TripTodo: Identifiable, Codable, Equatable {
         self.tripId = tripId
         self.createdAt = createdAt
     }
+
+    var isServerManaged: Bool { serverId != nil }
 }

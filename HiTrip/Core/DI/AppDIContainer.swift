@@ -3,36 +3,21 @@ import Foundation
 // MARK: - AppDIContainer
 /// 수동 의존성 주입(DI) 컨테이너
 ///
-/// 설계 의도:
-/// - Swinject 같은 DI 프레임워크 없이 Swift 생성자 주입으로 구현
-/// - 모든 의존성 생성과 조립을 한 곳에서 관리
+/// 의존성 조립 순서:
+///   NetworkService
+///     ↓
+///   Repository (Protocol 구현체) — Auth / Traveler / Chat / Emergency / Spot
+///     ↓
+///   UseCase (Auth / Chat / Emergency / Spot)
+///     ↓
+///   ViewModel
 ///
-/// 의존성 조립 순서 (아래에서 위로):
-/// ```
-/// NetworkService (싱글턴)
-///      ↓
-/// AuthRepository (Protocol 구현체)
-///      ↓
-/// LoginUseCase / SignUpUseCase (비즈니스 로직)
-///      ↓
-/// LoginViewModel / SignUpViewModel (UI 바인딩)
-/// ```
-///
-/// 면접 포인트:
-/// "왜 Swinject를 안 쓰셨나요?"
-/// → "의존성 주입의 원리를 직접 이해하기 위해 수동 구현했습니다.
-///    프레임워크 없이도 Protocol + Init Injection으로
-///    충분히 깔끔하게 DI를 구성할 수 있습니다."
-///
-/// "DI Container의 장점은 무엇인가요?"
-/// → "객체 생성 로직을 한 곳에 모아서:
-///    1) 의존성 그래프를 한눈에 파악 가능
-///    2) 테스트 시 Mock으로 쉽게 교체
-///    3) 객체 생명주기(싱글턴 vs 매번 생성) 중앙 관리"
+/// TravelerRepository는 TripDataStore / ProfileViewModel / AgreementViewModel이 공유.
+/// Chat은 스레드 기반 별도 패턴이므로 ChatRepository로 독립.
 
 final class AppDIContainer {
 
-    // MARK: - Singleton (프로덕션)
+    // MARK: - Singleton
 
     static let shared = AppDIContainer()
 
@@ -40,131 +25,72 @@ final class AppDIContainer {
 
     private let networkService: NetworkService
 
-    // MARK: - Repositories (lazy: 필요할 때 생성)
+    // MARK: - Repositories
 
-    /// lazy var + Protocol 타입으로 선언
-    /// → 실제 타입(AuthRepository)은 초기화 시점에만 노출
     private lazy var authRepository: AuthRepositoryProtocol = {
         AuthRepository(networkService: networkService)
     }()
 
-    /// 일정 Repository — 환경에 따라 Mock ↔ Remote 전환
-    private lazy var scheduleRepository: ScheduleRepositoryProtocol = {
-        if APIEnvironment.current.useMock {
-            return ScheduleRepository()
-        } else {
-            return RemoteScheduleRepository(networkService: networkService)
-        }
+    /// 여행객 전용 API 저장소 — TripDataStore, ProfileVM, AgreementVM이 공유
+    private lazy var travelerRepository: TravelerRepositoryProtocol = {
+        TravelerRepository(networkService: networkService)
     }()
 
-    /// 채팅 Repository — 현재 메모리 저장, 나중에 WebSocket으로 교체
+
+    /// 문의 스레드 + 메시지 — 스레드 기반이므로 별도 Repository
     private lazy var chatRepository: ChatRepositoryProtocol = {
-        ChatRepository()
+        ChatRepository(networkService: networkService)
     }()
 
-    /// 긴급 연락처 Repository — 프리셋 번호 + 개인 연락처
+    /// 로컬 긴급 연락처 (프리셋 + 개인 저장)
     private lazy var emergencyRepository: EmergencyRepositoryProtocol = {
         EmergencyRepository()
     }()
 
-    /// 여행(Trip/Todo/Event) Repository — 환경에 따라 Mock ↔ Remote 전환
-    /// TripDataStore.shared가 내부적으로 직접 참조하므로 DI 등록은 참조용
-    private lazy var tripRepository: TripRepositoryProtocol = {
-        if APIEnvironment.current.useMock {
-            return MockTripRepository()
-        } else {
-            return RemoteTripRepository(networkService: networkService)
-        }
-    }()
-
-    /// 관광지 Repository — TourAPI 실제 연동
+    /// TourAPI 관광지 검색
     private lazy var spotRepository: SpotRepositoryProtocol = {
         SpotRepository()
     }()
 
     // MARK: - Init
 
-    /// 프로덕션용 — 싱글턴으로만 사용
     private init() {
         self.networkService = .shared
     }
 
-    /// 테스트용 — Mock 의존성 주입
-    ///
-    /// 사용 예시:
-    /// ```
-    /// let mockRepo = MockAuthRepository()
-    /// let container = AppDIContainer(
-    ///     networkService: NetworkService(baseURL: "http://test"),
-    ///     authRepository: mockRepo
-    /// )
-    /// let viewModel = container.makeLoginViewModel()
-    /// ```
+    /// 테스트용 — Mock Repository 주입
     init(
         networkService: NetworkService,
-        authRepository: AuthRepositoryProtocol? = nil
+        authRepository: AuthRepositoryProtocol? = nil,
+        travelerRepository: TravelerRepositoryProtocol? = nil
     ) {
         self.networkService = networkService
-        if let authRepository {
-            self.authRepository = authRepository
-        }
+        if let auth = authRepository     { self.authRepository     = auth }
+        if let traveler = travelerRepository { self.travelerRepository = traveler }
     }
+
+    // MARK: - Repository Access (테스트 / 직접 주입용)
+
+    func makeTravelerRepository() -> TravelerRepositoryProtocol { travelerRepository }
 
     // MARK: - UseCase Factory
 
-    func makeLoginUseCase() -> LoginUseCase {
-        LoginUseCase(repository: authRepository)
-    }
-
-    func makeSignUpUseCase() -> SignUpUseCase {
-        SignUpUseCase(repository: authRepository)
-    }
-
-    func makeScheduleUseCase() -> ScheduleUseCase {
-        ScheduleUseCase(repository: scheduleRepository)
-    }
-
-    func makeChatUseCase() -> ChatUseCase {
-        ChatUseCase(repository: chatRepository)
-    }
-
-    func makeEmergencyUseCase() -> EmergencyUseCase {
-        EmergencyUseCase(repository: emergencyRepository)
-    }
-
-    func makeSpotUseCase() -> SpotUseCase {
-        SpotUseCase(repository: spotRepository)
-    }
+    func makeLoginUseCase()     -> LoginUseCase     { LoginUseCase(repository: authRepository) }
+    func makeSignUpUseCase()    -> SignUpUseCase    { SignUpUseCase(repository: authRepository) }
+    func makeChatUseCase()      -> ChatUseCase      { ChatUseCase(repository: chatRepository) }
+    func makeEmergencyUseCase() -> EmergencyUseCase { EmergencyUseCase(repository: emergencyRepository) }
+    func makeSpotUseCase()      -> SpotUseCase      { SpotUseCase(repository: spotRepository) }
 
     // MARK: - ViewModel Factory
 
-    /// RootView에서 호출하여 LoginView에 주입
-    func makeLoginViewModel() -> LoginViewModel {
-        LoginViewModel(loginUseCase: makeLoginUseCase())
-    }
+    func makeLoginViewModel()    -> LoginViewModel    { LoginViewModel(loginUseCase: makeLoginUseCase()) }
+    func makeSignUpViewModel()   -> SignUpViewModel   { SignUpViewModel(signUpUseCase: makeSignUpUseCase()) }
+    func makeScheduleViewModel() -> ScheduleViewModel { ScheduleViewModel() }
+    func makeChatViewModel()     -> ChatViewModel     { ChatViewModel(chatUseCase: makeChatUseCase()) }
+    func makeEmergencyViewModel()-> EmergencyViewModel{ EmergencyViewModel(emergencyUseCase: makeEmergencyUseCase()) }
+    func makeSpotViewModel()     -> SpotViewModel     { SpotViewModel(spotUseCase: makeSpotUseCase()) }
 
-    /// RootView에서 호출하여 SignUpFlowView에 주입
-    func makeSignUpViewModel() -> SignUpViewModel {
-        SignUpViewModel(signUpUseCase: makeSignUpUseCase())
-    }
-
-    /// HomeView의 일정 탭에서 사용
-    func makeScheduleViewModel() -> ScheduleViewModel {
-        ScheduleViewModel(scheduleUseCase: makeScheduleUseCase())
-    }
-
-    /// HomeView의 채팅 탭에서 사용
-    func makeChatViewModel() -> ChatViewModel {
-        ChatViewModel(chatUseCase: makeChatUseCase())
-    }
-
-    /// HomeView의 긴급 연락 탭에서 사용
-    func makeEmergencyViewModel() -> EmergencyViewModel {
-        EmergencyViewModel(emergencyUseCase: makeEmergencyUseCase())
-    }
-
-    /// HomeView의 스팟 추천 탭에서 사용
-    func makeSpotViewModel() -> SpotViewModel {
-        SpotViewModel(spotUseCase: makeSpotUseCase())
+    func makeProfileViewModel() -> ProfileViewModel {
+        ProfileViewModel(repository: travelerRepository)
     }
 }

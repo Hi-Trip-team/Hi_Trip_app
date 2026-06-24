@@ -61,11 +61,14 @@ extension TripDTO {
         let date = dateFormatter.date(from: startDate ?? "") ?? Date()
 
         return Trip(
+            serverId: id,
             title: title,
             date: date,
             location: destination ?? "",
             thumbnailName: "mappin.circle.fill",
-            memberAvatars: []
+            memberAvatars: [],
+            status: status,
+            inviteCode: inviteCode
         )
     }
 }

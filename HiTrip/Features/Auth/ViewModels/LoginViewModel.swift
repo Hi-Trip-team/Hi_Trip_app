@@ -141,6 +141,8 @@ final class LoginViewModel: ObservableObject {
                 onSuccess: { [weak self] _ in
                     self?.isLoading = false
                     self?.loginSuccess = true
+                    // 로그인 성공 → 서버 데이터 로드 시작
+                    TripDataStore.shared.reload()
                 },
                 onFailure: { [weak self] error in
                     self?.isLoading = false

@@ -1,59 +1,55 @@
 import Foundation
 
 // MARK: - ChatRoom
-/// 채팅방 데이터 모델
+/// 채팅(문의) 스레드 도메인 모델
 ///
-/// 안내사 ↔ 관광객 1:1 채팅방을 나타냄
-///
-/// 필드 설계 기준:
-/// - id: 채팅방 고유 식별자 (UUID 자동 생성)
-/// - participantName: 상대방 이름 (채팅 목록에 표시)
-/// - participantType: 상대방 유형 (안내사/관광객 구분용)
-/// - lastMessage: 마지막 메시지 내용 (목록 미리보기)
-/// - lastMessageDate: 마지막 메시지 시간 (목록 정렬용)
-/// - unreadCount: 읽지 않은 메시지 수 (뱃지 표시용)
-/// - createdAt: 채팅방 생성 시간
-///
-/// Identifiable 채택 이유:
-/// - SwiftUI List/ForEach에서 각 채팅방을 구분하기 위해 필요
-///
-/// Codable 채택 이유:
-/// - 추후 서버 JSON ↔ Swift 변환용
+/// 서버 TravelerMessageThreadDTO에서 변환되거나 새 스레드 생성 시 사용.
+/// serverId가 있으면 서버 스레드와 매핑됨.
 
 struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
 
-    /// 고유 식별자
+    /// SwiftUI 식별자 (로컬 UUID)
     let id: UUID
 
-    /// 채팅방 이름 — 단체톡: "여행 단체톡방", 개인톡: 상대방 이름
+    /// 서버 스레드 ID — API 호출 시 사용 (nil이면 아직 서버에 생성 안 됨)
+    var serverId: Int?
+
+    /// 스레드 제목 (문의 주제)
+    var threadSubject: String?
+
+    /// 스레드 상태 "open" | "closed"
+    var status: String?
+
+    /// 목록에 표시되는 이름 (subject or 상대방 이름)
     var participantName: String
 
-    /// 채팅방 유형 — "guide"(가이드 개인톡) 또는 "group"(단체톡방)
+    /// 채팅방 유형 — "staff"(담당자) 또는 "group"
     var participantType: String
 
     /// 단체톡방 여부
     var isGroupChat: Bool
 
-    /// 마지막 메시지 내용 — 목록 미리보기
+    /// 마지막 메시지 내용
     var lastMessage: String
 
-    /// 마지막 메시지 시간 — 목록 정렬 기준
+    /// 마지막 메시지 시간
     var lastMessageDate: Date
 
-    /// 읽지 않은 메시지 수 — 뱃지 숫자 표시
+    /// 읽지 않은 메시지 수
     var unreadCount: Int
 
-    /// 온라인 상태 (개인톡에서만 사용)
+    /// 온라인 상태 (참고용)
     var isOnline: Bool
 
-    /// 채팅방 생성 시간
     let createdAt: Date
 
-    /// 기본 생성자
     init(
         id: UUID = UUID(),
+        serverId: Int? = nil,
+        threadSubject: String? = nil,
+        status: String? = nil,
         participantName: String,
-        participantType: String = "guide",
+        participantType: String = "staff",
         isGroupChat: Bool = false,
         lastMessage: String = "",
         lastMessageDate: Date = Date(),
@@ -62,6 +58,9 @@ struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
         createdAt: Date = Date()
     ) {
         self.id = id
+        self.serverId = serverId
+        self.threadSubject = threadSubject
+        self.status = status
         self.participantName = participantName
         self.participantType = participantType
         self.isGroupChat = isGroupChat

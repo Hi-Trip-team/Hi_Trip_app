@@ -161,6 +161,23 @@ final class TripDetailViewModel: ObservableObject {
         store.eventCategories(for: trip.id, date: date)
     }
 
+    // MARK: - Official Schedules (서버 공식 일정)
+
+    /// 선택된 날짜의 공식 일정
+    var officialSchedulesForSelectedDate: [TripOfficialSchedule] {
+        store.todayOfficialSchedules(for: selectedDate)
+    }
+
+    /// 해당 날짜에 공식 일정이 있는지 여부 (캘린더 도트용)
+    func hasOfficialSchedule(on date: Date) -> Bool {
+        !store.todayOfficialSchedules(for: date).isEmpty
+    }
+
+    /// 해당 날짜의 공식 일정 수
+    func officialScheduleCount(on date: Date) -> Int {
+        store.todayOfficialSchedules(for: date).count
+    }
+
     // MARK: - Month Navigation
 
     func goToPreviousMonth() {

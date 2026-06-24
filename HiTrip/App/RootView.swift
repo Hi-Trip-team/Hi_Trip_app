@@ -32,6 +32,12 @@ struct RootView: View {
                     viewModel: AppDIContainer.shared.makeSignUpViewModel()
                 )
 
+            case .inviteLogin:
+                InviteLoginFlowView()
+
+            case .agreement:
+                AgreementView()
+
             case .home:
                 HomeView()
             }

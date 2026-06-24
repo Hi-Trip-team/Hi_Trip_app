@@ -76,7 +76,13 @@ extension ScheduleDTO {
             title: displayTitle,
             startTime: start,
             endTime: end,
-            date: date
+            date: date,
+            placeName: placeName,
+            mainContent: mainContent,
+            meetingPoint: meetingPoint,
+            transport: transport,
+            durationDisplay: durationDisplay,
+            dayNumber: dayNumber
         )
     }
 

@@ -1,45 +1,22 @@
 import SwiftUI
 
 // MARK: - MyScheduleListView
-/// "내 일정" 탭 — 여행 카드 리스트
+/// "내 일정" 탭 — 선택 날짜의 공식 일정을 개별 카드로 표시
 ///
-/// 기능:
-/// - 선택된 날짜에 해당하는 일정만 필터링 (없으면 전체 표시)
-/// - 카드 탭 → SpotDetailView (검색과 동일한 상세보기)
-/// - Trip→TourSpotItem 변환으로 SpotDetailView 재활용
-///
-/// 피그마 디자인:
-/// - 각 카드: 개별 흰색 카드(radius 16) — 카드 간 gap 분리
-/// - 썸네일(85x85, radius 16) + 날짜 + 제목(볼드) + 위치 + chevron
+/// 카드 하나 = 장소 하나 (인천국제공항, 마담란 레스토랑, 대성당 등)
 
 struct MyScheduleListView: View {
 
     @ObservedObject var viewModel: TripDetailViewModel
 
-    /// SpotDetailView 표시용
-    @State private var selectedSpot: TourSpotItem?
-
-    /// 날짜 포맷터 — "2026년 1월 23일"
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy년 M월 d일"
-        return formatter
-    }
-
-    /// 표시할 일정 목록: 선택 날짜에 해당하는 일정만
-    private var displayTrips: [Trip] {
-        viewModel.tripsForSelectedDate
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                if displayTrips.isEmpty {
+                if viewModel.officialSchedulesForSelectedDate.isEmpty {
                     emptyState
                         .padding(.top, 60)
                 } else {
-                    tripCardList
+                    scheduleCardList
                         .padding(.top, 16)
                         .padding(.horizontal, 20)
                 }
@@ -47,118 +24,111 @@ struct MyScheduleListView: View {
                 Spacer().frame(height: 40)
             }
         }
-        .sheet(item: $selectedSpot) { spot in
-            SpotDetailView(spot: spot)
-        }
+        .background(HiTripColor.screenBackground)
     }
 
-    // MARK: - Trip Card List
+    // MARK: - Card List
 
-    /// 각 카드가 개별 분리 + gap
-    private var tripCardList: some View {
+    private var scheduleCardList: some View {
         VStack(spacing: 12) {
-            ForEach(displayTrips) { trip in
-                Button {
-                    selectedSpot = trip.toSpotItem()
-                } label: {
-                    tripCardRow(trip)
-                }
-                .buttonStyle(.plain)
-                .hiTripCard()
+            ForEach(viewModel.officialSchedulesForSelectedDate) { schedule in
+                scheduleCard(schedule)
             }
         }
     }
 
-    // MARK: - Trip Card Row
-
-    /// 피그마: 썸네일 | 날짜 + 제목 + 위치 | chevron
-    private func tripCardRow(_ trip: Trip) -> some View {
+    private func scheduleCard(_ schedule: TripOfficialSchedule) -> some View {
         HStack(spacing: 14) {
-            // 썸네일 (85x85, radius 16)
-            tripThumbnail(for: trip)
-                .frame(width: 85, height: 85)
-                .cornerRadius(16)
+            // 이모지 썸네일
+            ZStack {
+                HiTripColor.primary800.opacity(0.08)
+                Text(schedule.emoji ?? "📍")
+                    .font(.system(size: 28))
+            }
+            .frame(width: 68, height: 68)
+            .cornerRadius(14)
 
-            // 텍스트 정보 — 각 요소 사이 gap
-            VStack(alignment: .leading, spacing: 8) {
-                // 날짜
-                HStack(spacing: 5) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12))
-                        .foregroundColor(HiTripColor.gray500)
+            VStack(alignment: .leading, spacing: 6) {
+                // 시간
+                Text(timeRange(schedule))
+                    .font(.system(size: 12))
+                    .foregroundColor(HiTripColor.gray400)
 
-                    Text(dateFormatter.string(from: trip.date))
-                        .font(.system(size: 13))
-                        .foregroundColor(HiTripColor.gray500)
-                }
-
-                // 제목
-                Text(trip.title)
-                    .font(.system(size: 17, weight: .bold))
+                // 장소명
+                Text(schedule.placeName ?? schedule.title)
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(HiTripColor.textBlack)
                     .lineLimit(1)
 
-                // 위치
-                if !trip.location.isEmpty {
-                    HStack(spacing: 5) {
+                // 주요 내용 또는 이동 수단
+                if let content = schedule.mainContent, !content.isEmpty {
+                    HStack(spacing: 4) {
                         Image(systemName: "location.circle")
                             .font(.system(size: 12))
                             .foregroundColor(HiTripColor.gray400)
-
-                        Text("위치: \(trip.location)")
+                        Text(content)
                             .font(.system(size: 13))
                             .foregroundColor(HiTripColor.gray400)
                             .lineLimit(1)
+                    }
+                } else if let transport = schedule.transport {
+                    HStack(spacing: 4) {
+                        Image(systemName: transportIcon(transport))
+                            .font(.system(size: 12))
+                            .foregroundColor(HiTripColor.gray400)
+                        Text(transport)
+                            .font(.system(size: 13))
+                            .foregroundColor(HiTripColor.gray400)
                     }
                 }
             }
 
             Spacer()
 
-            // 오른쪽 chevron
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(HiTripColor.gray300)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
-    }
-
-    // MARK: - Thumbnail
-
-    /// 썸네일: 이미지가 없으면 회색 + 아이콘 placeholder
-    private func tripThumbnail(for trip: Trip) -> some View {
-        Group {
-            if !trip.thumbnailName.isEmpty, let _ = UIImage(named: trip.thumbnailName) {
-                Image(trip.thumbnailName)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                ZStack {
-                    HiTripColor.gray200
-                    Image(systemName: "airplane")
-                        .font(.system(size: 24))
-                        .foregroundColor(HiTripColor.gray400)
-                }
-            }
-        }
+        .hiTripCard()
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "airplane.departure")
+            Image(systemName: "calendar.badge.clock")
                 .font(.system(size: 40))
                 .foregroundColor(HiTripColor.gray300)
 
-            Text("등록된 일정이 없습니다")
+            Text("이 날의 공식 일정이 없습니다")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(HiTripColor.textBlack)
 
-            Text("여행 일정을 추가해보세요!")
+            Text("다른 날짜를 선택해보세요")
                 .font(.system(size: 14))
                 .foregroundColor(HiTripColor.gray500)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Helpers
+
+    private func timeRange(_ schedule: TripOfficialSchedule) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "HH:mm"
+        return "\(fmt.string(from: schedule.startTime)) ~ \(fmt.string(from: schedule.endTime))"
+    }
+
+    private func transportIcon(_ transport: String) -> String {
+        switch transport {
+        case "도보":    return "figure.walk"
+        case "전용버스": return "bus"
+        case "자가용":  return "car"
+        case "택시":    return "car.side"
+        case "공항버스": return "airplane"
+        default:       return "arrow.right"
         }
     }
 }
