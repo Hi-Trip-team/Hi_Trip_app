@@ -22,6 +22,9 @@ struct ProfileView: View {
     /// 프로필 수정 화면 이동
     @State private var showEditProfile = false
 
+    /// 버전정보 화면 이동
+    @State private var showAppInfo = false
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -80,6 +83,9 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $showEditProfile) {
                 ProfileEditView(viewModel: viewModel)
+            }
+            .navigationDestination(isPresented: $showAppInfo) {
+                AppInfoView()
             }
             .onAppear {
                 viewModel.loadProfile()
@@ -189,7 +195,9 @@ struct ProfileView: View {
 
             menuDivider
 
-            menuRow(icon: "info.circle", title: "버전정보") { }
+            menuRow(icon: "info.circle", title: "버전정보") {
+                showAppInfo = true
+            }
         }
         .background(Color.white)
         .cornerRadius(16)
