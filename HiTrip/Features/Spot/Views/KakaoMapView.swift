@@ -203,7 +203,6 @@ struct KakaoMapView: UIViewRepresentable {
             ctx.setFillColor(color.cgColor)
             ctx.addEllipse(in: rect)
             ctx.fillPath()
-            // 흰 테두리
             ctx.setStrokeColor(UIColor.white.cgColor)
             ctx.setLineWidth(2)
             ctx.addEllipse(in: rect.insetBy(dx: 1, dy: 1))
@@ -277,30 +276,54 @@ struct KakaoMapView: UIViewRepresentable {
 
         // MARK: - Radius Polygon
 
+        private func setupShapeLayer(_ mapView: KakaoMap) {
+            let sm = mapView.getShapeManager()
+
+            // 반경 채움 스타일
+            let fillStyle = PolygonStyleSet(styleSetID: "radiusFill", styles: [
+                PolygonStyle(styles: [
+                    PerLevelPolygonStyle(color: UIColor.systemBlue.withAlphaComponent(0.12),
+                                        strokeWidth: 0,
+                                        strokeColor: .clear,
+                                        level: 0)
+                ])
+            ])
+            sm.addPolygonStyleSet(fillStyle)
+
+            // 반경 외곽선 스타일
+            let borderStyle = PolylineStyleSet(styleSetID: "radiusBorder", styles: [
+                PolylineStyle(styles: [
+                    PerLevelPolylineStyle(bodyColor: UIColor.systemBlue.withAlphaComponent(0.7),
+                                         bodyWidth: 2,
+                                         strokeColor: .clear,
+                                         strokeWidth: 0,
+                                         level: 0)
+                ])
+            ])
+            sm.addPolylineStyleSet(borderStyle)
+
+            sm.addShapeLayer(layerID: "radiusLayer", zOrder: 1)
+        }
+
         func updateRadius(center: MapPoint, meters: Double) {
             guard let mapView = controller?.getView("mapView") as? KakaoMap else { return }
             let sm = mapView.getShapeManager()
-            sm.removeShapeLayer(layerID: "radiusLayer")
 
-            let layerOpt = ShapeLayerOptions(layerID: "radiusLayer", zOrder: 1)
-            guard let layer = sm.addShapeLayer(option: layerOpt) else { return }
+            // 레이어 재생성
+            sm.removeShapeLayer(layerID: "radiusLayer")
+            guard let layer = sm.addShapeLayer(layerID: "radiusLayer", zOrder: 1) else { return }
 
             let pts = circlePoints(center: center, radiusMeters: meters, count: 64)
 
-            let fillStyle = PolygonStyle(styles: [
-                PerLevelPolygonStyle(color: UIColor.systemBlue.withAlphaComponent(0.12), level: 0)
-            ])
-            let strokeStyle = PolylineStyle(styles: [
-                PerLevelPolylineStyle(width: 2.0, color: UIColor.systemBlue.withAlphaComponent(0.7), strokeWidth: 0, strokeColor: .clear, level: 0)
-            ])
+            // 채움 폴리곤
+            let fillOpt = MapPolygonShapeOptions(shapeID: "radiusFill", styleID: "radiusFill", zOrder: 0)
+            fillOpt.polygons = [MapPolygon(exteriorRing: pts, hole: nil, styleIndex: 0)]
+            layer.addMapPolygonShape(fillOpt)?.show()
 
-            let shapeOpt = PolygonShapeOptions(shapeID: "radius", zOrder: 0, basePosition: center)
-            shapeOpt.polygons = [Polygon(exteriorRing: pts, hole: nil, styleIndex: 0)]
-            shapeOpt.polygonStyles = PolygonStyles(styles: [fillStyle])
-            shapeOpt.polylines = [Polyline(points: pts + [pts[0]], styleIndex: 0)]
-            shapeOpt.polylineStyles = PolylineStyles(styles: [strokeStyle])
-
-            layer.addPolygonShape(shapeOpt)?.show()
+            // 외곽선 폴리라인 (닫힌 링)
+            let borderOpt = MapPolylineShapeOptions(shapeID: "radiusBorder", styleID: "radiusBorder", zOrder: 1)
+            borderOpt.polylines = [MapPolyline(line: pts + [pts[0]], styleIndex: 0)]
+            layer.addMapPolylineShape(borderOpt)?.show()
         }
 
         private func circlePoints(center: MapPoint, radiusMeters: Double, count: Int) -> [MapPoint] {
@@ -324,14 +347,8 @@ struct KakaoMapView: UIViewRepresentable {
         func moveCamera(to coordinate: CLLocationCoordinate2D) {
             guard let mapView = controller?.getView("mapView") as? KakaoMap else { return }
             let pt = MapPoint(longitude: coordinate.longitude, latitude: coordinate.latitude)
-            mapView.moveCamera(CameraUpdate.scrollTo(pt))
-        }
-
-        // MARK: - Setup Shape Layer
-
-        private func setupShapeLayer(_ mapView: KakaoMap) {
-            let sm = mapView.getShapeManager()
-            let _ = sm.addShapeLayer(option: ShapeLayerOptions(layerID: "radiusLayer", zOrder: 1))
+            let update = CameraUpdate.make(target: pt, zoomLevel: 15, mapView: mapView)
+            mapView.moveCamera(update)
         }
     }
 }

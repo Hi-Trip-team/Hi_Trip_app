@@ -157,7 +157,7 @@ struct PlaceCardView: View {
         VStack(alignment: .leading, spacing: 0) {
             // 썸네일
             ZStack {
-                Color(HiTripColor.gray200)
+                HiTripColor.gray200
                 Image(systemName: place.isOfficialSpot ? "mappin.circle.fill" : "mappin.and.ellipse")
                     .font(.system(size: 28))
                     .foregroundColor(place.isOfficialSpot ? HiTripColor.primary800 : .orange)
