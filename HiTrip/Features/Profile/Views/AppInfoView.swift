@@ -1,36 +1,32 @@
 import SwiftUI
 
 // MARK: - AppInfoView
-/// 버전정보 화면
+/// 버전정보 화면 — 피그마 디자인 반영
 ///
-/// 서비스 소개 · 앱 정보 · 하단 링크(이용약관, 개인정보처리방침, 고객센터)
+/// 구성: 히어로 헤더 (풀너비) → 서비스 소개 카드 → 앱 정보 카드 → 하단 링크
 
 struct AppInfoView: View {
 
-    private let appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    private let appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     private let buildNumber: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
-                // 히어로 헤더
+            VStack(spacing: 16) {
+                // 히어로 헤더 (풀너비, 마진 없음)
                 heroHeader
 
                 // 서비스 소개
                 serviceSection
-                    .padding(.top, 28)
 
-                // 앱 정보 테이블
+                // 앱 정보
                 appInfoSection
-                    .padding(.top, 24)
 
                 // 하단 링크
                 footerLinks
-                    .padding(.top, 32)
-
-                Spacer().frame(height: 40)
+                    .padding(.top, 8)
+                    .padding(.bottom, 40)
             }
-            .padding(.horizontal, 24)
         }
         .background(HiTripColor.screenBackground)
         .navigationTitle("버전정보")
@@ -40,53 +36,56 @@ struct AppInfoView: View {
     // MARK: - Hero Header
 
     private var heroHeader: some View {
-        VStack(spacing: 12) {
-            Spacer().frame(height: 36)
-
-            Text("Hi Trip")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundColor(.white)
-
-            Text("여행 중 안전·관리·콘텐츠 통합 SaaS\n여행사·가이드·여행자를 연결하는\n스마트 여행 플랫폼")
-                .font(.system(size: 15))
-                .foregroundColor(.white.opacity(0.9))
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-
-            Text("v\(appVersion)")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.8))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 5)
-                .background(Color.white.opacity(0.2))
-                .cornerRadius(20)
-
-            Spacer().frame(height: 36)
-        }
-        .frame(maxWidth: .infinity)
-        .background(
+        ZStack {
             LinearGradient(
-                colors: [HiTripColor.primary800, HiTripColor.secondary600],
+                colors: [HiTripColor.primary800, Color(hex: "3A5BD9")],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        )
-        .cornerRadius(20)
-        .padding(.top, 8)
+
+            VStack(spacing: 14) {
+                Spacer().frame(height: 12)
+
+                Text("Hi Trip")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(.white)
+
+                Text("여행 중 안전·관리·콘텐츠 통합 SaaS\n여행사·가이드·여행자를 연결하는\n스마트 여행 플랫폼")
+                    .font(.system(size: 15))
+                    .foregroundColor(.white.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(5)
+
+                Text("v\(appVersion)")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.25))
+                    .clipShape(Capsule())
+
+                Spacer().frame(height: 12)
+            }
+            .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 220)
     }
 
     // MARK: - Service Section
 
     private var serviceSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("서비스 소개")
+            Text("서비스 소개")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(HiTripColor.textBlack)
 
             Text("하이트립은 여행 중 발생하는 모든 상황을\n하나의 플랫폼에서 처리합니다.")
                 .font(.system(size: 15))
                 .foregroundColor(HiTripColor.gray500)
                 .lineSpacing(4)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 14) {
                 featureRow("실시간 안전 모니터링 및 SOS 긴급 구조 연결")
                 featureRow("여행사·가이드·여행자 통합 일정 관리")
                 featureRow("경비 정산 및 참가자 납부 현황 관리")
@@ -94,20 +93,19 @@ struct AppInfoView: View {
             }
         }
         .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
     }
 
     private func featureRow(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             Circle()
                 .fill(HiTripColor.primary800)
-                .frame(width: 6, height: 6)
-                .padding(.top, 7)
+                .frame(width: 8, height: 8)
+                .padding(.top, 6)
 
             Text(text)
-                .font(.system(size: 14))
+                .font(.system(size: 15))
                 .foregroundColor(HiTripColor.textBlack)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -116,25 +114,25 @@ struct AppInfoView: View {
     // MARK: - App Info Section
 
     private var appInfoSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("앱 정보")
+        VStack(alignment: .leading, spacing: 0) {
+            Text("앱 정보")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(HiTripColor.textBlack)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
 
             VStack(spacing: 0) {
                 infoRow(label: "버전", value: "v\(appVersion) (2025.05)")
-                Divider().padding(.leading, 16)
+                Divider()
                 infoRow(label: "개발사", value: "하이트립 주식회사")
-                Divider().padding(.leading, 16)
+                Divider()
                 infoRow(label: "최소 지원", value: "iOS 16.0 이상")
-                Divider().padding(.leading, 16)
-                infoRow(label: "빌드 번호", value: buildNumber)
             }
-            .background(Color.white)
-            .cornerRadius(12)
+            .padding(.bottom, 4)
         }
-        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
     }
 
     private func infoRow(label: String, value: String) -> some View {
@@ -146,25 +144,24 @@ struct AppInfoView: View {
             Spacer()
 
             Text(value)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(HiTripColor.textBlack)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
     }
 
     // MARK: - Footer Links
 
     private var footerLinks: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 0) {
-                linkButton("이용약관")
-                Text(" · ")
-                    .foregroundColor(HiTripColor.gray300)
-                linkButton("개인정보처리방침")
-                Text(" · ")
-                    .foregroundColor(HiTripColor.gray300)
-                linkButton("고객센터")
+        VStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Text("이용약관")
+                    .foregroundColor(HiTripColor.accentLink)
+                Text("개인정보처리방침")
+                    .foregroundColor(HiTripColor.accentLink)
+                Text("고객센터")
+                    .foregroundColor(HiTripColor.accentLink)
             }
             .font(.system(size: 13))
 
@@ -173,18 +170,5 @@ struct AppInfoView: View {
                 .foregroundColor(HiTripColor.gray400)
         }
         .frame(maxWidth: .infinity)
-    }
-
-    private func linkButton(_ title: String) -> some View {
-        Text(title)
-            .foregroundColor(HiTripColor.accentLink)
-    }
-
-    // MARK: - Section Title
-
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 17, weight: .bold))
-            .foregroundColor(HiTripColor.textBlack)
     }
 }
