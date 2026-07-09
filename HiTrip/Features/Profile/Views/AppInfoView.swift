@@ -155,7 +155,7 @@ struct AppInfoView: View {
                 .foregroundColor(HiTripColor.textBlack)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.vertical, 10)
     }
 
     // MARK: - Footer Links
