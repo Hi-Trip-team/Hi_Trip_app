@@ -95,6 +95,9 @@ struct AppInfoView: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .padding(.horizontal, 20)
     }
 
     private func featureRow(_ text: String) -> some View {
@@ -133,6 +136,9 @@ struct AppInfoView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .padding(.horizontal, 20)
     }
 
     private func infoRow(label: String, value: String) -> some View {
