@@ -12,19 +12,21 @@ struct AppInfoView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: 0) {
                 // 히어로 헤더 (풀너비, 마진 없음)
                 heroHeader
 
                 // 서비스 소개
                 serviceSection
+                    .padding(.top, 28)
 
                 // 앱 정보
                 appInfoSection
+                    .padding(.top, 28)
 
                 // 하단 링크
                 footerLinks
-                    .padding(.top, 8)
+                    .padding(.top, 36)
                     .padding(.bottom, 40)
             }
         }
