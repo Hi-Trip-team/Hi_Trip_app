@@ -85,12 +85,13 @@ struct AppInfoView: View {
                 .foregroundColor(HiTripColor.gray500)
                 .lineSpacing(4)
 
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
                 featureRow("실시간 안전 모니터링 및 SOS 긴급 구조 연결")
                 featureRow("여행사·가이드·여행자 통합 일정 관리")
                 featureRow("경비 정산 및 참가자 납부 현황 관리")
                 featureRow("현지 맞춤 명소 AI 기반 콘텐츠 추천")
             }
+            .padding(.top, 8)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -103,13 +104,13 @@ struct AppInfoView: View {
     private func featureRow(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
-                .fill(HiTripColor.primary800)
-                .frame(width: 8, height: 8)
-                .padding(.top, 6)
+                .fill(HiTripColor.gray400)
+                .frame(width: 6, height: 6)
+                .padding(.top, 7)
 
             Text(text)
-                .font(.system(size: 15))
-                .foregroundColor(HiTripColor.textBlack)
+                .font(.system(size: 14))
+                .foregroundColor(HiTripColor.gray500)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
