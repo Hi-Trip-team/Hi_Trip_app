@@ -74,12 +74,17 @@ struct NearbyMapView: View {
             Text("주변 인기 스팟")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
-                .shadow(color: .white.opacity(0.8), radius: 4, x: 0, y: 0)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial)
+                .cornerRadius(10)
             Spacer()
             if viewModel.isLoading {
                 ProgressView()
                     .scaleEffect(0.8)
-                    .background(Color.white.opacity(0.8).clipShape(Circle()))
+                    .padding(8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
             }
         }
     }
