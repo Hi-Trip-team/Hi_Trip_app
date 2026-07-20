@@ -25,7 +25,7 @@ struct LoginView: View {
     var body: some View {
         ZStack {
             // 배경색
-            HiTripColor.screenBackground
+            Color.white
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {

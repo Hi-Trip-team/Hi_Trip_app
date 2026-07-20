@@ -130,7 +130,7 @@ struct TravelerSpotDetailView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
         .cornerRadius(12)
     }
 

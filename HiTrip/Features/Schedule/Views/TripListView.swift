@@ -54,7 +54,7 @@ struct TripListView: View {
 
                     // 내일의 일정 (있을 때만 표시)
                     if !viewModel.tomorrowSchedules.isEmpty {
-                        tomorrowScheduleSection
+
                     }
 
                     // 지금 갈만한 곳
@@ -70,7 +70,7 @@ struct TripListView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .background(HiTripColor.screenBackground)
+            .background(Color.white)
             .navigationDestination(isPresented: $showEmergency) {
                 EmergencyView(viewModel: AppDIContainer.shared.makeEmergencyViewModel())
             }
@@ -142,45 +142,38 @@ struct TripListView: View {
                         .foregroundColor(.white)
                     Text("여행사에서 일정을 등록하면 여기에 표시됩니다")
                         .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.75))
+                        .foregroundColor(.white.opacity(0.14))
                 }
                 Spacer()
             }
             .padding(20)
-            .background(
-                LinearGradient(
-                    colors: [HiTripColor.primary800, HiTripColor.secondary600],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
+            .background(HiTripColor.primary800)
             .cornerRadius(16)
         } else {
             // 여행 데이터 있음
-            HStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 16) {
+
+                // 버스 이모지
+                Text("🚌")
+                    .font(.system(size: 44))
+
+                // 중앙: 진행률 레이블 + 바 + 완료 텍스트
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 10) {
-                        Text("🚌")
-                            .font(.system(size: 36))
+                    Text(viewModel.daysRemainingText)
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.75))
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(viewModel.daysRemainingText)
-                                .font(.system(size: 13))
-                                .foregroundColor(.white.opacity(0.85))
-
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.white.opacity(0.3))
-                                        .frame(height: 6)
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.white)
-                                        .frame(width: geo.size.width * viewModel.progressRate, height: 6)
-                                }
-                            }
-                            .frame(height: 6)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white.opacity(0.25))
+                                .frame(height: 6)
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white)
+                                .frame(width: geo.size.width * viewModel.progressRate, height: 6)
                         }
                     }
+                    .frame(height: 6)
 
                     Text(viewModel.progressText)
                         .font(.system(size: 22, weight: .bold))
@@ -189,33 +182,19 @@ struct TripListView: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 6) {
-                    if !viewModel.weatherLocation.isEmpty {
-                        Text(viewModel.weatherLocation)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    if !viewModel.weatherDescription.isEmpty {
-                        Text(viewModel.weatherDescription)
-                            .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.85))
-                    }
-                    if !viewModel.participantsText.isEmpty {
-                        Spacer().frame(height: 4)
+                // 우측: 참여자
+                if !viewModel.participantsText.isEmpty {
+                    VStack {
+                        Spacer()
                         Text(viewModel.participantsText)
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.8))
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.80))
                     }
                 }
             }
-            .padding(20)
-            .background(
-                LinearGradient(
-                    colors: [HiTripColor.primary800, HiTripColor.secondary600],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+            .background(HiTripColor.primary800)
             .cornerRadius(16)
         }
     }
@@ -322,18 +301,7 @@ struct TripListView: View {
                     }
                 }
 
-                // 3개 초과 시 나머지 개수 표시
-                if viewModel.todaySchedules.count > 3 {
-                    Button {
-                        showTodaySchedule = true
-                    } label: {
-                        Text("+ \(viewModel.todaySchedules.count - 3)개 더 보기")
-                            .font(.system(size: 13))
-                            .foregroundColor(HiTripColor.accentLink)
-                            .padding(.vertical, 10)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
+
             }
         }
         .padding(.horizontal, 4)
@@ -385,7 +353,7 @@ struct TripListView: View {
             .padding(.vertical, 4)
             .background(Color.white)
             .cornerRadius(16)
-            .shadow(color: Color(hex: "B4BCC9").opacity(0.12), radius: 12, x: 0, y: 4)
+            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 12, x: 0, y: 4)
         }
         .padding(.horizontal, 4)
         .padding(.top, 8)

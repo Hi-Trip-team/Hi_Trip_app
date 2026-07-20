@@ -63,7 +63,7 @@ struct ScheduleTabView: View {
 
             Spacer()
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
         .navigationBarHidden(true)
     }
 }

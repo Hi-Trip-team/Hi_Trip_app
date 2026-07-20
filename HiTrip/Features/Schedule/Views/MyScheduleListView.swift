@@ -2,8 +2,6 @@ import SwiftUI
 
 // MARK: - MyScheduleListView
 /// "내 일정" 탭 — 선택 날짜의 공식 일정을 개별 카드로 표시
-///
-/// 카드 하나 = 장소 하나 (인천국제공항, 마담란 레스토랑, 대성당 등)
 
 struct MyScheduleListView: View {
 
@@ -20,11 +18,10 @@ struct MyScheduleListView: View {
                         .padding(.top, 16)
                         .padding(.horizontal, 20)
                 }
-
                 Spacer().frame(height: 40)
             }
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
     }
 
     // MARK: - Card List
@@ -39,46 +36,42 @@ struct MyScheduleListView: View {
 
     private func scheduleCard(_ schedule: TripOfficialSchedule) -> some View {
         HStack(spacing: 14) {
-            // 이모지 썸네일
+            // 썸네일 (이모지 배경)
             ZStack {
-                HiTripColor.primary800.opacity(0.08)
-                Text(schedule.emoji ?? "📍")
-                    .font(.system(size: 28))
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(HiTripColor.gray100)
+                Text(schedule.emoji)
+                    .font(.system(size: 32))
             }
-            .frame(width: 68, height: 68)
-            .cornerRadius(14)
+            .frame(width: 80, height: 80)
 
             VStack(alignment: .leading, spacing: 6) {
-                // 시간
-                Text(timeRange(schedule))
-                    .font(.system(size: 12))
-                    .foregroundColor(HiTripColor.gray400)
+                // 날짜
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 11))
+                        .foregroundColor(HiTripColor.gray400)
+                    Text(dateLabel(schedule.date))
+                        .font(.system(size: 12))
+                        .foregroundColor(HiTripColor.gray400)
+                }
 
-                // 장소명
+                // 장소명 (제목)
                 Text(schedule.placeName ?? schedule.title)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(HiTripColor.textBlack)
                     .lineLimit(1)
 
-                // 주요 내용 또는 이동 수단
+                // 위치 / 내용
                 if let content = schedule.mainContent, !content.isEmpty {
                     HStack(spacing: 4) {
-                        Image(systemName: "location.circle")
-                            .font(.system(size: 12))
+                        Image(systemName: "mappin.circle")
+                            .font(.system(size: 11))
                             .foregroundColor(HiTripColor.gray400)
                         Text(content)
                             .font(.system(size: 13))
                             .foregroundColor(HiTripColor.gray400)
                             .lineLimit(1)
-                    }
-                } else if let transport = schedule.transport {
-                    HStack(spacing: 4) {
-                        Image(systemName: transportIcon(transport))
-                            .font(.system(size: 12))
-                            .foregroundColor(HiTripColor.gray400)
-                        Text(transport)
-                            .font(.system(size: 13))
-                            .foregroundColor(HiTripColor.gray400)
                     }
                 }
             }
@@ -89,9 +82,10 @@ struct MyScheduleListView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(HiTripColor.gray300)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .hiTripCard()
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(14)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 10, x: 0, y: 2)
     }
 
     // MARK: - Empty State
@@ -115,20 +109,10 @@ struct MyScheduleListView: View {
 
     // MARK: - Helpers
 
-    private func timeRange(_ schedule: TripOfficialSchedule) -> String {
+    private func dateLabel(_ date: Date) -> String {
         let fmt = DateFormatter()
-        fmt.dateFormat = "HH:mm"
-        return "\(fmt.string(from: schedule.startTime)) ~ \(fmt.string(from: schedule.endTime))"
-    }
-
-    private func transportIcon(_ transport: String) -> String {
-        switch transport {
-        case "도보":    return "figure.walk"
-        case "전용버스": return "bus"
-        case "자가용":  return "car"
-        case "택시":    return "car.side"
-        case "공항버스": return "airplane"
-        default:       return "arrow.right"
-        }
+        fmt.locale = Locale(identifier: "ko_KR")
+        fmt.dateFormat = "yyyy년 M월 d일"
+        return fmt.string(from: date)
     }
 }

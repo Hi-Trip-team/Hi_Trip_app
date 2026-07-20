@@ -14,7 +14,7 @@ struct ProfileEditView: View {
 
     var body: some View {
         ZStack {
-            HiTripColor.screenBackground
+            Color.white
                 .ignoresSafeArea()
 
             ScrollView {
@@ -46,7 +46,7 @@ struct ProfileEditView: View {
                         .frame(width: 40, height: 40)
                         .background(Color.white)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 4, y: 2)
                 }
             }
         }
@@ -58,7 +58,7 @@ struct ProfileEditView: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "FADADD").opacity(0.5))
+                    .fill(Color(hex: "FADADD").opacity(0.14))
                     .frame(width: 110, height: 110)
                 Text("🙋‍♀️")
                     .font(.system(size: 56))
@@ -74,7 +74,7 @@ struct ProfileEditView: View {
                 .foregroundColor(HiTripColor.primary800)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 4)
-                .background(HiTripColor.primary800.opacity(0.08))
+                .background(HiTripColor.primary800.opacity(0.14))
                 .cornerRadius(8)
         }
     }
@@ -105,7 +105,7 @@ struct ProfileEditView: View {
         }
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
     }
 
     // MARK: - Status Section (결제/서류)
@@ -132,7 +132,7 @@ struct ProfileEditView: View {
         }
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
     }
 
     // MARK: - Components
@@ -146,7 +146,7 @@ struct ProfileEditView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .background(HiTripColor.gray100.opacity(0.5))
+        .background(HiTripColor.gray100.opacity(0.14))
     }
 
     private func infoRow(icon: String, label: String, value: String) -> some View {
@@ -186,10 +186,10 @@ struct ProfileEditView: View {
             HStack(spacing: 4) {
                 Image(systemName: isVerified ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.system(size: 14))
-                    .foregroundColor(isVerified ? .green : .red.opacity(0.6))
+                    .foregroundColor(isVerified ? .green : .red.opacity(0.14))
                 Text(isVerified ? "확인됨" : "미확인")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(isVerified ? .green : .red.opacity(0.6))
+                    .foregroundColor(isVerified ? .green : .red.opacity(0.14))
             }
         }
         .padding(.horizontal, 20)

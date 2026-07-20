@@ -30,7 +30,7 @@ struct EmergencyView: View {
                 Spacer().frame(height: 40)
             }
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
         .navigationTitle("긴급 연락")
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $showEmergencyRequest) {
@@ -117,7 +117,7 @@ struct EmergencyView: View {
         }
         .background(Color.white)
         .cornerRadius(14)
-        .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, x: 0, y: 2)
     }
 
     // MARK: - 연락처 행
@@ -170,7 +170,7 @@ struct EmergencyView: View {
                 TextEditor(text: $viewModel.emergencyMessage)
                     .frame(minHeight: 120)
                     .padding(12)
-                    .background(HiTripColor.screenBackground)
+                    .background(Color.white)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)

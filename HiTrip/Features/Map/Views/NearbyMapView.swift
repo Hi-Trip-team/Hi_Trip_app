@@ -118,7 +118,7 @@ struct NearbyMapView: View {
             .padding(.vertical, 7)
             .background(isSelected ? HiTripColor.primary800 : Color.white)
             .cornerRadius(20)
-            .shadow(color: .black.opacity(0.12), radius: 4, y: 1)
+            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 4, y: 1)
         }
         .buttonStyle(.plain)
     }
@@ -137,7 +137,7 @@ struct NearbyMapView: View {
                     .frame(width: 42, height: 42)
                     .background(Color.white)
                     .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.14), radius: 6, y: 2)
+                    .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
             }
 
             // 줌 버튼 가로 배치 (— +)
@@ -159,7 +159,7 @@ struct NearbyMapView: View {
             }
             .background(Color.white)
             .cornerRadius(10)
-            .shadow(color: .black.opacity(0.14), radius: 6, y: 2)
+            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
         }
     }
 
@@ -241,7 +241,7 @@ struct PlaceCardView: View {
         .frame(width: 160)
         .background(Color.white)
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.10), radius: 8, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 8, y: 2)
     }
 }
 
@@ -273,7 +273,7 @@ struct PlaceDetailSheet: View {
                                     .foregroundColor(HiTripColor.primary800)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 4)
-                                    .background(HiTripColor.primary800.opacity(0.1))
+                                    .background(HiTripColor.primary800.opacity(0.14))
                                     .cornerRadius(8)
                             }
                             Text(place.name)
