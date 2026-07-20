@@ -52,7 +52,7 @@ struct ChatListView: View {
 
                 Spacer()
             }
-            .background(HiTripColor.screenBackground)
+            .background(Color.white)
             .navigationTitle("메시지")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -29,24 +29,41 @@ struct ScheduleTabView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 0) {
+            // 상단 헤더 (TripDetailView와 동일한 높이 영역)
+            HStack {
+                Text("내 여행 일정")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(HiTripColor.textBlack)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 24)
+
+            Divider()
+
             Spacer()
 
-            Image(systemName: "calendar.badge.plus")
-                .font(.system(size: 48))
-                .foregroundColor(HiTripColor.gray300)
+            VStack(spacing: 12) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 44))
+                    .foregroundColor(HiTripColor.gray300)
 
-            Text("등록된 일정이 없습니다")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(HiTripColor.textBlack)
+                Text("등록된 일정이 없습니다")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(HiTripColor.textBlack)
 
-            Text("여행 일정을 추가해보세요!")
-                .font(.system(size: 14))
-                .foregroundColor(HiTripColor.gray500)
+                Text("여행사에서 일정을 등록하면\n여기에 표시됩니다")
+                    .font(.system(size: 14))
+                    .foregroundColor(HiTripColor.gray400)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
 
             Spacer()
         }
-        .navigationTitle("일정")
-        .navigationBarTitleDisplayMode(.inline)
+        .background(Color.white)
+        .navigationBarHidden(true)
     }
 }

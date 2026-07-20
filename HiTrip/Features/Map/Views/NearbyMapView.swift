@@ -2,13 +2,14 @@ import SwiftUI
 import CoreLocation
 
 // MARK: - NearbyMapView
-/// 지도 탭 메인 화면
+/// 지도 탭 메인 화면 — 피그마 디자인 반영
 ///
 /// 구성:
 /// - 풀스크린 KakaoMap (허용 반경 + 마커)
-/// - 상단: 페이지 제목 + 카테고리 필터 칩
-/// - 우하단: GPS 버튼
-/// - 하단: 장소 카드 가로 스크롤
+/// - 상단 좌측: "주변 인기 스팟" 타이틀 (그림자 텍스트)
+/// - 상단: 카테고리 필터 칩 (흰 배경 알약)
+/// - 우측 중단: GPS 원형 버튼 + 줌(— +) 가로 버튼
+/// - 하단: 장소 카드 가로 스크롤 (이미지 + 이름 + 카테고리 + 별점(N) + 도보)
 
 struct NearbyMapView: View {
 
@@ -24,64 +25,71 @@ struct NearbyMapView: View {
                 markers: viewModel.displayPlaces,
                 userLocation: viewModel.currentLocation,
                 radiusMeters: viewModel.allowedRadiusMeters,
-                cameraTarget: viewModel.cameraTarget
+                cameraTarget: viewModel.cameraTarget,
+                zoomTrigger: viewModel.zoomTrigger
             )
             .ignoresSafeArea()
 
-            // MARK: 상단 오버레이
+            // MARK: 오버레이 레이어
             VStack(spacing: 0) {
-                titleBar
-                    .padding(.top, 8)
-                    .padding(.horizontal, 16)
 
-                categoryBar
-                    .padding(.top, 8)
+                // 상단: 타이틀 + 카테고리
+                VStack(alignment: .leading, spacing: 10) {
+                    titleLabel
+                        .padding(.horizontal, 20)
+
+                    categoryBar
+                }
+                .padding(.top, 12)
 
                 Spacer()
 
-                // MARK: 하단 GPS + 카드
-                VStack(spacing: 8) {
-                    gpsButton
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                // 우측 컨트롤: GPS + 줌
+                HStack {
+                    Spacer()
+                    rightControls
                         .padding(.trailing, 16)
-
-                    if !viewModel.displayPlaces.isEmpty {
-                        placeCardScroll
-                    }
+                        .padding(.bottom, viewModel.displayPlaces.isEmpty ? 32 : 8)
                 }
-                .padding(.bottom, 24)
+
+                // 하단 장소 카드
+                if !viewModel.displayPlaces.isEmpty {
+                    placeCardScroll
+                        .padding(.bottom, 24)
+                }
             }
         }
-        .navigationTitle("지도")
         .navigationBarHidden(true)
-        .onAppear  { viewModel.drawMap = true }
+        .onAppear  { viewModel.drawMap = true  }
         .onDisappear { viewModel.drawMap = false }
         .sheet(item: $viewModel.selectedPlace) { place in
             PlaceDetailSheet(place: place)
         }
     }
 
-    // MARK: - Title Bar
+    // MARK: - Title Label
 
-    private var titleBar: some View {
+    private var titleLabel: some View {
         HStack {
             Text("주변 인기 스팟")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 22, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial)
+                .cornerRadius(10)
             Spacer()
             if viewModel.isLoading {
                 ProgressView()
                     .scaleEffect(0.8)
+                    .padding(8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
     }
 
-    // MARK: - Category Filter
+    // MARK: - Category Bar
 
     private var categoryBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -90,7 +98,7 @@ struct NearbyMapView: View {
                     categoryChip(category)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 20)
         }
     }
 
@@ -110,24 +118,48 @@ struct NearbyMapView: View {
             .padding(.vertical, 7)
             .background(isSelected ? HiTripColor.primary800 : Color.white)
             .cornerRadius(20)
-            .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 4, y: 1)
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - GPS Button
+    // MARK: - Right Controls (GPS + Zoom)
 
-    private var gpsButton: some View {
-        Button {
-            viewModel.moveToCurrentLocation()
-        } label: {
-            Image(systemName: "location.fill")
-                .font(.system(size: 18))
-                .foregroundColor(HiTripColor.primary800)
-                .frame(width: 46, height: 46)
-                .background(Color.white)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.14), radius: 6, y: 2)
+    private var rightControls: some View {
+        VStack(spacing: 10) {
+            // GPS 버튼 (원형)
+            Button {
+                viewModel.moveToCurrentLocation()
+            } label: {
+                Image(systemName: "location")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(HiTripColor.textBlack)
+                    .frame(width: 42, height: 42)
+                    .background(Color.white)
+                    .clipShape(Circle())
+                    .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
+            }
+
+            // 줌 버튼 가로 배치 (— +)
+            HStack(spacing: 0) {
+                Button { viewModel.zoomOut() } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(HiTripColor.textBlack)
+                        .frame(width: 42, height: 42)
+                }
+                Divider()
+                    .frame(height: 24)
+                Button { viewModel.zoomIn() } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(HiTripColor.textBlack)
+                        .frame(width: 42, height: 42)
+                }
+            }
+            .background(Color.white)
+            .cornerRadius(10)
+            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
         }
     }
 
@@ -141,7 +173,7 @@ struct NearbyMapView: View {
                         .onTapGesture { viewModel.selectedPlace = place }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 20)
             .padding(.vertical, 4)
         }
     }
@@ -155,47 +187,61 @@ struct PlaceCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 썸네일
+            // 썸네일 이미지
             ZStack {
                 HiTripColor.gray200
-                Image(systemName: place.isOfficialSpot ? "mappin.circle.fill" : "mappin.and.ellipse")
+                Image(systemName: "photo")
                     .font(.system(size: 28))
-                    .foregroundColor(place.isOfficialSpot ? HiTripColor.primary800 : .orange)
+                    .foregroundColor(HiTripColor.gray300)
             }
-            .frame(width: 155, height: 95)
+            .frame(width: 160, height: 120)
             .clipped()
+            .cornerRadius(12, corners: [.topLeft, .topRight])
 
-            VStack(alignment: .leading, spacing: 3) {
-                if place.isOfficialSpot {
-                    Text("📍 공식 스팟")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(HiTripColor.primary800)
-                }
+            // 텍스트 영역
+            VStack(alignment: .leading, spacing: 4) {
                 Text(place.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(HiTripColor.textBlack)
                     .lineLimit(1)
 
                 if let category = place.category, !category.isEmpty {
                     Text(category)
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .foregroundColor(HiTripColor.gray400)
                         .lineLimit(1)
                 }
-                if let address = place.address, !address.isEmpty {
-                    Text(address)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
                         .font(.system(size: 11))
+                        .foregroundColor(.yellow)
+
+                    if let rating = place.rating {
+                        Text(String(format: "%.1f", rating))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(HiTripColor.textBlack)
+                    }
+                    if let count = place.ratingCount {
+                        Text("(\(count))")
+                            .font(.system(size: 12))
+                            .foregroundColor(HiTripColor.gray400)
+                    }
+                }
+
+                if let mins = place.walkingMinutes {
+                    Text("도보 \(mins)분")
+                        .font(.system(size: 12))
                         .foregroundColor(HiTripColor.gray400)
-                        .lineLimit(1)
                 }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
         }
-        .frame(width: 155)
+        .frame(width: 160)
         .background(Color.white)
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 8, y: 2)
     }
 }
 
@@ -210,18 +256,16 @@ struct PlaceDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    // 헤더 이미지 영역
                     ZStack {
                         HiTripColor.gray200
-                        Image(systemName: place.isOfficialSpot ? "mappin.circle.fill" : "mappin.and.ellipse")
+                        Image(systemName: "photo")
                             .font(.system(size: 50))
-                            .foregroundColor(place.isOfficialSpot ? HiTripColor.primary800 : .orange)
+                            .foregroundColor(HiTripColor.gray300)
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 180)
+                    .frame(height: 200)
 
                     VStack(alignment: .leading, spacing: 20) {
-                        // 배지 + 이름
                         VStack(alignment: .leading, spacing: 8) {
                             if place.isOfficialSpot {
                                 Text("📍 공식 일정 스팟")
@@ -229,12 +273,32 @@ struct PlaceDetailSheet: View {
                                     .foregroundColor(HiTripColor.primary800)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 4)
-                                    .background(HiTripColor.primary800.opacity(0.1))
+                                    .background(HiTripColor.primary800.opacity(0.14))
                                     .cornerRadius(8)
                             }
                             Text(place.name)
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(HiTripColor.textBlack)
+
+                            HStack(spacing: 4) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.yellow)
+                                if let rating = place.rating {
+                                    Text(String(format: "%.1f", rating))
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                if let count = place.ratingCount {
+                                    Text("(\(count))")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(HiTripColor.gray400)
+                                }
+                                if let mins = place.walkingMinutes {
+                                    Text("· 도보 \(mins)분")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(HiTripColor.gray400)
+                                }
+                            }
                         }
 
                         Divider()

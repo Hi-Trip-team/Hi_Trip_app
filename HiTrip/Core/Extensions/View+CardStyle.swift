@@ -33,7 +33,7 @@ struct HiTripCardModifier: ViewModifier {
         }
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: Color(hex: "B4BCC9").opacity(0.12), radius: 12, x: 0, y: 4)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 12, x: 0, y: 4)
     }
 }
 

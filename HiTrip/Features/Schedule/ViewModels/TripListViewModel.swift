@@ -133,6 +133,26 @@ final class TripListViewModel: ObservableObject {
         store.officialSchedulesByDay()
     }
 
+    /// 정렬된 일차 목록
+    var sortedDayNumbers: [Int] {
+        Array(schedulesByDay.keys).sorted()
+    }
+
+    /// 총 여행 일수
+    var totalDays: Int {
+        store.currentPackage?.totalDays ?? 1
+    }
+
+    /// 여행 시작일
+    var tripStartDate: Date {
+        store.currentPackage?.startDate ?? Date()
+    }
+
+    /// 특정 일차의 날짜 반환
+    func date(forDay day: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: day - 1, to: tripStartDate) ?? tripStartDate
+    }
+
     // MARK: - 지금 갈만한 곳 (서버 스팟 DTO 직접 노출)
 
     /// 추천 + 인기 스팟 합산 (displayOrder 기준 정렬)

@@ -27,6 +27,9 @@ struct TripListView: View {
     /// 오늘의 일정 전체 보기 이동
     @State private var showTodaySchedule: Bool = false
 
+    /// 현지 언어 쓰기 이동
+    @State private var showLocalLanguage: Bool = false
+
     /// 선택된 스팟 상세보기
     @State private var selectedSpot: TravelerSpotDTO?
 
@@ -51,7 +54,7 @@ struct TripListView: View {
 
                     // 내일의 일정 (있을 때만 표시)
                     if !viewModel.tomorrowSchedules.isEmpty {
-                        tomorrowScheduleSection
+
                     }
 
                     // 지금 갈만한 곳
@@ -67,9 +70,12 @@ struct TripListView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .background(HiTripColor.screenBackground)
+            .background(Color.white)
             .navigationDestination(isPresented: $showEmergency) {
                 EmergencyView(viewModel: AppDIContainer.shared.makeEmergencyViewModel())
+            }
+            .navigationDestination(isPresented: $showLocalLanguage) {
+                LocalLanguageView()
             }
             .navigationDestination(isPresented: $showNoticeList) {
                 NoticeListView(viewModel: viewModel)
@@ -102,9 +108,14 @@ struct TripListView: View {
 
     // MARK: - Trip Day Pill
 
-    /// "제주 힐링여행 · 2일차" 알약 배지
+    /// "제주 힐링여행 · 2일차" 알약 배지 — 여행 없으면 숨김
+    @ViewBuilder
     private var tripDayPill: some View {
-        Text("\(viewModel.currentTripName) · \(viewModel.currentDayText)")
+        let label = viewModel.currentDayText.isEmpty
+            ? viewModel.currentTripName
+            : "\(viewModel.currentTripName) · \(viewModel.currentDayText)"
+
+        Text(label)
             .font(.system(size: 13, weight: .medium))
             .foregroundColor(HiTripColor.accentLink)
             .padding(.horizontal, 12)
@@ -117,70 +128,75 @@ struct TripListView: View {
 
     // MARK: - Progress Card
 
-    /// 여행 진행률 카드 (파란 배경)
+    /// 여행 진행률 카드 — 여행 없으면 대기 상태 표시
+    @ViewBuilder
     private var progressCard: some View {
-        HStack(spacing: 0) {
-            // 왼쪽: 버스 아이콘 + 진행률
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    // 버스 이모지
-                    Text("🚌")
-                        .font(.system(size: 36))
+        if viewModel.currentDayText.isEmpty {
+            // 여행 데이터 없음
+            HStack(spacing: 14) {
+                Text("🚌")
+                    .font(.system(size: 36))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("여행을 기다리는 중...")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                    Text("여행사에서 일정을 등록하면 여기에 표시됩니다")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.14))
+                }
+                Spacer()
+            }
+            .padding(20)
+            .background(HiTripColor.primary800)
+            .cornerRadius(16)
+        } else {
+            // 여행 데이터 있음
+            HStack(alignment: .center, spacing: 16) {
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(viewModel.daysRemainingText)
-                            .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.85))
+                // 버스 이모지
+                Text("🚌")
+                    .font(.system(size: 44))
 
-                        // 프로그레스 바
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.white.opacity(0.3))
-                                    .frame(height: 6)
+                // 중앙: 진행률 레이블 + 바 + 완료 텍스트
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(viewModel.daysRemainingText)
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.75))
 
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.white)
-                                    .frame(width: geo.size.width * viewModel.progressRate, height: 6)
-                            }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white.opacity(0.25))
+                                .frame(height: 6)
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white)
+                                .frame(width: geo.size.width * viewModel.progressRate, height: 6)
                         }
-                        .frame(height: 6)
                     }
+                    .frame(height: 6)
+
+                    Text(viewModel.progressText)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
                 }
 
-                Text(viewModel.progressText)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
+                Spacer()
+
+                // 우측: 참여자
+                if !viewModel.participantsText.isEmpty {
+                    VStack {
+                        Spacer()
+                        Text(viewModel.participantsText)
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.80))
+                    }
+                }
             }
-
-            Spacer()
-
-            // 오른쪽: 날씨 + 참여자
-            VStack(alignment: .trailing, spacing: 6) {
-                Text(viewModel.weatherLocation)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-
-                Text(viewModel.weatherDescription)
-                    .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.85))
-
-                Spacer().frame(height: 4)
-
-                Text(viewModel.participantsText)
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.8))
-            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+            .background(HiTripColor.primary800)
+            .cornerRadius(16)
         }
-        .padding(20)
-        .background(
-            LinearGradient(
-                colors: [HiTripColor.primary800, HiTripColor.secondary600],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
-        .cornerRadius(16)
     }
 
     // MARK: - Notice Card
@@ -285,18 +301,7 @@ struct TripListView: View {
                     }
                 }
 
-                // 3개 초과 시 나머지 개수 표시
-                if viewModel.todaySchedules.count > 3 {
-                    Button {
-                        showTodaySchedule = true
-                    } label: {
-                        Text("+ \(viewModel.todaySchedules.count - 3)개 더 보기")
-                            .font(.system(size: 13))
-                            .foregroundColor(HiTripColor.accentLink)
-                            .padding(.vertical, 10)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
+
             }
         }
         .padding(.horizontal, 4)
@@ -348,7 +353,7 @@ struct TripListView: View {
             .padding(.vertical, 4)
             .background(Color.white)
             .cornerRadius(16)
-            .shadow(color: Color(hex: "B4BCC9").opacity(0.12), radius: 12, x: 0, y: 4)
+            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 12, x: 0, y: 4)
         }
         .padding(.horizontal, 4)
         .padding(.top, 8)
@@ -367,10 +372,19 @@ struct TripListView: View {
             }
 
             if viewModel.nearbySpotDTOs.isEmpty {
-                Text("등록된 추천 장소가 없습니다.")
-                    .font(.system(size: 14))
-                    .foregroundColor(HiTripColor.gray400)
-                    .padding(.vertical, 8)
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "mappin.slash")
+                            .font(.system(size: 28))
+                            .foregroundColor(HiTripColor.gray300)
+                        Text("등록된 추천 장소가 없습니다")
+                            .font(.system(size: 13))
+                            .foregroundColor(HiTripColor.gray400)
+                    }
+                    .padding(.vertical, 20)
+                    Spacer()
+                }
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -463,6 +477,7 @@ struct TripListView: View {
                 .foregroundColor(HiTripColor.gray300)
         }
         .hiTripCard(padding: 16)
+        .onTapGesture { showLocalLanguage = true }
     }
 
     // MARK: - Emergency Banner

@@ -27,7 +27,7 @@ struct AllTripsView: View {
 
     var body: some View {
         ZStack {
-            HiTripColor.screenBackground
+            Color.white
                 .ignoresSafeArea()
 
             ScrollView {
@@ -159,7 +159,7 @@ struct AllTripsView: View {
         .padding(14)
         .background(Color.white)
         .cornerRadius(14)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
     }
 
     // MARK: - Helpers

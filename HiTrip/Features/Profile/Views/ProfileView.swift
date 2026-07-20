@@ -28,7 +28,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                HiTripColor.screenBackground
+                Color.white
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -66,7 +66,7 @@ struct ProfileView: View {
                             .frame(width: 40, height: 40)
                             .background(Color.white)
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 4, y: 2)
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -77,7 +77,7 @@ struct ProfileView: View {
                             .frame(width: 40, height: 40)
                             .background(Color.white)
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 4, y: 2)
                     }
                 }
             }
@@ -110,7 +110,7 @@ struct ProfileView: View {
             // 아바타 (분홍 원형 배경 + 이모지)
             ZStack {
                 Circle()
-                    .fill(Color(hex: "FADADD").opacity(0.5))
+                    .fill(Color(hex: "FADADD").opacity(0.14))
                     .frame(width: 110, height: 110)
 
                 Text("🙋‍♀️")
@@ -142,7 +142,7 @@ struct ProfileView: View {
             statItem(
                 title: "여권",
                 value: viewModel.passportVerified ? "확인" : "미확인",
-                color: viewModel.passportVerified ? .green : .orange
+                color: viewModel.passportVerified ? .green : HiTripColor.gray400
             )
 
             Divider()
@@ -151,13 +151,13 @@ struct ProfileView: View {
             statItem(
                 title: "예약",
                 value: viewModel.bookingVerified ? "확인" : "미확인",
-                color: viewModel.bookingVerified ? .green : .orange
+                color: viewModel.bookingVerified ? .green : HiTripColor.gray400
             )
         }
         .padding(.vertical, 18)
         .background(Color.white)
         .cornerRadius(14)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
     }
 
     private func statItem(title: String, value: String, color: Color = HiTripColor.primary800) -> some View {
@@ -201,7 +201,7 @@ struct ProfileView: View {
         }
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
         .padding(.horizontal, 24)
     }
 

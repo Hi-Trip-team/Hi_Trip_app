@@ -30,7 +30,7 @@ struct AppInfoView: View {
                     .padding(.bottom, 40)
             }
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
         .navigationTitle("버전정보")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -54,7 +54,7 @@ struct AppInfoView: View {
 
                 Text("여행 중 안전·관리·콘텐츠 통합 SaaS\n여행사·가이드·여행자를 연결하는\n스마트 여행 플랫폼")
                     .font(.system(size: 15))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.white.opacity(0.14))
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
 
@@ -63,7 +63,7 @@ struct AppInfoView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 6)
-                    .background(Color.white.opacity(0.25))
+                    .background(Color.white.opacity(0.14))
                     .clipShape(Capsule())
 
                 Spacer().frame(height: 12)
@@ -99,7 +99,7 @@ struct AppInfoView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
         .padding(.horizontal, 20)
     }
 
@@ -140,7 +140,7 @@ struct AppInfoView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
         .padding(.horizontal, 20)
     }
 

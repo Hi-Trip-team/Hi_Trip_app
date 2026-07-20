@@ -40,7 +40,7 @@ struct NoticeListView: View {
             .padding(.horizontal, 20)
             .padding(.top, 16)
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
         .navigationTitle("공지사항")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)

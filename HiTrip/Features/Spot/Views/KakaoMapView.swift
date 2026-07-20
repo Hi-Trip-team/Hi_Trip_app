@@ -17,6 +17,7 @@ struct KakaoMapView: UIViewControllerRepresentable {
     var userLocation: CLLocationCoordinate2D?
     var radiusMeters: Double = 0
     var cameraTarget: MapViewModel.CameraTarget?
+    var zoomTrigger: MapViewModel.ZoomTrigger?
     var onMarkerTapped: ((MapPlaceItem) -> Void)?
 
     func makeUIViewController(context: Context) -> KakaoMapViewController {
@@ -49,6 +50,10 @@ struct KakaoMapView: UIViewControllerRepresentable {
             vc.lastCameraTarget = target
             vc.moveCamera(to: target.coordinate)
         }
+        if let zoom = zoomTrigger, zoom != vc.lastZoomTrigger {
+            vc.lastZoomTrigger = zoom
+            vc.zoom(delta: zoom.delta)
+        }
     }
 
     static func dismantleUIViewController(_ vc: KakaoMapViewController, coordinator: ()) {
@@ -67,6 +72,8 @@ final class KakaoMapViewController: UIViewController, MapControllerDelegate {
 
     var isMapReady = false
     var lastCameraTarget: MapViewModel.CameraTarget?
+    var lastZoomTrigger: MapViewModel.ZoomTrigger?
+    private var currentZoomLevel: Int = 15
     private var markerLookup: [String: MapPlaceItem] = [:]
 
     init(latitude: Double, longitude: Double, onMarkerTapped: ((MapPlaceItem) -> Void)?) {
@@ -270,7 +277,14 @@ final class KakaoMapViewController: UIViewController, MapControllerDelegate {
     func moveCamera(to coordinate: CLLocationCoordinate2D) {
         guard let mapView = controller?.getView("mapView") as? KakaoMap else { return }
         let pt     = MapPoint(longitude: coordinate.longitude, latitude: coordinate.latitude)
-        let update = CameraUpdate.make(target: pt, zoomLevel: 15, mapView: mapView)
+        let update = CameraUpdate.make(target: pt, zoomLevel: currentZoomLevel, mapView: mapView)
+        mapView.moveCamera(update)
+    }
+
+    func zoom(delta: Int) {
+        guard let mapView = controller?.getView("mapView") as? KakaoMap else { return }
+        currentZoomLevel = max(1, min(21, currentZoomLevel + delta))
+        let update = CameraUpdate.make(zoomLevel: currentZoomLevel, mapView: mapView)
         mapView.moveCamera(update)
     }
 }

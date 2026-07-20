@@ -14,7 +14,7 @@ struct InviteLoginFlowView: View {
 
     var body: some View {
         ZStack {
-            HiTripColor.screenBackground
+            Color.white
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -85,11 +85,11 @@ struct InviteLoginFlowView: View {
                 .foregroundColor(.orange)
             Text("전화번호: 010-1234-5678\n생년월일: 1995년 3월 15일\n초대코드: HITRIP2026")
                 .font(.system(size: 12))
-                .foregroundColor(.orange.opacity(0.8))
+                .foregroundColor(.orange.opacity(0.14))
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.08))
+        .background(Color.orange.opacity(0.14))
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.3), lineWidth: 1))
     }
@@ -111,7 +111,7 @@ struct InviteLoginFlowView: View {
                     .frame(width: 40, height: 40)
                     .background(Color.white)
                     .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                    .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 4, y: 2)
             }
 
             Spacer()

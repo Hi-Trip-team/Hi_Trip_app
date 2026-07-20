@@ -206,8 +206,8 @@ private extension MockTravelerRepository {
             id: 1,
             title: "제주 힐링 여행 2026",
             destination: "제주",
-            startDate: "2026-06-21",
-            endDate: "2026-06-24",
+            startDate: "2026-07-19",
+            endDate: "2026-07-22",
             status: "ongoing",
             managerName: "김담당",
             managerContact: ["phone": "010-1234-5678"],
@@ -290,18 +290,18 @@ private extension MockTravelerRepository {
         [
             TravelerNoticeDTO(id: 1, title: "⚠️ 한라산 등반 안전 수칙",
                 content: "내일 한라산 등반 시 반드시 등산화를 착용해 주세요. 기상 변화가 심하므로 방수 재킷도 필수입니다. 오전 9시 30분 호텔 로비에서 집결합니다.",
-                priority: "important", publishedAt: "2026-06-21T18:00:00.000000Z",
-                createdAt: "2026-06-21T18:00:00.000000Z", updatedAt: "2026-06-21T18:00:00.000000Z"),
+                priority: "important", publishedAt: "2026-07-19T18:00:00.000000Z",
+                createdAt: "2026-07-19T18:00:00.000000Z", updatedAt: "2026-07-19T18:00:00.000000Z"),
 
             TravelerNoticeDTO(id: 2, title: "우도 스노클링 장비 신청 마감",
                 content: "내일 우도 스노클링 체험을 원하시는 분은 오늘 밤 10시까지 담당자에게 연락 주시기 바랍니다. 장비는 현장에서 제공됩니다.",
-                priority: "normal", publishedAt: "2026-06-21T20:00:00.000000Z",
-                createdAt: "2026-06-21T20:00:00.000000Z", updatedAt: "2026-06-21T20:00:00.000000Z"),
+                priority: "normal", publishedAt: "2026-07-19T20:00:00.000000Z",
+                createdAt: "2026-07-19T20:00:00.000000Z", updatedAt: "2026-07-19T20:00:00.000000Z"),
 
             TravelerNoticeDTO(id: 3, title: "내일 조식 시간 변경 안내",
-                content: "6월 22일(월) 조식이 08:00으로 변경되었습니다. 한라산 등반 일정이 앞당겨진 관계로 시간을 엄수해 주시기 바랍니다.",
-                priority: "normal", publishedAt: "2026-06-21T21:00:00.000000Z",
-                createdAt: "2026-06-21T21:00:00.000000Z", updatedAt: "2026-06-21T21:00:00.000000Z"),
+                content: "7월 20일(일) 조식이 08:00으로 변경되었습니다. 한라산 등반 일정이 앞당겨진 관계로 시간을 엄수해 주시기 바랍니다.",
+                priority: "normal", publishedAt: "2026-07-19T21:00:00.000000Z",
+                createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z"),
         ]
     }
 
@@ -418,11 +418,11 @@ private extension MockTravelerRepository {
     // MARK: Helpers
 
     private func tripDayDate(_ day: Int) -> String {
-        // 여행 시작: 2026-06-21 (day 1)
+        // 여행 시작: 2026-07-19 (day 1) → 오늘 2026-07-20이 2일차
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
         df.locale = Locale(identifier: "en_US_POSIX")
-        let start = df.date(from: "2026-06-21") ?? Date()
+        let start = df.date(from: "2026-07-19") ?? Date()
         let date = Calendar.current.date(byAdding: .day, value: day - 1, to: start) ?? start
         return df.string(from: date)
     }

@@ -32,7 +32,7 @@ struct ChatRoomView: View {
             // 입력창
             messageInputBar
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
         .navigationBarHidden(true)
         .onAppear {
             viewModel.fetchMessages(chatRoomId: chatRoom.id)

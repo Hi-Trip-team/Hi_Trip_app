@@ -13,7 +13,7 @@ struct AgreementView: View {
 
     var body: some View {
         ZStack {
-            HiTripColor.screenBackground.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Text("서비스 이용 약관")

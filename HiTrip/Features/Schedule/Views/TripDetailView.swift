@@ -36,7 +36,7 @@ struct TripDetailView: View {
             // 탭 콘텐츠
             tabContent
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
         .onAppear { viewModel.selectedTab = initialTab }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -60,7 +60,7 @@ struct TripDetailView: View {
         .padding(16)
         .background(Color.white)
         .cornerRadius(16)
-        .shadow(color: Color(hex: "B4BCC9").opacity(0.12), radius: 12, x: 0, y: 4)
+        .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 12, x: 0, y: 4)
     }
 
     // MARK: - Tab Selector

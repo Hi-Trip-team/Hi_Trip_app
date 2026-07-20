@@ -14,7 +14,7 @@ final class TripDetailViewModel: ObservableObject {
 
     enum DetailTab: String, CaseIterable {
         case mySchedule = "내 일정"
-        case todo = "할 일"
+        case todo       = "할 일"
     }
 
     // MARK: - Store Reference
@@ -34,8 +34,24 @@ final class TripDetailViewModel: ObservableObject {
 
     init(trip: Trip) {
         self.trip = trip
-        self.selectedDate = trip.date
-        self.displayedMonth = trip.date
+        let today = Calendar.current.startOfDay(for: Date())
+        let pkg = TripDataStore.shared.currentPackage
+        let initialDate: Date
+        if let pkg {
+            let start = Calendar.current.startOfDay(for: pkg.startDate)
+            let end   = Calendar.current.startOfDay(for: pkg.endDate)
+            if today >= start && today <= end {
+                initialDate = today
+            } else if today < start {
+                initialDate = start
+            } else {
+                initialDate = end
+            }
+        } else {
+            initialDate = today
+        }
+        self.selectedDate   = initialDate
+        self.displayedMonth = initialDate
 
         // Store의 변경을 감지하여 View 갱신
         store.objectWillChange
