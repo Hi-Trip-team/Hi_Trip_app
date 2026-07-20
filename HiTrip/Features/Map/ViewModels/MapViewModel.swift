@@ -35,11 +35,19 @@ final class MapViewModel: NSObject, ObservableObject {
 
     /// GPS 버튼 탭 시 값이 바뀌어 KakaoMapView가 카메라를 이동시킴
     @Published var cameraTarget: CameraTarget?
+    /// 줌 인/아웃 신호
+    @Published var zoomTrigger: ZoomTrigger?
 
     struct CameraTarget: Equatable {
         let id = UUID()
         let coordinate: CLLocationCoordinate2D
         static func == (l: CameraTarget, r: CameraTarget) -> Bool { l.id == r.id }
+    }
+
+    struct ZoomTrigger: Equatable {
+        let id = UUID()
+        let delta: Int  // +1 = 줌인, -1 = 줌아웃
+        static func == (l: ZoomTrigger, r: ZoomTrigger) -> Bool { l.id == r.id }
     }
 
     // MARK: - Radius (Mock: 1km)
@@ -150,6 +158,9 @@ final class MapViewModel: NSObject, ObservableObject {
             cameraTarget = CameraTarget(coordinate: loc)
         }
     }
+
+    func zoomIn()  { zoomTrigger = ZoomTrigger(delta: +1) }
+    func zoomOut() { zoomTrigger = ZoomTrigger(delta: -1) }
 
     // MARK: - Location Setup
 

@@ -24,7 +24,8 @@ struct NearbyMapView: View {
                 markers: viewModel.displayPlaces,
                 userLocation: viewModel.currentLocation,
                 radiusMeters: viewModel.allowedRadiusMeters,
-                cameraTarget: viewModel.cameraTarget
+                cameraTarget: viewModel.cameraTarget,
+                zoomTrigger: viewModel.zoomTrigger
             )
             .ignoresSafeArea()
 
@@ -41,9 +42,14 @@ struct NearbyMapView: View {
 
                 // MARK: 하단 GPS + 카드
                 VStack(spacing: 8) {
-                    gpsButton
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            gpsButton
+                            zoomButtons
+                        }
                         .padding(.trailing, 16)
+                    }
 
                     if !viewModel.displayPlaces.isEmpty {
                         placeCardScroll
@@ -131,6 +137,29 @@ struct NearbyMapView: View {
         }
     }
 
+    // MARK: - Zoom Buttons
+
+    private var zoomButtons: some View {
+        VStack(spacing: 0) {
+            Button { viewModel.zoomIn() } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(HiTripColor.textBlack)
+                    .frame(width: 46, height: 46)
+            }
+            Divider().frame(width: 30)
+            Button { viewModel.zoomOut() } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(HiTripColor.textBlack)
+                    .frame(width: 46, height: 46)
+            }
+        }
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.14), radius: 6, y: 2)
+    }
+
     // MARK: - Place Card Scroll
 
     private var placeCardScroll: some View {
@@ -158,14 +187,15 @@ struct PlaceCardView: View {
             // 썸네일
             ZStack {
                 HiTripColor.gray200
-                Image(systemName: place.isOfficialSpot ? "mappin.circle.fill" : "mappin.and.ellipse")
+                Image(systemName: place.isOfficialSpot ? "mappin.circle.fill" : "photo")
                     .font(.system(size: 28))
-                    .foregroundColor(place.isOfficialSpot ? HiTripColor.primary800 : .orange)
+                    .foregroundColor(HiTripColor.gray300)
             }
-            .frame(width: 155, height: 95)
+            .frame(width: 155, height: 100)
             .clipped()
+            .cornerRadius(12, corners: [.topLeft, .topRight])
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 if place.isOfficialSpot {
                     Text("📍 공식 스팟")
                         .font(.system(size: 10, weight: .semibold))
@@ -176,17 +206,32 @@ struct PlaceCardView: View {
                     .foregroundColor(HiTripColor.textBlack)
                     .lineLimit(1)
 
-                if let category = place.category, !category.isEmpty {
-                    Text(category)
-                        .font(.system(size: 11))
-                        .foregroundColor(HiTripColor.gray400)
-                        .lineLimit(1)
-                }
-                if let address = place.address, !address.isEmpty {
-                    Text(address)
-                        .font(.system(size: 11))
-                        .foregroundColor(HiTripColor.gray400)
-                        .lineLimit(1)
+                HStack(spacing: 6) {
+                    // 별점
+                    if let rating = place.rating {
+                        HStack(spacing: 2) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.yellow)
+                            Text(String(format: "%.1f", rating))
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(HiTripColor.textBlack)
+                        }
+                        if place.walkingMinutes != nil {
+                            Text("·").font(.system(size: 11)).foregroundColor(HiTripColor.gray300)
+                        }
+                    }
+                    // 도보 시간
+                    if let mins = place.walkingMinutes {
+                        Text("도보 \(mins)분")
+                            .font(.system(size: 11))
+                            .foregroundColor(HiTripColor.gray400)
+                    } else if let category = place.category, !category.isEmpty {
+                        Text(category)
+                            .font(.system(size: 11))
+                            .foregroundColor(HiTripColor.gray400)
+                            .lineLimit(1)
+                    }
                 }
             }
             .padding(.horizontal, 10)

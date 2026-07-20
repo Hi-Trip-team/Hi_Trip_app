@@ -55,6 +55,15 @@ struct MapPlaceItem: Identifiable, Equatable, Hashable {
     let category: String?
     let isOfficialSpot: Bool  // 안내사가 등록한 공식 스팟
     let placeUrl: String?
+    let distanceMeters: Int?  // 현위치 기준 거리 (m)
+    let rating: Double?       // 평점 (Mock — Kakao Local API 미제공)
+    let ratingCount: Int?     // 리뷰 수 (Mock)
+
+    /// 도보 이동 시간 (분) — 도보 80m/분 기준
+    var walkingMinutes: Int? {
+        guard let d = distanceMeters else { return nil }
+        return max(1, d / 80)
+    }
 
     static func == (lhs: MapPlaceItem, rhs: MapPlaceItem) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
@@ -72,7 +81,10 @@ extension KakaoLocalPlace {
             longitude: Double(x) ?? 0,
             category: categoryName,
             isOfficialSpot: false,
-            placeUrl: placeUrl.isEmpty ? nil : placeUrl
+            placeUrl: placeUrl.isEmpty ? nil : placeUrl,
+            distanceMeters: distance.flatMap { Int($0) },
+            rating: nil,
+            ratingCount: nil
         )
     }
 }
@@ -87,7 +99,10 @@ extension TravelerMapPlaceDTO {
             longitude: Double(longitude) ?? 0,
             category: nil,
             isOfficialSpot: true,
-            placeUrl: nil
+            placeUrl: nil,
+            distanceMeters: nil,
+            rating: nil,
+            ratingCount: nil
         )
     }
 }

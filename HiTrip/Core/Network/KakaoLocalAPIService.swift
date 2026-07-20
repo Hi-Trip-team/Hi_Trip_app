@@ -9,9 +9,10 @@ struct KakaoLocalPlace: Decodable, Identifiable {
     let categoryName: String
     let addressName: String
     let roadAddressName: String
-    let x: String   // longitude
-    let y: String   // latitude
+    let x: String           // longitude
+    let y: String           // latitude
     let placeUrl: String
+    let distance: String?   // 현위치 기준 거리 (m)
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -21,6 +22,7 @@ struct KakaoLocalPlace: Decodable, Identifiable {
         case roadAddressName  = "road_address_name"
         case x, y
         case placeUrl         = "place_url"
+        case distance
     }
 }
 
