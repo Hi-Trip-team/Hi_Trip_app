@@ -102,6 +102,8 @@ struct TripDetailView: View {
         switch viewModel.selectedTab {
         case .mySchedule:
             MyScheduleListView(viewModel: viewModel)
+        case .calendar:
+            TripCalendarView(viewModel: viewModel)
         case .todo:
             TripTodoView(viewModel: viewModel)
         }

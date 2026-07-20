@@ -14,7 +14,8 @@ final class TripDetailViewModel: ObservableObject {
 
     enum DetailTab: String, CaseIterable {
         case mySchedule = "내 일정"
-        case todo = "할 일"
+        case calendar   = "캘린더"
+        case todo       = "할 일"
     }
 
     // MARK: - Store Reference
