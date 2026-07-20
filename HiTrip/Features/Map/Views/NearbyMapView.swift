@@ -54,7 +54,7 @@ struct NearbyMapView: View {
         }
         .navigationTitle("지도")
         .navigationBarHidden(true)
-        .onAppear  { viewModel.drawMap = true  }
+        .onAppear  { viewModel.drawMap = true }
         .onDisappear { viewModel.drawMap = false }
         .sheet(item: $viewModel.selectedPlace) { place in
             PlaceDetailSheet(place: place)
