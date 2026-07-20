@@ -22,7 +22,7 @@ struct HomeView: View {
     enum Tab: String, CaseIterable {
         case home      = "홈"
         case calendar  = "캘린더"
-        case search    = "검색"
+        case search    = "지도"
         case message   = "메시지"
         case mypage    = "마이페이지"
 
@@ -30,7 +30,7 @@ struct HomeView: View {
             switch self {
             case .home:     return "house.fill"
             case .calendar: return "calendar"
-            case .search:   return "magnifyingglass"
+            case .search:   return "map"
             case .message:  return "bubble.left.and.bubble.right"
             case .mypage:   return "person.fill"
             }
@@ -49,9 +49,7 @@ struct HomeView: View {
                 .tabItem { Label(Tab.calendar.rawValue, systemImage: Tab.calendar.icon) }
                 .tag(Tab.calendar)
 
-            SpotListView(
-                    viewModel: AppDIContainer.shared.makeSpotViewModel()
-                )
+            NearbyMapView()
                 .tabItem { Label(Tab.search.rawValue, systemImage: Tab.search.icon) }
                 .tag(Tab.search)
 
