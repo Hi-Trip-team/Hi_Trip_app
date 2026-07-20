@@ -92,7 +92,9 @@ final class TripDataStore: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] dto in
                     guard let self else { return }
-                    self.currentPackage = dto.toTripPackage()
+                    var pkg = dto.toTripPackage()
+                    pkg.translations = Self.defaultTranslations
+                    self.currentPackage = pkg
                     self.trips = [dto.toTrip()]
                     self.isLoading = false
                     self.isDataLoaded = true
@@ -305,4 +307,15 @@ final class TripDataStore: ObservableObject {
     var pendingTodos: [TripTodo] { todos.filter { !$0.isCompleted } }
     var completedTodos: [TripTodo] { todos.filter { $0.isCompleted } }
 
+    // MARK: - 기본 번역 문장
+
+    static let defaultTranslations: [TripTranslation] = [
+        TripTranslation(original: "화장실 어디예요?",    translated: "Where is the restroom?",       category: "기본"),
+        TripTranslation(original: "얼마예요?",          translated: "How much is it?",              category: "쇼핑"),
+        TripTranslation(original: "이것 주세요.",        translated: "I'll take this, please.",      category: "식당"),
+        TripTranslation(original: "영어 하세요?",        translated: "Do you speak English?",        category: "기본"),
+        TripTranslation(original: "천천히 말해주세요.",   translated: "Please speak slowly.",         category: "기본"),
+        TripTranslation(original: "길을 잃었어요.",       translated: "I'm lost.",                    category: "교통"),
+        TripTranslation(original: "병원에 데려다 주세요.", translated: "Please take me to a hospital.", category: "긴급"),
+    ]
 }
