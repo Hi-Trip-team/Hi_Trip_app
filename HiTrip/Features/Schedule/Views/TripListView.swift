@@ -27,6 +27,9 @@ struct TripListView: View {
     /// 오늘의 일정 전체 보기 이동
     @State private var showTodaySchedule: Bool = false
 
+    /// 현지 언어 쓰기 이동
+    @State private var showLocalLanguage: Bool = false
+
     /// 선택된 스팟 상세보기
     @State private var selectedSpot: TravelerSpotDTO?
 
@@ -70,6 +73,9 @@ struct TripListView: View {
             .background(HiTripColor.screenBackground)
             .navigationDestination(isPresented: $showEmergency) {
                 EmergencyView(viewModel: AppDIContainer.shared.makeEmergencyViewModel())
+            }
+            .navigationDestination(isPresented: $showLocalLanguage) {
+                LocalLanguageView()
             }
             .navigationDestination(isPresented: $showNoticeList) {
                 NoticeListView(viewModel: viewModel)
@@ -463,6 +469,7 @@ struct TripListView: View {
                 .foregroundColor(HiTripColor.gray300)
         }
         .hiTripCard(padding: 16)
+        .onTapGesture { showLocalLanguage = true }
     }
 
     // MARK: - Emergency Banner
