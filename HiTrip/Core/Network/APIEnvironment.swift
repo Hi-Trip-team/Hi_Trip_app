@@ -21,8 +21,7 @@ enum APIEnvironment {
 
     // MARK: - 현재 환경 (여기서 전환)
 
-    /// ⚠️ 서버 연동 시 .remote로 변경
-    static let current: APIEnvironment = .mock
+    static let current: APIEnvironment = .remote
 
     // MARK: - Base URL
 
@@ -32,8 +31,7 @@ enum APIEnvironment {
         case .mock:
             return "https://api.hitrip.example.com"
         case .remote:
-            // TODO: 실제 배포 서버 URL로 변경
-            return "http://100.124.191.47:18080"
+            return "http://100.79.220.29:18080"
         }
     }
 

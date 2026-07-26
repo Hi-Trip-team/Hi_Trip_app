@@ -124,6 +124,35 @@ struct TravelerHomeDTO: Decodable {
     let todaySchedules: [TravelerScheduleDTO]
     let nextSchedule: TravelerScheduleDTO?
     let managerContact: [String: String]?
+    let todayCongestion: [HomeCongestionDTO]?
+    let weather: HomeWeatherDTO?
+    let advisory: HomeAdvisoryDTO?
+}
+
+struct HomeCongestionDTO: Decodable {
+    let spotName: String
+    let baseDate: String        // "yyyy-MM-dd"
+    let congestionRate: Double
+}
+
+struct HomeWeatherDTO: Decodable {
+    let source: String
+    let areaNm: String?
+    let temp: String?
+    let sky: String?
+    let pm10: String?
+    let pm25: String?
+}
+
+struct HomeAdvisoryDTO: Decodable {
+    let level: String           // "info" | "caution" | "warning"
+    let messages: [String]
+    let suggestion: AdvisorySuggestionDTO?
+}
+
+struct AdvisorySuggestionDTO: Decodable {
+    let spotName: String
+    let congestionRate: Double
 }
 
 // MARK: - Schedule

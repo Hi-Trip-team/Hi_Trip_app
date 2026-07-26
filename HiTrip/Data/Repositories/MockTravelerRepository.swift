@@ -74,7 +74,10 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
             todayDayNumber: 2,
             todaySchedules: Array(mockSchedules.filter { $0.dayNumber == 2 }.prefix(3)),
             nextSchedule: mockSchedules.filter { $0.dayNumber == 2 }.dropFirst(3).first,
-            managerContact: ["phone": "010-1234-5678", "name": "김담당"]
+            managerContact: ["phone": "010-1234-5678", "name": "김담당"],
+            todayCongestion: nil,
+            weather: nil,
+            advisory: nil
         ))
     }
 
