@@ -2,63 +2,37 @@ import SwiftUI
 import CoreLocation
 
 // MARK: - NearbyMapView
-/// 지도 탭 메인 화면 — 피그마 디자인 반영
+/// 지도 탭 메인 화면
 ///
 /// 구성:
-/// - 풀스크린 KakaoMap (허용 반경 + 마커)
-/// - 상단 좌측: "주변 인기 스팟" 타이틀 (그림자 텍스트)
-/// - 상단: 카테고리 필터 칩 (흰 배경 알약)
-/// - 우측 중단: GPS 원형 버튼 + 줌(— +) 가로 버튼
-/// - 하단: 장소 카드 가로 스크롤 (이미지 + 이름 + 카테고리 + 별점(N) + 도보)
+/// - 상단: 타이틀 + 카테고리 필터 칩
+/// - 중단: 지도 (고정 높이 ~50%)  +  GPS/줌 컨트롤 오버레이
+/// - 하단: 스팟 카드 2열 세로 스크롤
 
 struct NearbyMapView: View {
 
     @StateObject private var viewModel = MapViewModel()
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // MARK: 풀스크린 지도
-            KakaoMapView(
-                latitude: viewModel.mapCenter.latitude,
-                longitude: viewModel.mapCenter.longitude,
-                draw: $viewModel.drawMap,
-                markers: viewModel.displayPlaces,
-                userLocation: viewModel.currentLocation,
-                radiusMeters: viewModel.allowedRadiusMeters,
-                cameraTarget: viewModel.cameraTarget,
-                zoomTrigger: viewModel.zoomTrigger
-            )
-            .ignoresSafeArea()
+        VStack(spacing: 0) {
 
-            // MARK: 오버레이 레이어
-            VStack(spacing: 0) {
+            // MARK: 상단 헤더
+            headerSection
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 10)
 
-                // 상단: 타이틀 + 카테고리
-                VStack(alignment: .leading, spacing: 10) {
-                    titleLabel
-                        .padding(.horizontal, 20)
+            // MARK: 카테고리 필터
+            categoryBar
+                .padding(.bottom, 12)
 
-                    categoryBar
-                }
-                .padding(.top, 12)
+            // MARK: 지도 (고정 높이)
+            mapSection
 
-                Spacer()
-
-                // 우측 컨트롤: GPS + 줌
-                HStack {
-                    Spacer()
-                    rightControls
-                        .padding(.trailing, 16)
-                        .padding(.bottom, viewModel.displayPlaces.isEmpty ? 32 : 8)
-                }
-
-                // 하단 장소 카드
-                if !viewModel.displayPlaces.isEmpty {
-                    placeCardScroll
-                        .padding(.bottom, 24)
-                }
-            }
+            // MARK: 하단 스팟 목록
+            spotListSection
         }
+        .background(Color.white)
         .navigationBarHidden(true)
         .onAppear  { viewModel.drawMap = true  }
         .onDisappear { viewModel.drawMap = false }
@@ -67,24 +41,17 @@ struct NearbyMapView: View {
         }
     }
 
-    // MARK: - Title Label
+    // MARK: - Header
 
-    private var titleLabel: some View {
+    private var headerSection: some View {
         HStack {
             Text("주변 인기 스팟")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(HiTripColor.textBlack)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial)
-                .cornerRadius(10)
             Spacer()
             if viewModel.isLoading {
                 ProgressView()
                     .scaleEffect(0.8)
-                    .padding(8)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
             }
         }
     }
@@ -123,11 +90,36 @@ struct NearbyMapView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Right Controls (GPS + Zoom)
+    // MARK: - Map Section
+
+    private var mapSection: some View {
+        ZStack(alignment: .bottomTrailing) {
+            KakaoMapView(
+                latitude: viewModel.mapCenter.latitude,
+                longitude: viewModel.mapCenter.longitude,
+                draw: $viewModel.drawMap,
+                markers: viewModel.displayPlaces,
+                userLocation: viewModel.currentLocation,
+                radiusMeters: viewModel.allowedRadiusMeters,
+                cameraTarget: viewModel.cameraTarget,
+                zoomTrigger: viewModel.zoomTrigger
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(edges: .horizontal)
+
+            // GPS + 줌 컨트롤
+            rightControls
+                .padding(.trailing, 12)
+                .padding(.bottom, 12)
+        }
+        .frame(height: 320)
+        .clipped()
+    }
+
+    // MARK: - Right Controls
 
     private var rightControls: some View {
         VStack(spacing: 10) {
-            // GPS 버튼 (원형)
             Button {
                 viewModel.moveToCurrentLocation()
             } label: {
@@ -140,7 +132,6 @@ struct NearbyMapView: View {
                     .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 6, y: 2)
             }
 
-            // 줌 버튼 가로 배치 (— +)
             HStack(spacing: 0) {
                 Button { viewModel.zoomOut() } label: {
                     Image(systemName: "minus")
@@ -148,8 +139,7 @@ struct NearbyMapView: View {
                         .foregroundColor(HiTripColor.textBlack)
                         .frame(width: 42, height: 42)
                 }
-                Divider()
-                    .frame(height: 24)
+                Divider().frame(height: 24)
                 Button { viewModel.zoomIn() } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 15, weight: .medium))
@@ -163,19 +153,38 @@ struct NearbyMapView: View {
         }
     }
 
-    // MARK: - Place Card Scroll
+    // MARK: - Spot List (2열 그리드)
 
-    private var placeCardScroll: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(viewModel.displayPlaces) { place in
-                    PlaceCardView(place: place)
-                        .onTapGesture { viewModel.selectedPlace = place }
+    private var spotListSection: some View {
+        let columns = [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ]
+        return ScrollView {
+            if viewModel.displayPlaces.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "mappin.slash")
+                        .font(.system(size: 32))
+                        .foregroundColor(HiTripColor.gray300)
+                    Text("주변 스팟이 없습니다")
+                        .font(.system(size: 14))
+                        .foregroundColor(HiTripColor.gray400)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 40)
+            } else {
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(viewModel.displayPlaces) { place in
+                        PlaceCardView(place: place)
+                            .onTapGesture { viewModel.selectedPlace = place }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 4)
         }
+        .background(Color.white)
     }
 }
 
@@ -190,11 +199,22 @@ struct PlaceCardView: View {
             // 썸네일 이미지
             ZStack {
                 HiTripColor.gray200
-                Image(systemName: "photo")
-                    .font(.system(size: 28))
-                    .foregroundColor(HiTripColor.gray300)
+                if let urlStr = place.imageUrl, let url = URL(string: urlStr) {
+                    AsyncImage(url: url) { img in
+                        img.resizable().scaledToFill()
+                    } placeholder: {
+                        Image(systemName: "photo")
+                            .font(.system(size: 24))
+                            .foregroundColor(HiTripColor.gray300)
+                    }
+                } else {
+                    Image(systemName: "photo")
+                        .font(.system(size: 24))
+                        .foregroundColor(HiTripColor.gray300)
+                }
             }
-            .frame(width: 160, height: 120)
+            .frame(maxWidth: .infinity)
+            .frame(height: 130)
             .clipped()
             .cornerRadius(12, corners: [.topLeft, .topRight])
 
@@ -212,11 +232,10 @@ struct PlaceCardView: View {
                         .lineLimit(1)
                 }
 
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Image(systemName: "star.fill")
                         .font(.system(size: 11))
                         .foregroundColor(.yellow)
-
                     if let rating = place.rating {
                         Text(String(format: "%.1f", rating))
                             .font(.system(size: 12, weight: .medium))
@@ -238,7 +257,6 @@ struct PlaceCardView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
         }
-        .frame(width: 160)
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 8, y: 2)
@@ -258,12 +276,23 @@ struct PlaceDetailSheet: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ZStack {
                         HiTripColor.gray200
-                        Image(systemName: "photo")
-                            .font(.system(size: 50))
-                            .foregroundColor(HiTripColor.gray300)
+                        if let urlStr = place.imageUrl, let url = URL(string: urlStr) {
+                            AsyncImage(url: url) { img in
+                                img.resizable().scaledToFill()
+                            } placeholder: {
+                                Image(systemName: "photo")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(HiTripColor.gray300)
+                            }
+                        } else {
+                            Image(systemName: "photo")
+                                .font(.system(size: 50))
+                                .foregroundColor(HiTripColor.gray300)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 200)
+                    .clipped()
 
                     VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
