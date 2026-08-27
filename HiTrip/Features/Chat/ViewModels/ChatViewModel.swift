@@ -197,6 +197,13 @@ final class ChatViewModel: ObservableObject {
             .disposed(by: disposeBag)
     }
 
+    /// 모든 채팅방 읽음 처리 (로컬)
+    func markAllAsRead() {
+        for i in chatRooms.indices {
+            chatRooms[i].unreadCount = 0
+        }
+    }
+
     // MARK: - 내 메시지인지 확인
 
     /// 발신자 ID와 현재 유저 ID 비교 → 말풍선 좌우 배치에 사용

@@ -50,4 +50,34 @@ struct Message: Identifiable, Codable, Equatable {
         if let type = senderType { return type == "traveler" }
         return senderId == currentUserId
     }
+
+    /// ChatBubbleView 표시용 래퍼로 변환
+    func toChatMessage(currentUserId: String) -> ChatMessage {
+        ChatMessage(
+            id: id.uuidString,
+            content: content,
+            isMine: isMyMessage(currentUserId: currentUserId),
+            isRead: isRead,
+            sendFailed: false,
+            sentAt: sentAt
+        )
+    }
+}
+
+// MARK: - ChatMessage (표시용 모델)
+
+struct ChatMessage: Identifiable {
+    let id: String
+    let content: String
+    let isMine: Bool
+    var isRead: Bool
+    var sendFailed: Bool
+    let sentAt: Date
+
+    var timeString: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "a h:mm"
+        return f.string(from: sentAt)
+    }
 }
