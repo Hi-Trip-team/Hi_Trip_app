@@ -17,6 +17,10 @@ struct HomeView: View {
     @EnvironmentObject var router: AppRouter
     @State private var selectedTab: Tab = .home
 
+    private var isTourist: Bool {
+        KeychainManager.shared.getUserType() == "tourist"
+    }
+
     // MARK: - Tab Definition
 
     enum Tab: String, CaseIterable {
@@ -53,11 +57,15 @@ struct HomeView: View {
                 .tabItem { Label(Tab.search.rawValue, systemImage: Tab.search.icon) }
                 .tag(Tab.search)
 
-            ChatListView(
-                    viewModel: AppDIContainer.shared.makeChatViewModel()
-                )
-                .tabItem { Label(Tab.message.rawValue, systemImage: Tab.message.icon) }
-                .tag(Tab.message)
+            Group {
+                if isTourist {
+                    TouristChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
+                } else {
+                    ChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
+                }
+            }
+            .tabItem { Label(Tab.message.rawValue, systemImage: Tab.message.icon) }
+            .tag(Tab.message)
 
             ProfileView()
                 .tabItem { Label(Tab.mypage.rawValue, systemImage: Tab.mypage.icon) }
