@@ -17,9 +17,9 @@ final class TravelerRepository: TravelerRepositoryProtocol {
 
     // MARK: - Auth
 
-    func travelerLogin(phone: String, birthDate: String, inviteCode: String) -> Single<TravelerAuthResponseDTO> {
+    func travelerLogin(username: String, password: String, tripId: Int? = nil) -> Single<TravelerAuthResponseDTO> {
         networkService.request(
-            .travelerLogin(phone: phone, birthDate: birthDate, inviteCode: inviteCode),
+            .travelerLogin(username: username, password: password, tripId: tripId),
             type: TravelerAuthResponseDTO.self
         )
     }

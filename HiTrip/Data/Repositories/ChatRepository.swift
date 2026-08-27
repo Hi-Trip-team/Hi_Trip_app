@@ -2,14 +2,15 @@ import Foundation
 import RxSwift
 
 // MARK: - ChatRepository
-/// 문의 스레드 + 메시지 API 연동 구현체
+/// 채팅 API 연동 구현체
 ///
-/// GET  /api/traveler/messages/threads/                     → 스레드 목록
-/// POST /api/traveler/messages/threads/                     → 스레드 생성
-/// GET  /api/traveler/messages/threads/{id}/messages/       → 메시지 목록
-/// POST /api/traveler/messages/threads/{id}/messages/       → 메시지 전송
+/// GET  /api/v1/chat/rooms/                             → 채팅방 목록
+/// POST /api/v1/chat/rooms/direct/                      → 1:1 채팅방 열기
+/// GET  /api/v1/chat/rooms/{room_id}/messages/          → 메시지 이력
+/// POST /api/v1/chat/rooms/{room_id}/messages/          → 메시지 전송
+/// POST /api/v1/chat/rooms/{room_id}/read/              → 읽음 처리
 ///
-/// ChatRoom.id(UUID) ↔ 서버 thread id(Int) 매핑은 cachedRooms로 관리.
+/// ChatRoom.id(UUID) ↔ 서버 room id(Int) 매핑은 cachedRooms로 관리.
 
 final class ChatRepository: ChatRepositoryProtocol {
 
@@ -31,7 +32,7 @@ final class ChatRepository: ChatRepositoryProtocol {
     // MARK: - ChatRoom
 
     func fetchAllRooms() -> Single<[ChatRoom]> {
-        networkService.request(.travelerMessageThreads(), type: [TravelerMessageThreadDTO].self)
+        networkService.request(.chatRooms(), type: [ChatRoomV1DTO].self)
             .map { [weak self] dtos in
                 let rooms = dtos.map { dto -> ChatRoom in
                     let room = dto.toChatRoom()
@@ -43,20 +44,17 @@ final class ChatRepository: ChatRepositoryProtocol {
     }
 
     func createRoom(room: ChatRoom) -> Single<ChatRoom> {
-        let subject = room.threadSubject ?? room.participantName
-        return networkService.request(
-            .travelerMessageThreadCreate(subject: subject, body: ""),
-            type: TravelerMessageThreadDTO.self
-        )
-        .map { [weak self] dto in
-            let newRoom = dto.toChatRoom()
-            self?.cachedRooms[newRoom.id] = newRoom
-            return newRoom
-        }
+        var body: [String: Any] = [:]
+        if let sid = room.serverId { body["tourist_id"] = sid }
+        return networkService.request(.chatRoomDirect(body: body), type: ChatRoomV1DTO.self)
+            .map { [weak self] dto in
+                let newRoom = dto.toChatRoom()
+                self?.cachedRooms[newRoom.id] = newRoom
+                return newRoom
+            }
     }
 
     func deleteRoom(id: UUID) -> Single<Void> {
-        // 서버에 DELETE 엔드포인트 없음 — 로컬 캐시에서만 제거
         cachedRooms.removeValue(forKey: id)
         return .just(())
     }
@@ -68,15 +66,15 @@ final class ChatRepository: ChatRepositoryProtocol {
             return .error(ChatError.roomNotFound)
         }
         let userId = keychain.getUserId() ?? ""
-        let userName = keychain.getUserName() ?? "나"
 
         return networkService.request(
-            .travelerMessages(threadId: serverId),
-            type: [TravelerMessageDTO].self
+            .chatMessages(roomId: String(serverId)),
+            type: ChatMessagePageDTO.self
         )
-        .map { dtos in
-            dtos
-                .map { $0.toMessage(chatRoomId: chatRoomId, currentUserId: userId, currentUserName: userName) }
+        .map { page in
+            page.results
+                .filter { !$0.isDeleted }
+                .map { $0.toMessage(chatRoomId: chatRoomId, currentUserId: userId) }
                 .sorted { $0.sentAt < $1.sentAt }
         }
     }
@@ -86,20 +84,31 @@ final class ChatRepository: ChatRepositoryProtocol {
             return .error(ChatError.roomNotFound)
         }
         let userId = keychain.getUserId() ?? ""
-        let userName = keychain.getUserName() ?? "나"
+
+        let body: [String: Any] = [
+            "body": message.content,
+            "message_type": "text"
+        ]
 
         return networkService.request(
-            .travelerMessageCreate(threadId: serverId, body: message.content),
-            type: TravelerMessageDTO.self
+            .chatMessageSend(roomId: String(serverId), body: body),
+            type: ChatMessageV1DTO.self
         )
         .map { dto in
-            dto.toMessage(chatRoomId: message.chatRoomId, currentUserId: userId, currentUserName: userName)
+            dto.toMessage(chatRoomId: message.chatRoomId, currentUserId: userId)
         }
     }
 
     func markAsRead(chatRoomId: UUID) -> Single<Void> {
-        // 서버에 읽음 처리 엔드포인트 없음 — 로컬 전용 (unreadCount 초기화는 ChatViewModel에서)
-        return .just(())
+        guard let serverId = resolveServerId(for: chatRoomId) else {
+            return .just(())
+        }
+        return networkService.request(
+            .chatRoomRead(id: String(serverId), body: [:]),
+            type: ChatReadResponseDTO.self
+        )
+        .map { _ in () }
+        .catch { _ in .just(()) }
     }
 
     // MARK: - Private
@@ -107,4 +116,11 @@ final class ChatRepository: ChatRepositoryProtocol {
     private func resolveServerId(for roomId: UUID) -> Int? {
         cachedRooms[roomId]?.serverId
     }
+}
+
+// MARK: - ChatReadResponseDTO
+
+private struct ChatReadResponseDTO: Decodable {
+    let roomId: Int?
+    let messageId: Int?
 }

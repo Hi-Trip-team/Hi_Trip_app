@@ -13,7 +13,7 @@ import RxSwift
 protocol TravelerRepositoryProtocol {
 
     // MARK: - Auth
-    func travelerLogin(phone: String, birthDate: String, inviteCode: String) -> Single<TravelerAuthResponseDTO>
+    func travelerLogin(username: String, password: String, tripId: Int?) -> Single<TravelerAuthResponseDTO>
     func logout() -> Single<TravelerLogoutResponseDTO>
 
     // MARK: - Profile

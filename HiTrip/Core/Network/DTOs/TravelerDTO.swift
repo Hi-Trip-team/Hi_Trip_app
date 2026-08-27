@@ -3,9 +3,9 @@ import Foundation
 // MARK: - Auth
 
 struct TravelerLoginRequest: Encodable {
-    let phone: String
-    let birthDate: String       // "yyyy-MM-dd"
-    let inviteCode: String
+    let username: String
+    let password: String
+    let tripId: Int?
 }
 
 struct TravelerAuthResponseDTO: Decodable {
@@ -461,4 +461,138 @@ extension TravelerMessageDTO {
             isRead: true
         )
     }
+}
+
+// MARK: - Chat v1 DTOs
+
+struct ChatRoomV1DTO: Decodable {
+    let id: Int
+    let roomType: String?           // "direct", "group"
+    let trip: Int?
+    let tripTitle: String?
+    let touristId: Int?
+    let touristName: String?
+    let peerTourists: [[String: AnyCodable]]?
+    let assignedStaffId: Int?
+    let subject: String?
+    let latestMessage: [String: AnyCodable]?
+    let unreadCount: Int
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+struct ChatMessageV1DTO: Decodable {
+    let id: Int
+    let room: Int
+    let sender: Int?
+    let senderName: String?
+    let senderRole: String?         // "tourist", "staff"
+    let clientMessageId: String?
+    let messageType: String?
+    let body: String
+    let metadata: [String: AnyCodable]?
+    let replyTo: Int?
+    let attachments: [ChatAttachmentDTO]?
+    let isDeleted: Bool
+    let createdAt: String?
+}
+
+struct ChatAttachmentDTO: Decodable {
+    let id: Int
+    let downloadUrl: String?
+    let originalName: String?
+    let mimeType: String?
+}
+
+struct ChatMessagePageDTO: Decodable {
+    let results: [ChatMessageV1DTO]
+    let nextCursor: Int?
+}
+
+struct ChatMessageCreateRequest: Encodable {
+    let body: String
+    let messageType: String
+    let clientMessageId: String?
+}
+
+// AnyCodable helper for heterogeneous JSON values
+struct AnyCodable: Codable {
+    let value: Any
+    init(_ value: Any) { self.value = value }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let v = try? c.decode(Bool.self)   { value = v; return }
+        if let v = try? c.decode(Int.self)    { value = v; return }
+        if let v = try? c.decode(Double.self) { value = v; return }
+        if let v = try? c.decode(String.self) { value = v; return }
+        value = NSNull()
+    }
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch value {
+        case let v as Bool:   try c.encode(v)
+        case let v as Int:    try c.encode(v)
+        case let v as Double: try c.encode(v)
+        case let v as String: try c.encode(v)
+        default:              try c.encodeNil()
+        }
+    }
+}
+
+extension ChatRoomV1DTO {
+    func toChatRoom() -> ChatRoom {
+        let df = ISO8601DateFormatter()
+        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let lastMsg = latestMessage?["body"]?.value as? String ?? ""
+        let lastDateStr = latestMessage?["created_at"]?.value as? String ?? updatedAt ?? ""
+        let lastDate = df.date(from: lastDateStr) ?? Date()
+        let createdDate = df.date(from: createdAt ?? "") ?? Date()
+        let isGroup = roomType == "group"
+
+        let name: String
+        if let subject, !subject.isEmpty { name = subject }
+        else if let tn = touristName     { name = tn }
+        else                             { name = "채팅" }
+
+        return ChatRoom(
+            serverId: id,
+            threadSubject: subject,
+            status: nil,
+            participantName: name,
+            participantType: roomType ?? "direct",
+            isGroupChat: isGroup,
+            lastMessage: lastMsg,
+            lastMessageDate: lastDate,
+            unreadCount: unreadCount,
+            isOnline: false,
+            createdAt: createdDate
+        )
+    }
+}
+
+extension ChatMessageV1DTO {
+    func toMessage(chatRoomId: UUID, currentUserId: String) -> Message {
+        let df = ISO8601DateFormatter()
+        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let sentAt = df.date(from: createdAt ?? "") ?? Date()
+
+        let isMine = senderRole == "tourist"
+        let senderId = isMine ? currentUserId : "staff_\(sender ?? 0)"
+        let name = senderName ?? (isMine ? "나" : "담당자")
+
+        return Message(
+            serverId: id,
+            senderType: senderRole ?? "tourist",
+            chatRoomId: chatRoomId,
+            senderId: senderId,
+            senderName: name,
+            content: body,
+            sentAt: sentAt,
+            isRead: unreadCount == 0
+        )
+    }
+
+    // unreadCount 없어서 기본 true
+    private var unreadCount: Int { 0 }
 }
