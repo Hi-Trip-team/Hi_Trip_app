@@ -8,53 +8,44 @@ enum ChatFilter: String, CaseIterable {
 }
 
 // MARK: - ChatListView
-/// 메시지 및 문의 목록 화면
+/// 여행사(Staff) 전용 메시지 목록 화면
 ///
-/// 피그마 0827 수정본:
+/// 피그마 0827 여행사 측:
 /// - 헤더: "메시지 및 문의" + "모두 확인" 버튼
-/// - 검색바
-/// - 탭 필터: 전체 / 미확인 / 단체
-/// - 채팅방 목록 (그룹톡, 1:1)
+/// - 필터 태그: 전체 / 미확인 / 단체 (검색바 없음)
+/// - 채팅방 목록
 
 struct ChatListView: View {
 
     @ObservedObject var viewModel: ChatViewModel
     @State private var selectedRoom: ChatRoom?
     @State private var navigateToRoom = false
-    @State private var searchText   = ""
     @State private var filter: ChatFilter = .all
 
     private var filteredRooms: [ChatRoom] {
-        let base: [ChatRoom]
         switch filter {
-        case .all:    base = viewModel.chatRooms
-        case .unread: base = viewModel.chatRooms.filter { $0.unreadCount > 0 }
-        case .group:  base = viewModel.chatRooms.filter { $0.isGroupChat }
-        }
-        guard !searchText.isEmpty else { return base }
-        return base.filter {
-            $0.participantName.localizedCaseInsensitiveContains(searchText) ||
-            $0.lastMessage.localizedCaseInsensitiveContains(searchText)
+        case .all:    return viewModel.chatRooms
+        case .unread: return viewModel.chatRooms.filter { $0.unreadCount > 0 }
+        case .group:  return viewModel.chatRooms.filter { $0.isGroupChat }
         }
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // Row 1: 헤더
                 sectionHeader
                     .padding(.horizontal, HiTripSpacing.pagePadding)
                     .padding(.top, HiTripSpacing.md)
 
-                searchBar
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
-                    .padding(.top, HiTripSpacing.md)
-
+                // Row 2: 필터 태그
                 filterTabBar
                     .padding(.top, HiTripSpacing.md)
 
                 Divider()
                     .padding(.top, HiTripSpacing.smd)
 
+                // Row 3: 채팅방 목록
                 if filteredRooms.isEmpty {
                     emptyState
                 } else {
@@ -89,22 +80,6 @@ struct ChatListView: View {
                     .foregroundColor(HiTripColor.primary800)
             }
         }
-    }
-
-    // MARK: - Search Bar
-
-    private var searchBar: some View {
-        HStack(spacing: HiTripSpacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 15))
-                .foregroundColor(HiTripColor.gray400)
-            TextField("채팅 및 메시지 검색", text: $searchText)
-                .font(HiTripFont.body)
-        }
-        .padding(.horizontal, HiTripSpacing.mdl)
-        .padding(.vertical, HiTripSpacing.smd)
-        .background(HiTripColor.gray100)
-        .cornerRadius(HiTripRadius.card)
     }
 
     // MARK: - Filter Tab Bar
