@@ -41,6 +41,15 @@ struct StaffDashboardView: View {
             .navigationDestination(isPresented: $showChat) {
                 ChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
             }
+            .navigationDestination(isPresented: $showSafety) {
+                SafetyManagementView()
+            }
+            .navigationDestination(isPresented: $showTouristInfo) {
+                TouristInfoSummaryView()
+            }
+            .navigationDestination(isPresented: $showTouristLocation) {
+                TouristLocationView()
+            }
             .navigationDestination(isPresented: $showNotification) {
                 NotificationCenterView()
             }
