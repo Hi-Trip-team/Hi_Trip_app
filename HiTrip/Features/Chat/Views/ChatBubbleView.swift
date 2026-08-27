@@ -42,10 +42,14 @@ struct ChatBubbleView: View {
                 .padding(.horizontal, HiTripSpacing.bubbleH)
                 .padding(.vertical, HiTripSpacing.bubbleV)
                 .background(isMine ? HiTripColor.bubbleMine : HiTripColor.bubbleOther)
-                .cornerRadius(HiTripRadius.card,
-                              corners: isMine
-                              ? [.topLeft, .topRight, .bottomLeft]
-                              : [.topLeft, .topRight, .bottomRight])
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: HiTripRadius.card,
+                        bottomLeadingRadius: isMine ? HiTripRadius.card : 4,
+                        bottomTrailingRadius: isMine ? 4 : HiTripRadius.card,
+                        topTrailingRadius: HiTripRadius.card
+                    )
+                )
 
             // 전송 실패
             if message.sendFailed {

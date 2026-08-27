@@ -145,7 +145,7 @@ struct ChatRoomView: View {
                 }
             } else {
                 Button {
-                    viewModel.sendMessage()
+                    viewModel.sendMessage(chatRoomId: chatRoom.id)
                 } label: {
                     Image(systemName: "arrow.up")
                         .font(.system(size: 16, weight: .bold))
