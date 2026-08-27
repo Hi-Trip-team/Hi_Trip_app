@@ -7,9 +7,11 @@ final class MockAuthRepository: AuthRepositoryProtocol {
     private var savedToken: String? = nil
 
     func login(request: LoginRequest) -> Single<LoginResponse> {
-        let user = UserInfo(id: "1", name: request.id, userType: .guide, phone: nil, country: nil)
+        let userType: UserType = .guide
+        let user = UserInfo(id: "1", name: request.id, userType: userType, phone: nil, country: nil)
         let response = LoginResponse(accessToken: mockToken, refreshToken: "mock-refresh-token", user: user)
         savedToken = mockToken
+        KeychainManager.shared.saveUserType(userType.rawValue)
         return .just(response)
     }
 
