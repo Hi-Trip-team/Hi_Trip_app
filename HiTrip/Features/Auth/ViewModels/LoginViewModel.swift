@@ -44,20 +44,9 @@ final class LoginViewModel: ObservableObject {
 
     // MARK: - Validation (회원가입 조건과 동일)
 
-    /// 아이디 유효성: 4자 이상
-    var isIdValid: Bool {
-        id.trimmed.count >= 4
-    }
-
-    /// 비밀번호 유효성: 8자 이상
-    var isPasswordValid: Bool {
-        password.count >= 8
-    }
-
-    /// 폼 전체 유효성: 아이디 4자+ & 비밀번호 8자+
-    var isFormValid: Bool {
-        isIdValid && isPasswordValid
-    }
+    var isIdValid: Bool { !id.trimmed.isEmpty }
+    var isPasswordValid: Bool { !password.isEmpty }
+    var isFormValid: Bool { isIdValid && isPasswordValid }
 
     // MARK: - Dependencies
 

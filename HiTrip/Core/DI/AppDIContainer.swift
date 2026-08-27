@@ -28,12 +28,18 @@ final class AppDIContainer {
     // MARK: - Repositories
 
     private lazy var authRepository: AuthRepositoryProtocol = {
-        AuthRepository(networkService: networkService)
+        if APIEnvironment.current.useMock {
+            return MockAuthRepository()
+        }
+        return AuthRepository(networkService: networkService)
     }()
 
     /// 여행객 전용 API 저장소 — TripDataStore, ProfileVM, AgreementVM이 공유
     private lazy var travelerRepository: TravelerRepositoryProtocol = {
-        TravelerRepository(networkService: networkService)
+        if APIEnvironment.current.useMock {
+            return MockTravelerRepository()
+        }
+        return TravelerRepository(networkService: networkService)
     }()
 
 
