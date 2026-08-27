@@ -44,8 +44,8 @@ final class LoginViewModel: ObservableObject {
 
     // MARK: - Validation (회원가입 조건과 동일)
 
-    var isIdValid: Bool { !id.trimmed.isEmpty }
-    var isPasswordValid: Bool { !password.isEmpty }
+    var isIdValid: Bool { APIEnvironment.current.useMock || !id.trimmed.isEmpty }
+    var isPasswordValid: Bool { APIEnvironment.current.useMock || !password.isEmpty }
     var isFormValid: Bool { isIdValid && isPasswordValid }
 
     // MARK: - Dependencies

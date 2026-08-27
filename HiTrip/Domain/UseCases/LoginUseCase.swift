@@ -42,18 +42,12 @@ final class LoginUseCase {
     ///   - password: 사용자 입력 비밀번호 (생년월일)
     /// - Returns: 로그인 성공 시 UserInfo
     func execute(id: String, password: String) -> Single<UserInfo> {
-        // 입력 검증 — 조건 미충족 시 즉시 에러 반환 (네트워크 호출 불필요)
-        guard !id.trimmed.isEmpty else {
-            return .error(LoginError.emptyId)
-        }
-        guard id.trimmed.count >= 4 else {
-            return .error(LoginError.idTooShort)
-        }
-        guard !password.trimmed.isEmpty else {
-            return .error(LoginError.emptyPassword)
-        }
-        guard password.count >= 8 else {
-            return .error(LoginError.passwordTooShort)
+        // Mock 모드에서는 입력 검증 생략
+        if !APIEnvironment.current.useMock {
+            guard !id.trimmed.isEmpty else { return .error(LoginError.emptyId) }
+            guard id.trimmed.count >= 4 else { return .error(LoginError.idTooShort) }
+            guard !password.trimmed.isEmpty else { return .error(LoginError.emptyPassword) }
+            guard password.count >= 8 else { return .error(LoginError.passwordTooShort) }
         }
 
         // Repository에 API 호출 위임

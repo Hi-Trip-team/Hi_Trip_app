@@ -1,76 +1,24 @@
 import SwiftUI
 
 // MARK: - HomeView
-/// 메인 홈 화면 — 5탭 네비게이션 구조
+/// 로그인 후 진입점 — 탭바 없이 userType 기반 분기
 ///
-/// 탭 구성:
-/// - 홈: TripListView (주간 캘린더 + 내 일정 카드 + 긴급 연락 바로가기)
-/// - 캘린더: ScheduleTabView (할일/캘린더 탭 — TripDetailView 래퍼)
-/// - 검색: SpotListView (TourAPI 관광지 검색)
-/// - 메시지: ChatListView (1:1 메시지)
-/// - 마이페이지: ProfileView (프로필 조회 + 로그아웃)
-///
-/// 긴급 연락은 홈 화면에서 바로가기로 접근 가능
+/// - tourist: TripListView (전체 일정)
+/// - staff/guide: StaffDashboardView (전체 일정)
 
 struct HomeView: View {
 
     @EnvironmentObject var router: AppRouter
-    @State private var selectedTab: Tab = .home
 
     private var isTourist: Bool {
         KeychainManager.shared.getUserType() == "tourist"
     }
 
-    // MARK: - Tab Definition
-
-    enum Tab: String, CaseIterable {
-        case home      = "홈"
-        case calendar  = "캘린더"
-        case search    = "지도"
-        case message   = "메시지"
-        case mypage    = "마이페이지"
-
-        var icon: String {
-            switch self {
-            case .home:     return "house.fill"
-            case .calendar: return "calendar"
-            case .search:   return "map"
-            case .message:  return "bubble.left.and.bubble.right"
-            case .mypage:   return "person.fill"
-            }
-        }
-    }
-
-    // MARK: - Body
-
     var body: some View {
-        TabView(selection: $selectedTab) {
+        if isTourist {
             TripListView()
-                .tabItem { Label(Tab.home.rawValue, systemImage: Tab.home.icon) }
-                .tag(Tab.home)
-
-            ScheduleTabView()
-                .tabItem { Label(Tab.calendar.rawValue, systemImage: Tab.calendar.icon) }
-                .tag(Tab.calendar)
-
-            NearbyMapView()
-                .tabItem { Label(Tab.search.rawValue, systemImage: Tab.search.icon) }
-                .tag(Tab.search)
-
-            Group {
-                if isTourist {
-                    TouristChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
-                } else {
-                    ChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
-                }
-            }
-            .tabItem { Label(Tab.message.rawValue, systemImage: Tab.message.icon) }
-            .tag(Tab.message)
-
-            ProfileView()
-                .tabItem { Label(Tab.mypage.rawValue, systemImage: Tab.mypage.icon) }
-                .tag(Tab.mypage)
+        } else {
+            StaffDashboardView()
         }
-        .tint(HiTripColor.primary800)
     }
 }
