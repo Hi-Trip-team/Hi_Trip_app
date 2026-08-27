@@ -152,14 +152,14 @@ final class AuthRepository: AuthRepositoryProtocol {
 
     // MARK: - 회원가입
 
-    /// 회원가입 API: POST /api/auth/register/
+    /// 스태프 계정 생성: POST /api/v1/staff/
     /// 서버 응답(ProfileDTO)을 기존 SignUpResponse로 변환
     func signUp(request: SignUpRequest) -> Single<SignUpResponse> {
-        let endpoint = APIEndpoint.register(
-            username: request.userId,
-            password: request.password,
-            email: "\(request.userId)@hitrip.app"  // 이메일 필수 → userId 기반 자동 생성
-        )
+        let endpoint = APIEndpoint.staffCreate(body: [
+            "username": request.userId,
+            "password": request.password,
+            "email": "\(request.userId)@hitrip.app"
+        ])
 
         print("📤 [Auth] 회원가입 요청: username=\(request.userId), email=\(request.userId)@hitrip.app")
 
