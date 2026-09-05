@@ -524,7 +524,7 @@ extension TravelerMessageDTO {
             senderName: senderName,
             content: body,
             sentAt: sentAt,
-            isRead: true
+            sendStatus: .sent
         )
     }
 }
@@ -661,7 +661,7 @@ extension ChatMessageV1DTO {
             senderName: name,
             content: body,
             sentAt: sentAt,
-            isRead: true
+            sendStatus: .sent
         )
     }
 }

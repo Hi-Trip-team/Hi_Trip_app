@@ -4,7 +4,7 @@ import SwiftUI
 /// 채팅방 내부 화면
 ///
 /// 피그마 0827 수정본:
-/// - 헤더: 뒤로가기 / 이름 + 🟢활동중 / 📞 전화 버튼
+/// - 헤더: 뒤로가기 / 아바타 / 이름 / 📞 전화 버튼
 /// - 날짜 구분선 ("오늘")
 /// - 말풍선: ChatBubbleView 컴포넌트 사용
 /// - 입력창: + 버튼 / TextField / 🎤 파란 마이크 버튼
@@ -55,23 +55,14 @@ struct ChatRoomView: View {
                         .foregroundColor(HiTripColor.gray400)
                 )
 
-            // 이름 + 활동중
-            VStack(alignment: .leading, spacing: 2) {
-                Text(chatRoom.participantName)
-                    .font(HiTripFont.title3)
-                    .foregroundColor(HiTripColor.textBlack)
-
-                if chatRoom.isOnline && !chatRoom.isGroupChat {
-                    HStack(spacing: HiTripSpacing.xs) {
-                        Circle()
-                            .fill(HiTripColor.onlineGreen)
-                            .frame(width: 6, height: 6)
-                        Text("활동중")
-                            .font(HiTripFont.caption)
-                            .foregroundColor(HiTripColor.onlineGreen)
-                    }
-                }
-            }
+            // 이름
+            //
+            // 디자인에는 "● 활동중"이 있으나 서버가 접속 상태를 주지 않습니다.
+            // 근거 없는 상태를 표시하지 않고 이름만 보여줍니다.
+            Text(chatRoom.participantName)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(Color(hex: "#111827"))
+                .lineLimit(1)
 
             Spacer()
 
@@ -95,12 +86,17 @@ struct ChatRoomView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: HiTripSpacing.sm) {
-                    ChatDateSeparatorView(text: "오늘")
-                        .id("top")
+                    ForEach(Array(chatMessages.enumerated()), id: \.element.id) { index, msg in
+                        // 날짜가 바뀌는 지점마다 구분선을 넣습니다.
+                        if let label = dateSeparator(at: index) {
+                            ChatDateSeparatorView(text: label)
+                                .padding(.vertical, 6)
+                        }
 
-                    ForEach(chatMessages) { msg in
-                        ChatBubbleView(message: msg)
-                            .id(msg.id)
+                        ChatBubbleView(message: msg) {
+                            viewModel.retry(messageId: UUID(uuidString: msg.id) ?? UUID())
+                        }
+                        .id(msg.id)
                     }
                 }
                 .padding(.vertical, HiTripSpacing.md)
@@ -112,6 +108,24 @@ struct ChatRoomView: View {
             }
         }
         .background(HiTripColor.screenBackground)
+    }
+
+    /// 앞 메시지와 날짜가 다르면 구분선 문구를 만듭니다. 첫 메시지에는 항상 붙습니다.
+    private func dateSeparator(at index: Int) -> String? {
+        let cal = Calendar.current
+        let current = chatMessages[index].sentAt
+        if index > 0,
+           cal.isDate(chatMessages[index - 1].sentAt, inSameDayAs: current) {
+            return nil
+        }
+        if cal.isDateInToday(current)     { return "오늘" }
+        if cal.isDateInYesterday(current) { return "어제" }
+
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = cal.isDate(current, equalTo: Date(), toGranularity: .year)
+            ? "M월 d일 EEEE" : "yyyy년 M월 d일"
+        return f.string(from: current)
     }
 
     // MARK: - Input Bar

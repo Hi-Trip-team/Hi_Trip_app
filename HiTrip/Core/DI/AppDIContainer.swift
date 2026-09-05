@@ -51,7 +51,10 @@ final class AppDIContainer {
 
     /// 문의 스레드 + 메시지 — 스레드 기반이므로 별도 Repository
     private lazy var chatRepository: ChatRepositoryProtocol = {
-        ChatRepository(networkService: networkService)
+        if APIEnvironment.current.useMock {
+            return MockChatRepository()
+        }
+        return ChatRepository(networkService: networkService)
     }()
 
     /// 로컬 긴급 연락처 (프리셋 + 개인 저장)
