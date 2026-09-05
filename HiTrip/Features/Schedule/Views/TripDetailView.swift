@@ -130,7 +130,7 @@ struct TripDetailView: View {
                 tripInfoCard
                     .padding(.horizontal, 24)
                     .padding(.top, 16)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
 
                 todaySection
 
@@ -144,7 +144,7 @@ struct TripDetailView: View {
                     ForEach(viewModel.days) { day in
                         daySection(day)
                             .padding(.horizontal, 24)
-                            .padding(.bottom, 10)
+                            .padding(.bottom, 14)
                     }
                 }
 
@@ -156,10 +156,10 @@ struct TripDetailView: View {
     // MARK: - 여행 정보 카드
 
     private var tripInfoCard: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(hex: "#D9DEE5"))
-                .frame(width: 64, height: 64)
+                .frame(width: 60, height: 60)
                 .overlay(
                     Image(systemName: "suitcase")
                         .font(.system(size: 22, weight: .light))
@@ -168,7 +168,7 @@ struct TripDetailView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(viewModel.tripTitle)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(Color(hex: "#111827"))
                 Text("진행일자 \(viewModel.tripPeriod)")
                     .font(.system(size: 12))
@@ -176,7 +176,7 @@ struct TripDetailView: View {
             }
             Spacer()
         }
-        .padding(14)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(hex: "#F3F4F6"))
         .cornerRadius(12)
@@ -193,7 +193,7 @@ struct TripDetailView: View {
                 Text("오늘의 일정")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(Color(hex: "#111827"))
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 12)
 
                 // 오늘 일정 전체 구간의 경과 비율
                 GeometryReader { geo in
@@ -207,7 +207,7 @@ struct TripDetailView: View {
                     }
                 }
                 .frame(height: 4)
-                .padding(.bottom, 12)
+                .padding(.bottom, 14)
 
                 if let current = viewModel.todayCurrentSchedule {
                     HStack {
@@ -220,7 +220,7 @@ struct TripDetailView: View {
                             .foregroundColor(Color(hex: "#6B7280"))
                     }
                     .padding(.horizontal, 16)
-                    .frame(height: 56)
+                    .frame(height: 48)
                     .background(Color(hex: "#F3F4F6"))
                     .cornerRadius(12)
                 } else {
@@ -228,13 +228,13 @@ struct TripDetailView: View {
                         .font(.system(size: 14))
                         .foregroundColor(Color(hex: "#6B7280"))
                         .frame(maxWidth: .infinity)
-                        .frame(height: 56)
+                        .frame(height: 48)
                         .background(Color(hex: "#F3F4F6"))
                         .cornerRadius(12)
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 22)
+            .padding(.bottom, 20)
         }
     }
 
@@ -276,7 +276,7 @@ struct TripDetailView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     ForEach(day.items) { item in
                         switch item {
                         case .shared(let s):   sharedRow(s)
@@ -286,7 +286,7 @@ struct TripDetailView: View {
 
                     addPersonalButton(dayNumber: day.dayNumber)
                 }
-                .padding(.top, 8)
+                .padding(.top, 12)
             }
         }
     }
@@ -295,7 +295,7 @@ struct TripDetailView: View {
 
     private func sharedRow(_ s: TravelerScheduleDTO) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 4) {
                     Image(systemName: "mappin")
                         .font(.system(size: 11))
@@ -307,7 +307,7 @@ struct TripDetailView: View {
 
                 if let address = s.placeAddress, !address.isEmpty {
                     Text(address)
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .foregroundColor(Color(hex: "#6B7280"))
                         .lineLimit(1)
                 }
@@ -331,7 +331,7 @@ struct TripDetailView: View {
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
-        .padding(12)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .cornerRadius(12)
