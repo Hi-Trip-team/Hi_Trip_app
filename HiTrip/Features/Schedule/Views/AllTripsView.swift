@@ -101,7 +101,7 @@ struct AllTripsView: View {
 
             // 카드들
             ForEach(trips) { trip in
-                NavigationLink(destination: TripDetailView(trip: trip)) {
+                NavigationLink(destination: TripDetailView()) {
                     allTripCard(trip)
                 }
                 .buttonStyle(.plain)

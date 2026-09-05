@@ -19,7 +19,7 @@ struct ScheduleTabView: View {
     var body: some View {
         NavigationStack {
             if let trip = firstTrip {
-                TripDetailView(trip: trip)
+                TripDetailView()
             } else {
                 emptyState
             }

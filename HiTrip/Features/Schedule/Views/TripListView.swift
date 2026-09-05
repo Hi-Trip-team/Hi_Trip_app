@@ -1,511 +1,354 @@
 import SwiftUI
 
-// MARK: - TripListView
-/// 홈 화면 — 여행 대시보드
-///
-/// 피그마 디자인:
-/// - 헤더: "전체 일정 확인" + 여행 이름 pill
-/// - 진행률 카드 (파란 배경, 버스 아이콘, 날씨, 참여자)
-/// - 공지사항 카드
-/// - 오늘의 미션 카드
-/// - 오늘의 일정 (전체 보기 링크)
-/// - 지금 갈만한 곳 (가로 스크롤)
-/// - 여행 필수 번역 모음
-/// - 긴급 연락망 배너
-
 struct TripListView: View {
 
     @StateObject private var viewModel = TripListViewModel()
     @EnvironmentObject var router: AppRouter
 
-    /// 긴급 연락 페이지 이동
-    @State private var showEmergency: Bool = false
-
-    /// 공지사항 리스트 이동
-    @State private var showNoticeList: Bool = false
-
-    /// 오늘의 일정 전체 보기 이동
-    @State private var showTodaySchedule: Bool = false
-
-    /// 현지 언어 쓰기 이동
-    @State private var showLocalLanguage: Bool = false
-
-    /// 선택된 스팟 상세보기
-    @State private var selectedSpot: TravelerSpotDTO?
+    @State private var showTripDetail = false
+    @State private var showEmergency = false
+    @State private var showLocalLanguage = false
+    @State private var showChat = false
+    @State private var showNotice = false
+    @State private var showNearbySpot = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // 헤더 (스크롤과 함께 이동)
-                    headerSection
-
-                    // 진행률 카드
-                    progressCard
-
-                    // 공지사항
-                    noticeCard
-
-                    // 오늘의 미션
-                    missionCard
-
-                    // 오늘의 일정
-                    todayScheduleSection
-
-                    // 내일의 일정 (있을 때만 표시)
-                    if !viewModel.tomorrowSchedules.isEmpty {
-
+            ZStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        headerSection
+                        todayScheduleSection
+                        nearbySpotSection
+                        noticeSection
+                        localLanguageCard
+                        bottomActionRow
+                            .padding(.bottom, 32)
                     }
-
-                    // 지금 갈만한 곳
-                    nearbySpotSection
-
-                    // 여행 필수 번역 모음
-                    translationCard
-
-                    // 긴급 연락망
-                    emergencyBanner
-
-                    Spacer().frame(height: 24)
                 }
-                .padding(.horizontal, 20)
+
+                if showNotice {
+                    NoticePopupView(isPresented: $showNotice)
+                }
             }
+            .animation(.easeInOut(duration: 0.2), value: showNotice)
             .background(Color.white)
-            .navigationDestination(isPresented: $showEmergency) {
-                EmergencyView(viewModel: AppDIContainer.shared.makeEmergencyViewModel())
-            }
-            .navigationDestination(isPresented: $showLocalLanguage) {
-                LocalLanguageView()
-            }
-            .navigationDestination(isPresented: $showNoticeList) {
-                NoticeListView(viewModel: viewModel)
-            }
-            .navigationDestination(isPresented: $showTodaySchedule) {
-                TodayScheduleView(viewModel: viewModel)
-            }
-            .sheet(item: $selectedSpot) { spot in
-                TravelerSpotDetailView(spot: spot)
-            }
             .navigationBarHidden(true)
+            .navigationDestination(isPresented: $showTripDetail) { TripDetailView() }
+            .navigationDestination(isPresented: $showEmergency) { EmergencyView() }
+            .navigationDestination(isPresented: $showLocalLanguage) { LocalLanguageView() }
+            .navigationDestination(isPresented: $showChat) {
+                TouristChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
+            }
+            .navigationDestination(isPresented: $showNearbySpot) { NearbySpotView() }
         }
     }
 
-    // MARK: - Header Section
+    // MARK: - Header
 
-    /// 스크롤되는 헤더: "전체 일정 확인" + 여행 pill
     private var headerSection: some View {
-        HStack {
-            Text("전체 일정 확인")
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(HiTripColor.textBlack)
-
+        HStack(alignment: .center) {
+            Text("뉴진스 바다여행")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(.black)
             Spacer()
-
-            tripDayPill
-        }
-        .padding(.top, 12)
-    }
-
-    // MARK: - Trip Day Pill
-
-    /// "제주 힐링여행 · 2일차" 알약 배지 — 여행 없으면 숨김
-    @ViewBuilder
-    private var tripDayPill: some View {
-        let label = viewModel.currentDayText.isEmpty
-            ? viewModel.currentTripName
-            : "\(viewModel.currentTripName) · \(viewModel.currentDayText)"
-
-        Text(label)
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(HiTripColor.accentLink)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(HiTripColor.accentLink, lineWidth: 1)
-            )
-    }
-
-    // MARK: - Progress Card
-
-    /// 여행 진행률 카드 — 여행 없으면 대기 상태 표시
-    @ViewBuilder
-    private var progressCard: some View {
-        if viewModel.currentDayText.isEmpty {
-            // 여행 데이터 없음
-            HStack(spacing: 14) {
-                Text("🚌")
-                    .font(.system(size: 36))
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("여행을 기다리는 중...")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
-                    Text("여행사에서 일정을 등록하면 여기에 표시됩니다")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.14))
-                }
-                Spacer()
-            }
-            .padding(20)
-            .background(HiTripColor.primary800)
-            .cornerRadius(16)
-        } else {
-            // 여행 데이터 있음
-            HStack(alignment: .center, spacing: 16) {
-
-                // 버스 이모지
-                Text("🚌")
-                    .font(.system(size: 44))
-
-                // 중앙: 진행률 레이블 + 바 + 완료 텍스트
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(viewModel.daysRemainingText)
-                        .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.75))
-
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.white.opacity(0.25))
-                                .frame(height: 6)
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.white)
-                                .frame(width: geo.size.width * viewModel.progressRate, height: 6)
-                        }
-                    }
-                    .frame(height: 6)
-
-                    Text(viewModel.progressText)
-                        .font(.system(size: 22, weight: .bold))
+            ZStack(alignment: .topTrailing) {
+                Text("🔔")
+                    .font(.system(size: 18))
+                ZStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 18, height: 18)
+                    Text("2")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                 }
-
-                Spacer()
-
-                // 우측: 참여자
-                if !viewModel.participantsText.isEmpty {
-                    VStack {
-                        Spacer()
-                        Text(viewModel.participantsText)
-                            .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.80))
-                    }
-                }
+                .offset(x: 6, y: -4)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 18)
-            .background(HiTripColor.primary800)
-            .cornerRadius(16)
+            .onTapGesture { showNotice = true }
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .padding(.bottom, 20)
     }
 
-    // MARK: - Notice Card
+    // MARK: - 오늘의 일정
 
-    /// 공지사항 카드 (탭 → 공지 리스트)
-    private var noticeCard: some View {
-        Button {
-            showNoticeList = true
-        } label: {
-            infoCard(emoji: "📢", title: "공지사항", content: viewModel.noticeText)
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Mission Card
-
-    /// 오늘의 미션 카드 (서비스 준비 중)
-    private var missionCard: some View {
-        infoCard(emoji: "🎯", title: "오늘의 미션", content: "서비스 준비 중입니다")
-    }
-
-    /// 공통 정보 카드 (공지, 미션 등)
-    private func infoCard(emoji: String, title: String, content: String) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 4) {
-                    Text(emoji)
-                        .font(.system(size: 14))
-                    Text(title)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(HiTripColor.textBlack)
-                }
-
-                Text(content)
-                    .font(.system(size: 14))
-                    .foregroundColor(HiTripColor.gray500)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14))
-                .foregroundColor(HiTripColor.gray300)
-        }
-        .hiTripCard(padding: 16)
-    }
-
-    // MARK: - Today Schedule Section
-
-    /// 오늘의 일정 섹션
     private var todayScheduleSection: some View {
-        VStack(spacing: 0) {
-            // 헤더: "오늘의 일정" + "전체 보기 >"
-            HStack {
-                Text("오늘의 일정")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(HiTripColor.textBlack)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("오늘의 일정")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(Color(hex: "#111827"))
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
 
-                Spacer()
-
-                Button {
-                    showTodaySchedule = true
-                } label: {
-                    Text("전체 보기 >")
-                        .font(.system(size: 14))
-                        .foregroundColor(HiTripColor.accentLink)
-                }
-            }
-            .padding(.bottom, 12)
-
-            // 일정 리스트 (최대 3개) 또는 빈 상태
-            if viewModel.todaySchedules.isEmpty {
-                Text("오늘은 일정이 없습니다.")
-                    .font(.system(size: 14))
-                    .foregroundColor(HiTripColor.gray400)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 12)
+            if daysUntilDeparture > 0 {
+                beforeTripCard
+            } else {
+                inTripSchedule
             }
 
-            VStack(spacing: 0) {
-                ForEach(Array(viewModel.todaySchedules.prefix(3).enumerated()), id: \.element.id) { index, schedule in
-                    HStack {
-                        HStack(spacing: 6) {
-                            Text(schedule.emoji)
-                                .font(.system(size: 16))
-                            Text(schedule.title)
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(HiTripColor.textBlack)
-                        }
-
-                        Spacer()
-
-                        Text(schedule.timeText)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(HiTripColor.gray500)
-                    }
-                    .padding(.vertical, 14)
-
-                    if index < min(viewModel.todaySchedules.count, 3) - 1 {
-                        Divider()
-                    }
-                }
-
-
+            // 전체일정 링크
+            Button { showTripDetail = true } label: {
+                Text("전체일정 확인 및 개인 일정 수정하기  >")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Color(hex: "#2563EB"))
             }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 24)
+            .padding(.top, 14)
+            .padding(.bottom, 22)
         }
-        .padding(.horizontal, 4)
-        .padding(.top, 8)
     }
 
-    // MARK: - Tomorrow Schedule Section
+    /// 출발까지 남은 일수 — 0 이하이면 여행 중
+    private var daysUntilDeparture: Int { 0 }
 
-    /// 내일의 일정 미리보기 섹션
-    private var tomorrowScheduleSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("내일의 일정")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(HiTripColor.textBlack)
-                .padding(.horizontal, 4)
+    // MARK: - 여행 시작 전
 
-            VStack(spacing: 0) {
-                ForEach(Array(viewModel.tomorrowSchedules.prefix(3).enumerated()), id: \.element.id) { index, schedule in
-                    HStack {
-                        HStack(spacing: 6) {
-                            Text(schedule.emoji)
-                                .font(.system(size: 16))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(schedule.placeName ?? schedule.title)
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(HiTripColor.textBlack)
-                                    .lineLimit(1)
-                                if let content = schedule.mainContent, schedule.placeName != nil {
-                                    Text(content)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(HiTripColor.gray500)
-                                        .lineLimit(1)
-                                }
-                            }
-                        }
-                        Spacer()
-                        Text(schedule.timeText)
-                            .font(.system(size: 13))
-                            .foregroundColor(HiTripColor.gray400)
-                    }
-                    .padding(.vertical, 12)
+    private var beforeTripCard: some View {
+        VStack(spacing: 6) {
+            Text("여행 시작 전이에요")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(Color(hex: "#2563EB"))
+            Text("D-\(daysUntilDeparture) · 2025.04.24 출발")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 92)
+        .background(Color(hex: "#E8F0FF"))
+        .cornerRadius(12)
+        .padding(.horizontal, 24)
+    }
 
-                    if index < min(viewModel.tomorrowSchedules.count, 3) - 1 {
-                        Divider()
-                    }
+    // MARK: - 여행 중
+
+    private var inTripSchedule: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // 진행률 바 + 버스 이모지
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Spacer().frame(width: 137)
+                    Text("🚌")
+                        .font(.system(size: 16))
+                    Spacer()
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 4)
+
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color(hex: "#E5E7EB"))
+                        .frame(height: 4)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color(hex: "#2563EB"))
+                        .frame(width: 137, height: 4)
+                }
+                .padding(.horizontal, 24)
+            }
+            .padding(.bottom, 10)
+
+            // 현재 일정
+            HStack {
+                Text("숙소로 이동")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Color(hex: "#111827"))
+                Spacer()
+                Text("15:00 - 16:00")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(hex: "#6B7280"))
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 4)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color(hex: "B4BCC9").opacity(0.30), radius: 12, x: 0, y: 4)
+            .frame(height: 64)
+            .background(Color(hex: "#F3F4F6"))
+            .cornerRadius(12)
+            .padding(.horizontal, 24)
+
+            // 다음 일정 레이블
+            Text("다음 일정")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+                .padding(.horizontal, 24)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
+
+            // 다음 일정
+            HStack {
+                Text("자유시간")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(hex: "#111827"))
+                Spacer()
+                Text("16:00 - 23:00")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(hex: "#6B7280"))
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 48)
+            .background(Color(hex: "#F3F4F6"))
+            .cornerRadius(12)
+            .padding(.horizontal, 24)
         }
-        .padding(.horizontal, 4)
-        .padding(.top, 8)
     }
 
-    // MARK: - Nearby Spot Section
+    // MARK: - 주변 인기 스팟
 
     private var nearbySpotSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 4) {
-                Text("📍")
-                    .font(.system(size: 14))
-                Text("지금 갈만한 곳")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(HiTripColor.textBlack)
-            }
+            Text("주변 인기 스팟")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(Color(hex: "#111827"))
+                .padding(.horizontal, 24)
 
-            if viewModel.nearbySpotDTOs.isEmpty {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 8) {
-                        Image(systemName: "mappin.slash")
-                            .font(.system(size: 28))
-                            .foregroundColor(HiTripColor.gray300)
-                        Text("등록된 추천 장소가 없습니다")
-                            .font(.system(size: 13))
-                            .foregroundColor(HiTripColor.gray400)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(spotItems, id: \.name) { spot in
+                        spotCard(spot)
+                            .onTapGesture { showNearbySpot = true }
                     }
-                    .padding(.vertical, 20)
-                    Spacer()
                 }
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(viewModel.nearbySpotDTOs) { spot in
-                            nearbySpotCard(spot)
-                                .onTapGesture { selectedSpot = spot }
-                        }
-                    }
-                    .padding(.leading, 4)
-                }
+                .padding(.horizontal, 24)
             }
-        }
-        .hiTripCard(padding: 16)
-    }
 
-    private func nearbySpotCard(_ spot: TravelerSpotDTO) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 썸네일
-            Group {
-                if let url = URL(string: spot.imageUrl), !spot.imageUrl.isEmpty {
-                    AsyncImage(url: url) { phase in
-                        if case .success(let img) = phase {
-                            img.resizable().scaledToFill()
-                        } else {
-                            spotPlaceholder(spot)
-                        }
-                    }
-                } else {
-                    spotPlaceholder(spot)
-                }
+            Button { showNearbySpot = true } label: {
+                Text("가이드의 추천 스팟 더보기  >")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Color(hex: "#2563EB"))
             }
-            .frame(width: 110, height: 80)
-            .clipped()
-            .cornerRadius(10)
-
-            Spacer().frame(height: 6)
-
-            // 유형 뱃지
-            Text(spot.spotType == "recommended" ? "🌟 추천" : "🔥 인기")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(spot.spotType == "recommended" ? .orange : .red)
-
-            Spacer().frame(height: 2)
-
-            // 장소명
-            Text(spot.title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(HiTripColor.textBlack)
-                .lineLimit(1)
-
-            // 카테고리
-            if let cat = spot.place.categoryName {
-                Text(cat)
-                    .font(.system(size: 11))
-                    .foregroundColor(HiTripColor.gray400)
-                    .lineLimit(1)
-            }
-        }
-        .frame(width: 110)
-    }
-
-    private func spotPlaceholder(_ spot: TravelerSpotDTO) -> some View {
-        ZStack {
-            HiTripColor.gray200
-            Image(systemName: "mappin.circle.fill")
-                .font(.system(size: 22))
-                .foregroundColor(HiTripColor.gray400)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 24)
+            .padding(.top, 2)
+            .padding(.bottom, 20)
         }
     }
 
-    // MARK: - Translation Card
+    private let spotItems: [SpotCardItem] = [
+        SpotCardItem(name: "해운대 해수욕장"),
+        SpotCardItem(name: "광안리 카페거리"),
+        SpotCardItem(name: "자갈치시장"),
+    ]
 
-    /// 여행 필수 번역 모음
-    private var translationCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("여행 필수 번역 모음")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(HiTripColor.textBlack)
-
-                Text(viewModel.translationPreview)
-                    .font(.system(size: 14))
-                    .foregroundColor(HiTripColor.gray500)
+    private func spotCard(_ spot: SpotCardItem) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(hex: "#D9DEE5"))
+                    .frame(width: 150, height: 84)
+                Text("광고")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .frame(height: 20)
+                    .background(Color(hex: "#1A1A1A"))
+                    .cornerRadius(4)
+                    .padding(6)
             }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14))
-                .foregroundColor(HiTripColor.gray300)
+            Text(spot.name)
+                .font(.system(size: 12))
+                .foregroundColor(Color(hex: "#333840"))
         }
-        .hiTripCard(padding: 16)
-        .onTapGesture { showLocalLanguage = true }
     }
 
-    // MARK: - Emergency Banner
+    // MARK: - 공지
 
-    /// 긴급 연락망 바로가기
-    private var emergencyBanner: some View {
-        Button {
-            showEmergency = true
-        } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("긴급 연락망")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(HiTripColor.textBlack)
+    private var noticeSection: some View {
+        ZStack(alignment: .topTrailing) {
+            HStack(alignment: .top, spacing: 10) {
+                Text("공지")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .frame(height: 20)
+                    .background(Color(hex: "#2563EB"))
+                    .cornerRadius(4)
+                Text("오늘 자유 일정은 우천이 예상됩니다. 우산을 꼭 챙겨주세요. 집합 시간은 18:00 …")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "#333840"))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 58)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(hex: "#F3F4F6"))
+            .cornerRadius(12)
 
-                    Text("경찰·소방·의료 등 긴급 연락처 확인")
-                        .font(.system(size: 13))
-                        .foregroundColor(HiTripColor.gray500)
-                }
+            Circle()
+                .fill(Color(hex: "#EF4444"))
+                .frame(width: 8, height: 8)
+                .offset(x: -8, y: 8)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { showNotice = true }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 10)
+    }
 
+    // MARK: - 현지 언어 카드
+
+    private var localLanguageCard: some View {
+        Button { showLocalLanguage = true } label: {
+            HStack {
+                Text("🗣  주로 사용하는 현지말")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(hex: "#2563EB"))
                 Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
-                    .foregroundColor(HiTripColor.gray300)
             }
-            .hiTripCard(padding: 16)
+            .padding(.horizontal, 16)
+            .frame(height: 56)
+            .background(Color(hex: "#E8F0FF"))
+            .cornerRadius(12)
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 14)
     }
+
+    // MARK: - 하단 액션 버튼
+
+    private var bottomActionRow: some View {
+        HStack(spacing: 12) {
+            Button { showEmergency = true } label: {
+                Text("긴급 즉시 연락")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(Color(hex: "#EF4444"))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 72)
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(hex: "#EF4444"), lineWidth: 1.5)
+                    )
+            }
+            .buttonStyle(.plain)
+
+            ZStack(alignment: .topTrailing) {
+                Button { showChat = true } label: {
+                    Text("메시지 및 문의")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(hex: "#111827"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 72)
+                        .background(Color(hex: "#F3F4F6"))
+                        .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "#EF4444"))
+                        .frame(width: 20, height: 20)
+                    Text("3")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .offset(x: -4, y: -4)
+            }
+        }
+        .padding(.horizontal, 24)
+    }
+}
+
+private struct SpotCardItem {
+    let name: String
 }
