@@ -9,8 +9,9 @@ import RxSwift
 ///   TripDataStore / ProfileViewModel / AgreementViewModel 모두 이 Mock을 사용.
 ///
 /// 데이터 기준:
-///   - 오늘(2026-06-22) 기준 3박 4일 제주 여행 (6/21~6/24)
-///   - 여행 2일차 상태로 설정
+///   - 현재 날짜 기준 3박 4일 제주 여행 (어제 출발 → 오늘이 2일차)
+///   - 날짜를 고정하지 않고 매번 오늘 기준으로 만들어, 시간이 지나도
+///     "오늘의 일정"이 사라지지 않습니다.
 ///   - API 응답 구조(DTO)를 실제 서버와 동일하게 맞춤
 
 final class MockTravelerRepository: TravelerRepositoryProtocol {
@@ -86,7 +87,7 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
     /// 메모리 보관 — 앱을 다시 켜면 초기화됩니다.
     private static var personalSchedules: [TravelerPersonalScheduleDTO] = [
         TravelerPersonalScheduleDTO(
-            id: 9001, dayNumber: 2, scheduleDate: "2026-07-20",
+            id: 9001, dayNumber: 2, scheduleDate: MockTravelerRepository.ymd(Date()),
             title: "기념품 쇼핑", startTime: "20:00:00", endTime: "21:00:00",
             memo: nil, isPersonal: true,
             overlapWarning: false, overlapWithSharedScheduleIds: [],
@@ -290,12 +291,12 @@ private extension MockTravelerRepository {
             id: 1,
             title: "제주 힐링 여행 2026",
             destination: "제주",
-            startDate: "2026-07-19",
-            endDate: "2026-07-22",
+            startDate: Self.ymd(Self.tripStartDate),
+            endDate: Self.ymd(Self.tripStartDate.addingTimeInterval(3 * 86_400)),
             status: "ongoing",
             managerName: "김담당",
             managerContact: ["phone": "010-1234-5678"],
-            dDay: -1,   // 진행 중
+            dDay: -1,   // 어제 출발 → 오늘이 2일차
             durationDays: 4
         )
     }
@@ -507,12 +508,21 @@ private extension MockTravelerRepository {
     // MARK: Helpers
 
     private func tripDayDate(_ day: Int) -> String {
-        // 여행 시작: 2026-07-19 (day 1) → 오늘 2026-07-20이 2일차
+        Self.ymd(Self.tripStartDate.addingTimeInterval(Double(day - 1) * 86_400))
+    }
+
+    /// 여행 시작일 = 어제. 오늘이 항상 2일차가 되도록 현재 날짜 기준으로 잡습니다.
+    ///
+    /// 날짜를 고정하면 시간이 지나면서 "오늘의 일정"이 사라져 목으로 화면을
+    /// 확인할 수 없게 됩니다.
+    static var tripStartDate: Date {
+        Calendar.current.startOfDay(for: Date()).addingTimeInterval(-86_400)
+    }
+
+    static func ymd(_ date: Date) -> String {
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
         df.locale = Locale(identifier: "en_US_POSIX")
-        let start = df.date(from: "2026-07-19") ?? Date()
-        let date = Calendar.current.date(byAdding: .day, value: day - 1, to: start) ?? start
         return df.string(from: date)
     }
 

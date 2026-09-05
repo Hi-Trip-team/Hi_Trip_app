@@ -198,22 +198,37 @@ final class TripScheduleViewModel: ObservableObject {
         return "\(start) - \(end)"
     }
 
-    /// 오늘이 몇 일차인지 — 여행 기간 밖이면 nil
+    /// 오늘 날짜 "yyyy-MM-dd"
+    private static var todayString: String {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.timeZone = .current
+        return df.string(from: Date())
+    }
+
+    /// 오늘이 몇 일차인지 — 오늘 날짜와 일치하는 일정이 없으면 nil
     ///
-    /// 기기 날짜로 계산하지 않고 서버가 준 d_day를 씁니다.
-    /// d_day는 출발까지 남은 일수라 0이면 출발일, -1이면 2일차입니다.
+    /// d_day나 일차 번호로 계산하지 않고 각 일정의 schedule_date를 오늘 날짜와
+    /// 직접 맞춥니다. 일차 번호는 날짜와 어긋날 수 있어(여행이 이미 끝났는데도
+    /// "2일차"가 나오는 식) 오늘이 아닌 일정을 오늘로 보여주게 됩니다.
     var todayDayNumber: Int? {
-        guard let trip, trip.dDay <= 0 else { return nil }
-        let day = 1 - trip.dDay
-        return day <= max(trip.durationDays, 1) ? day : nil
+        let today = Self.todayString
+        return shared.first { $0.scheduleDate == today }?.dayNumber
     }
 
     // MARK: - 오늘의 일정 (상단 요약)
 
+    /// 오늘 날짜에 해당하는 일정만. 여행 기간 밖이면 비어 있습니다.
     var todaySchedules: [TravelerScheduleDTO] {
-        guard let today = todayDayNumber else { return [] }
-        return shared.filter { $0.dayNumber == today }.sorted { $0.startTime < $1.startTime }
+        let today = Self.todayString
+        return shared
+            .filter { $0.scheduleDate == today }
+            .sorted { $0.startTime < $1.startTime }
     }
+
+    /// 여행이 오늘을 포함하는지 — 상단 "오늘의 일정" 섹션 표시 여부
+    var isTripToday: Bool { !todaySchedules.isEmpty }
 
     /// 지금 진행 중인 일정. 없으면 다음 예정 일정, 오늘 일정이 끝났으면 nil.
     var todayCurrentSchedule: TravelerScheduleDTO? {

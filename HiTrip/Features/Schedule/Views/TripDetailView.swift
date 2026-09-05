@@ -184,10 +184,11 @@ struct TripDetailView: View {
 
     // MARK: - 오늘의 일정
 
-    /// 여행 기간 밖(출발 전·종료 후)이면 표시하지 않습니다.
+    /// 오늘 날짜에 해당하는 일정이 있을 때만 표시합니다.
+    /// 출발 전이거나 이미 끝난 여행이면 이 섹션 자체가 없습니다.
     @ViewBuilder
     private var todaySection: some View {
-        if viewModel.todayDayNumber != nil {
+        if viewModel.isTripToday {
             VStack(alignment: .leading, spacing: 0) {
                 Text("오늘의 일정")
                     .font(.system(size: 15, weight: .bold))
@@ -223,9 +224,7 @@ struct TripDetailView: View {
                     .background(Color(hex: "#F3F4F6"))
                     .cornerRadius(12)
                 } else {
-                    Text(viewModel.todaySchedules.isEmpty
-                         ? "오늘은 예정된 일정이 없어요"
-                         : "오늘 일정이 모두 끝났어요")
+                    Text("오늘 일정이 모두 끝났어요")
                         .font(.system(size: 14))
                         .foregroundColor(Color(hex: "#6B7280"))
                         .frame(maxWidth: .infinity)
