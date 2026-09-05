@@ -25,6 +25,10 @@ final class NetworkService {
     private let baseURL: String
     private let session: URLSession
 
+    /// 관리자 세션용 CSRF 토큰
+    /// GET /api/v1/staff/auth/csrf/ 응답으로 채우고, 로그아웃 시 nil로 되돌립니다.
+    static var csrfToken: String?
+
     // MARK: - Init
 
     /// 프로덕션 전용 싱글턴 초기화
@@ -247,9 +251,18 @@ final class NetworkService {
         request.httpMethod = endpoint.method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Bearer Token 자동 주입
+        // 인증 주입 — 여행객은 Bearer token, 관리자는 세션 쿠키 + CSRF
+        //
+        // 관리자 API(/api/v1/staff/, /api/monitoring/, /api/v1/notices/, /api/trips/)는
+        // sessionid 쿠키 기반이라 URLSession의 공유 쿠키 저장소가 자동으로 붙습니다.
+        // 쓰기 요청에만 X-CSRFToken 헤더를 추가로 실어야 Django가 통과시킵니다.
         if let token = KeychainManager.shared.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        if endpoint.method != .get, let csrf = NetworkService.csrfToken {
+            request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+            request.setValue(baseURL, forHTTPHeaderField: "Referer")
         }
 
         // HTTP Body 직렬화
