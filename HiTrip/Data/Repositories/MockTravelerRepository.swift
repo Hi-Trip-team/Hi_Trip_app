@@ -186,6 +186,30 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
             .map(\.id)
     }
 
+    // MARK: - 현지 표현
+
+    func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO> {
+        .just(TravelerLocalPhrasesDTO(
+            destination: "일본 오사카",
+            languageCode: "ja",
+            languageName: "일본어",
+            phrases: [
+                LocalPhraseDTO(id: 1, koreanText: "안녕하세요. 커피 하나 부탁드려요.",
+                               translatedText: "こんにちは。コーヒーを一つお願いします。",
+                               pronunciation: "곤니찌와, 코히 히토츠 오네가이시마스", displayOrder: 1),
+                LocalPhraseDTO(id: 2, koreanText: "메뉴판 부탁드립니다.",
+                               translatedText: "メニューをお願いします。",
+                               pronunciation: "메뉴-오 오네가이시마스", displayOrder: 2),
+                LocalPhraseDTO(id: 3, koreanText: "계산 부탁드립니다.",
+                               translatedText: "お会計をお願いします。",
+                               pronunciation: "오카이케-오 오네가이시마스", displayOrder: 3),
+                LocalPhraseDTO(id: 4, koreanText: "화장실이 어디인가요?",
+                               translatedText: "トイレはどこですか？",
+                               pronunciation: "토이레와 도코데스카", displayOrder: 4),
+            ]
+        ))
+    }
+
     func fetchCalendar() -> Single<TravelerCalendarDTO> {
         let days = makeMockCalendarDays()
         return .just(TravelerCalendarDTO(trip: mockTravelerTrip, days: days))

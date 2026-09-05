@@ -264,6 +264,27 @@ struct TravelerPersonalScheduleRequest {
     }
 }
 
+// MARK: - Local Phrases (현지 언어)
+
+struct TravelerLocalPhrasesDTO: Decodable {
+    let destination: String
+    /// "ja", "en" 등 — 음성 합성 언어 선택에 사용
+    let languageCode: String
+    let languageName: String
+    let phrases: [LocalPhraseDTO]
+}
+
+struct LocalPhraseDTO: Decodable, Identifiable {
+    let id: Int
+    let koreanText: String
+    let translatedText: String
+    let pronunciation: String
+    let displayOrder: Int
+
+    // audio_url / audio_source / tts_text 는 서버가 주지만 쓰지 않습니다.
+    // 발음은 기기 음성 합성으로 출력합니다.
+}
+
 // MARK: - Calendar
 
 struct TravelerCalendarDTO: Decodable {

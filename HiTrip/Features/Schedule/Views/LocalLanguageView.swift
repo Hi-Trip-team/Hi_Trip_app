@@ -1,56 +1,32 @@
 import SwiftUI
-import AVFoundation
 
 struct LocalLanguageView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @State private var playingIndex: Int? = nil
-
-    private let phrases: [LanguagePhrase] = [
-        LanguagePhrase(korean: "안녕하세요. 커피 하나 부탁드려요.",
-                       local: "こんにちは。コーヒーを一つお願いします。",
-                       pronunciation: "발음: 곤니찌와, 코히 히토츠 오네가이시마스"),
-        LanguagePhrase(korean: "메뉴판 부탁드립니다.",
-                       local: "メニューをお願いします。",
-                       pronunciation: "발음: 메뉴-오 오네가이시마스"),
-        LanguagePhrase(korean: "계산 부탁드립니다.",
-                       local: "お会計をお願いします。",
-                       pronunciation: "발음: 오카이케-오 오네가이시마스"),
-        LanguagePhrase(korean: "화장실이 어디인가요?",
-                       local: "トイレはどこですか？",
-                       pronunciation: "발음: 토이레와 도코데스카"),
-    ]
+    @StateObject private var viewModel = LocalLanguageViewModel()
 
     var body: some View {
         VStack(spacing: 0) {
             headerSection
 
-            // 언어 선택 칩
-            HStack {
-                Spacer()
-                Text("🇯🇵 일본어")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#333840"))
-                    .padding(.horizontal, 12)
-                    .frame(height: 32)
-                    .background(Color(hex: "#F3F4F6"))
-                    .clipShape(Capsule())
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(Array(phrases.enumerated()), id: \.offset) { idx, phrase in
-                        phraseRow(phrase: phrase, index: idx)
-                        Divider()
-                            .padding(.leading, 20)
-                    }
+            switch viewModel.state {
+            case .idle, .loading:
+                loadingView
+            case .failed(let message):
+                errorView(message)
+            case .loaded:
+                if viewModel.hasPhrases {
+                    languageChip
+                    phraseList
+                } else {
+                    emptyView
                 }
             }
         }
         .background(Color.white)
         .navigationBarHidden(true)
+        .task { viewModel.load() }
+        .onDisappear { viewModel.stop() }
     }
 
     // MARK: - Header
@@ -61,7 +37,10 @@ struct LocalLanguageView: View {
                 .font(.system(size: 17, weight: .bold))
                 .foregroundColor(.black)
             HStack {
-                Button { dismiss() } label: {
+                Button {
+                    viewModel.stop()
+                    dismiss()
+                } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.black)
@@ -72,65 +51,132 @@ struct LocalLanguageView: View {
         }
         .frame(height: 44)
         .padding(.top, 8)
-        .padding(.bottom, 8)
     }
 
-    // MARK: - 문구 행
+    // MARK: - 언어 칩
 
-    private func phraseRow(phrase: LanguagePhrase, index: Int) -> some View {
-        HStack(alignment: .center, spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(phrase.korean)
+    private var languageChip: some View {
+        HStack {
+            Spacer()
+            Text(viewModel.languageChipText)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(hex: "#333840"))
+                .padding(.horizontal, 12)
+                .frame(height: 32)
+                .background(Color(hex: "#F3F4F6"))
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 7)
+        .padding(.bottom, 13)
+    }
+
+    // MARK: - 목록
+
+    private var phraseList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                Divider().padding(.horizontal, 17)
+
+                ForEach(viewModel.phrases) { phrase in
+                    phraseRow(phrase)
+                    Divider().padding(.horizontal, 17)
+                }
+            }
+        }
+    }
+
+    private func phraseRow(_ phrase: LocalPhraseDTO) -> some View {
+        let isSpeaking = viewModel.speakingId == phrase.id
+
+        return HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(phrase.koreanText)
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(Color(hex: "#313131"))
-                Text(phrase.local)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(phrase.translatedText)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color(hex: "#2563EB"))
-                Text(phrase.pronunciation)
-                    .font(.system(size: 12))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("발음: \(phrase.pronunciation)")
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color(hex: "#6B7280"))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.leading, 20)
-            .padding(.vertical, 18)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            Button {
-                if playingIndex == index {
-                    playingIndex = nil
-                } else {
-                    playingIndex = index
-                    speakPhrase(phrase.local)
-                }
-            } label: {
+            Button { viewModel.toggleSpeak(phrase) } label: {
                 ZStack {
                     Circle()
-                        .fill(playingIndex == index ? Color(hex: "#EF4444") : Color(hex: "#2563EB"))
+                        .fill(isSpeaking ? Color(hex: "#EF4444") : Color(hex: "#2563EB"))
                         .frame(width: 44, height: 44)
-                    Text(playingIndex == index ? "■" : "▶")
+                    Text(isSpeaking ? "■" : "▶")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
                 }
             }
             .buttonStyle(.plain)
-            .padding(.trailing, 20)
+            .accessibilityLabel(isSpeaking ? "재생 중지" : "발음 듣기")
         }
+        .padding(.leading, 32)
+        .padding(.trailing, 30)
+        .padding(.vertical, 13)
     }
 
-    private func speakPhrase(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "ja-JP")
-        utterance.rate = 0.4
-        let synthesizer = AVSpeechSynthesizer()
-        synthesizer.speak(utterance)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            if playingIndex != nil { playingIndex = nil }
-        }
-    }
-}
+    // MARK: - 로딩 / 빈 상태 / 에러
 
-private struct LanguagePhrase {
-    let korean: String
-    let local: String
-    let pronunciation: String
+    private var loadingView: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("현지 표현을 불러오는 중이에요")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "text.bubble")
+                .font(.system(size: 40))
+                .foregroundColor(Color(hex: "#D1D5DB"))
+            Text("등록된 표현이 없습니다")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
+            Text("안내사가 현지 표현을 등록하면\n여기에 표시됩니다")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: "exclamationmark.bubble")
+                .font(.system(size: 34))
+                .foregroundColor(Color(hex: "#D1D5DB"))
+            Text(message)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
+                .multilineTextAlignment(.center)
+            Button { viewModel.load() } label: {
+                Text("다시 시도")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .frame(height: 44)
+                    .background(Color(hex: "#2563EB"))
+                    .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 }

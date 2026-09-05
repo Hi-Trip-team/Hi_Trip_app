@@ -48,6 +48,9 @@ protocol TravelerRepositoryProtocol {
     /// 개인 일정 삭제
     func deletePersonalSchedule(id: Int) -> Single<Void>
 
+    /// 현지 표현 — 여행 목적지 언어의 회화 목록
+    func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO>
+
     func fetchSchedules() -> Single<[TravelerScheduleDTO]>
     func fetchSchedule(id: Int) -> Single<TravelerScheduleDTO>
 

@@ -100,6 +100,10 @@ final class TravelerRepository: TravelerRepositoryProtocol {
             .map { _ in () }
     }
 
+    func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO> {
+        networkService.request(.travelerLocalPhrases(), type: TravelerLocalPhrasesDTO.self)
+    }
+
     func fetchSchedules() -> Single<[TravelerScheduleDTO]> {
         networkService.request(.travelerSchedules(), type: [TravelerScheduleDTO].self)
     }
