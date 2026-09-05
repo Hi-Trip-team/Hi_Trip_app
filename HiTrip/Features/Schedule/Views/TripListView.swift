@@ -39,13 +39,21 @@ struct TripListView: View {
                 if showNotice {
                     NoticePopupView(isPresented: $showNotice)
                 }
+
+                // 긴급 즉시 연락 — 별도 화면이 아니라 홈 위에 겹칩니다
+                if showEmergency {
+                    EmergencyCallDialog(
+                        isPresented: $showEmergency,
+                        phoneNumber: viewModel.managerPhone
+                    )
+                }
             }
             .animation(.easeInOut(duration: 0.2), value: showNotice)
+            .animation(.easeInOut(duration: 0.2), value: showEmergency)
             .background(Color.white)
             .navigationBarHidden(true)
             .task { viewModel.load() }
             .navigationDestination(isPresented: $showTripDetail) { TripDetailView() }
-            .navigationDestination(isPresented: $showEmergency) { EmergencyView() }
             .navigationDestination(isPresented: $showLocalLanguage) { LocalLanguageView() }
             .navigationDestination(isPresented: $showChat) {
                 TouristChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())

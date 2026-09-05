@@ -173,8 +173,15 @@ final class TravelerHomeViewModel: ObservableObject {
         }
     }
 
-    /// 다음 일정 — 서버가 계산해 준 값을 그대로 씁니다.
-    var nextSchedule: TravelerScheduleDTO? { home?.nextSchedule }
+    /// 다음 일정 — 서버가 계산해 준 값을 씁니다.
+    ///
+    /// 진행 중인 일정이 없으면 상단 카드가 이미 다음 예정 일정을 보여주므로,
+    /// 같은 일정이면 "다음 일정" 줄을 숨겨 중복 표시를 막습니다.
+    var nextSchedule: TravelerScheduleDTO? {
+        guard let next = home?.nextSchedule else { return nil }
+        if let current = currentSchedule, current.id == next.id { return nil }
+        return next
+    }
 
     /// 오늘 일정의 진행률 (0...1) — 진행률 바
     var progress: Double {
