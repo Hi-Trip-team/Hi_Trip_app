@@ -1,18 +1,19 @@
 import SwiftUI
 
 // MARK: - TouristChatListView
-/// 여행객(Tourist) 전용 메시지 목록 화면
+/// 여행객 메시지 목록 — 홈의 "메시지 및 문의"로 진입
 ///
-/// 피그마 0827 여행객 측:
-/// - 헤더: "메시지 및 문의" + "모두 확인" 버튼
-/// - 검색바 (채팅 및 메시지 검색)
-/// - 채팅방 목록 (필터 태그 없음)
+/// - GET /api/v1/chat/rooms/
+///
+/// 헤더는 한 줄입니다. 뒤로가기 / "메시지 및 문의" / "모두 확인".
+/// 접속 상태(초록 점)는 서버가 주지 않아 표시하지 않습니다.
 
 struct TouristChatListView: View {
 
     @ObservedObject var viewModel: ChatViewModel
+    @Environment(\.dismiss) private var dismiss
+
     @State private var selectedRoom: ChatRoom?
-    @State private var navigateToRoom = false
     @State private var searchText = ""
 
     private var filteredRooms: [ChatRoom] {
@@ -24,178 +25,167 @@ struct TouristChatListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Row 1: 헤더
-                sectionHeader
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
-                    .padding(.top, HiTripSpacing.md)
+        VStack(spacing: 0) {
+            headerSection
 
-                // Row 2: 검색바
-                searchBar
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
-                    .padding(.top, HiTripSpacing.md)
-                    .padding(.bottom, HiTripSpacing.smd)
+            searchBar
+                .padding(.horizontal, 24)
+                .padding(.top, 3)
+                .padding(.bottom, 20)
 
-                Divider()
-
-                // Row 3: 채팅방 목록
-                if filteredRooms.isEmpty {
-                    emptyState
-                } else {
-                    roomList
-                }
+            if filteredRooms.isEmpty {
+                emptyState
+            } else {
+                roomList
             }
-            .background(Color.white)
-            .navigationTitle("메시지")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(isPresented: $navigateToRoom) {
-                if let room = selectedRoom {
-                    ChatRoomView(viewModel: viewModel, chatRoom: room)
-                }
-            }
-            .onAppear { viewModel.fetchChatRooms() }
         }
+        .background(Color.white)
+        .navigationBarHidden(true)
+        .navigationDestination(item: $selectedRoom) { room in
+            ChatRoomView(viewModel: viewModel, chatRoom: room)
+        }
+        .onAppear { viewModel.fetchChatRooms() }
     }
 
-    // MARK: - Row 1: 헤더
+    // MARK: - 헤더
 
-    private var sectionHeader: some View {
-        HStack {
+    private var headerSection: some View {
+        ZStack {
             Text("메시지 및 문의")
-                .font(HiTripFont.title2)
-                .foregroundColor(HiTripColor.textBlack)
-            Spacer()
-            Button {
-                viewModel.markAllAsRead()
-            } label: {
-                Text("모두 확인")
-                    .font(HiTripFont.captionM)
-                    .foregroundColor(HiTripColor.primary800)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(Color(hex: "#111827"))
+
+            HStack {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.black)
+                }
+                Spacer()
+                Button { viewModel.markAllAsRead() } label: {
+                    Text("모두 확인")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(hex: "#2563EB"))
+                }
             }
+            .padding(.horizontal, 12)
         }
+        .frame(height: 44)
+        .padding(.top, 8)
     }
 
-    // MARK: - Row 2: 검색바
+    // MARK: - 검색바
 
     private var searchBar: some View {
-        HStack(spacing: HiTripSpacing.sm) {
+        HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 15))
-                .foregroundColor(HiTripColor.gray400)
+                .font(.system(size: 14))
+                .foregroundColor(Color(hex: "#6B7280"))
             TextField("채팅 및 메시지 검색", text: $searchText)
-                .font(HiTripFont.body)
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#111827"))
         }
-        .padding(.horizontal, HiTripSpacing.mdl)
-        .padding(.vertical, HiTripSpacing.smd)
-        .background(HiTripColor.gray100)
-        .cornerRadius(HiTripRadius.card)
+        .padding(.horizontal, 20)
+        .frame(height: 44)
+        .background(Color(hex: "#F3F4F6"))
+        .clipShape(Capsule())
     }
 
-    // MARK: - Row 3: 채팅방 목록
+    // MARK: - 목록
 
     private var roomList: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            LazyVStack(spacing: 0) {
                 ForEach(filteredRooms) { room in
-                    Button {
-                        selectedRoom = room
-                        navigateToRoom = true
-                    } label: {
+                    Button { selectedRoom = room } label: {
                         roomRow(room)
                     }
                     .buttonStyle(.plain)
-                    Divider().padding(.leading, 86)
+
+                    Divider()
+                        .padding(.horizontal, 24)
                 }
             }
-            .padding(.top, HiTripSpacing.xs)
         }
     }
 
     private func roomRow(_ room: ChatRoom) -> some View {
-        HStack(spacing: HiTripSpacing.mdl) {
-            avatarView(room)
-                .frame(width: 52, height: 52)
+        HStack(spacing: 14) {
+            Circle()
+                .fill(Color(hex: "#F3F4F6"))
+                .frame(width: 48, height: 48)
+                .overlay(
+                    Image(systemName: room.isGroupChat ? "person.3.fill" : "person.fill")
+                        .font(.system(size: room.isGroupChat ? 17 : 19))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                )
 
-            VStack(alignment: .leading, spacing: HiTripSpacing.xs) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(room.participantName)
-                    .font(HiTripFont.bodyBold)
-                    .foregroundColor(HiTripColor.textBlack)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(Color(hex: "#111827"))
+                    .lineLimit(1)
 
                 Text(room.lastMessage.isEmpty ? "새로운 채팅방" : room.lastMessage)
-                    .font(HiTripFont.label)
-                    .foregroundColor(HiTripColor.gray500)
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "#6B7280"))
                     .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            VStack(alignment: .trailing, spacing: HiTripSpacing.xs) {
+            VStack(alignment: .trailing, spacing: 6) {
                 Text(formatTime(room.lastMessageDate))
-                    .font(HiTripFont.caption)
-                    .foregroundColor(HiTripColor.gray400)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(hex: "#6B7280"))
 
                 if room.unreadCount > 0 {
                     Text("\(room.unreadCount)")
-                        .font(HiTripFont.badge)
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .background(HiTripColor.error)
+                        .frame(minWidth: 22, minHeight: 22)
+                        .background(Color(hex: "#EF4444"))
                         .clipShape(Capsule())
+                } else {
+                    // 뱃지 자리를 비워 이름·시각 줄이 흔들리지 않게 합니다.
+                    Color.clear.frame(width: 0, height: 22)
                 }
             }
         }
-        .padding(.horizontal, HiTripSpacing.pagePadding)
-        .padding(.vertical, HiTripSpacing.md)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
 
-    @ViewBuilder
-    private func avatarView(_ room: ChatRoom) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            Circle()
-                .fill(HiTripColor.gray100)
-                .overlay(
-                    Image(systemName: room.isGroupChat ? "person.3.fill" : "person.fill")
-                        .font(.system(size: room.isGroupChat ? 18 : 20))
-                        .foregroundColor(HiTripColor.gray400)
-                )
-
-            if room.isOnline && !room.isGroupChat {
-                Circle()
-                    .fill(HiTripColor.onlineGreen)
-                    .frame(width: 12, height: 12)
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-            }
-        }
-    }
+    // MARK: - 빈 상태
 
     private var emptyState: some View {
-        VStack(spacing: HiTripSpacing.md) {
+        VStack(spacing: 10) {
             Spacer()
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 40))
-                .foregroundColor(HiTripColor.gray300)
+                .foregroundColor(Color(hex: "#D1D5DB"))
             Text("메시지가 없습니다")
-                .font(HiTripFont.bodyBold)
-                .foregroundColor(HiTripColor.textBlack)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
             Text("여행사에서 채팅방을 개설하면\n여기에 표시됩니다")
-                .font(HiTripFont.body)
-                .foregroundColor(HiTripColor.gray500)
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
                 .multilineTextAlignment(.center)
+                .lineSpacing(3)
             Spacer()
         }
+        .frame(maxWidth: .infinity)
     }
 
+    /// 오늘이면 시각, 어제면 "어제", 그 이전은 날짜
     private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        if Calendar.current.isDateInToday(date) {
-            formatter.dateFormat = "a h:mm"
-        } else if Calendar.current.isDateInYesterday(date) {
-            return "어제"
-        } else {
-            formatter.dateFormat = "M/d"
-        }
-        return formatter.string(from: date)
+        let cal = Calendar.current
+        if cal.isDateInYesterday(date) { return "어제" }
+
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = cal.isDateInToday(date) ? "a h:mm" : "M/d"
+        return f.string(from: date)
     }
 }

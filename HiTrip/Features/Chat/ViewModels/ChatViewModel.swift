@@ -235,10 +235,19 @@ final class ChatViewModel: ObservableObject {
             .disposed(by: disposeBag)
     }
 
-    /// 모든 채팅방 읽음 처리 (로컬)
+    /// 모든 채팅방 읽음 처리 — "모두 확인"
+    ///
+    /// 뱃지는 즉시 지우고, 서버에도 방마다 읽음을 보냅니다.
+    /// 실패해도 다음 목록 조회 때 서버 값으로 되돌아옵니다.
     func markAllAsRead() {
+        let unreadIds = chatRooms.filter { $0.unreadCount > 0 }.map(\.id)
         for i in chatRooms.indices {
             chatRooms[i].unreadCount = 0
+        }
+        for id in unreadIds {
+            chatUseCase.markAsRead(chatRoomId: id)
+                .subscribe(onSuccess: { _ in }, onFailure: { _ in })
+                .disposed(by: disposeBag)
         }
     }
 
