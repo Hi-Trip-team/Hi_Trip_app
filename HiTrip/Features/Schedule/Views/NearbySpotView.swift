@@ -86,10 +86,10 @@ struct NearbySpotView: View {
                 // 하단 스팟 카드
                 NavigationLink(destination: NearbySpotDetailView(
                     name: spots[0].name,
-                    distance: spots[0].distance,
                     address: spots[0].address,
-                    hours: spots[0].hours,
-                    description: spots[0].description
+                    description: spots[0].description,
+                    distance: spots[0].distance,
+                    hours: spots[0].hours
                 )) {
                     spotCard(spots[0])
                 }

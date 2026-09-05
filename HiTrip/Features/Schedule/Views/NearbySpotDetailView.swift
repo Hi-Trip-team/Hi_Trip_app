@@ -5,20 +5,30 @@ struct NearbySpotDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    var name: String = "해운대 해수욕장"
-    var distance: String = "0.4km"
-    var address: String = "부산 해운대구 우동 해운대해변로 264"
-    var hours: String = "09:00 - 18:00"
-    var description: String = "부산 대표 해변, 여름 축제 진행 중"
-    var rating: Double = 4.7
-    var reviewCount: Int = 1024
+    var name: String
+    var address: String?
+    var description: String?
+    /// 서버가 주지 않는 값들 — nil이면 해당 UI를 숨깁니다.
+    var distance: String?
+    var hours: String?
+    var rating: Double?
+    var reviewCount: Int?
+    var imageUrl: String?
+    var latitude: Double?
+    var longitude: Double?
+    var tags: [String] = []
+
+    /// 좌표가 없으면 지도 섹션을 숨깁니다.
+    private var coordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
 
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 35.1588, longitude: 129.1603),
         span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006)
     )
 
-    private let tags = ["해변", "산책로", "무장애 가능", "주차 가능"]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,17 +90,30 @@ struct NearbySpotDetailView: View {
     // MARK: - 썸네일
 
     private var thumbnailSection: some View {
-        LinearGradient(
-            colors: [Color(hex: "#93C5FD"), Color(hex: "#2563EB")],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        ZStack {
+            LinearGradient(
+                colors: [Color(hex: "#93C5FD"), Color(hex: "#2563EB")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            if let urlString = imageUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Image(systemName: "photo")
+                            .font(.system(size: 44))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+            } else {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 52))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+        }
         .frame(height: 200)
-        .overlay(
-            Image(systemName: "water.waves")
-                .font(.system(size: 56))
-                .foregroundColor(.white.opacity(0.7))
-        )
+        .clipped()
     }
 
     // MARK: - 기본 정보
@@ -102,31 +125,44 @@ struct NearbySpotDetailView: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(Color(hex: "#111827"))
                 Spacer()
-                Image(systemName: "star.fill")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#F59E0B"))
-                Text(String(format: "%.1f", rating))
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
-                Text("(\(reviewCount))")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+                if let rating {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(hex: "#F59E0B"))
+                    Text(String(format: "%.1f", rating))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "#111827"))
+                    if let reviewCount {
+                        Text("(\(reviewCount))")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(hex: "#9CA3AF"))
+                    }
+                }
             }
 
-            HStack(spacing: 6) {
-                Image(systemName: "mappin.circle")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                Text(address)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+            if let address, !address.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "mappin.circle")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "#6B7280"))
+                    Text(address)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "#6B7280"))
+                }
             }
 
-            HStack(spacing: 12) {
-                infoChip(icon: "clock", text: hours, color: Color(hex: "#2563EB"))
-                infoChip(icon: "location.circle", text: distance, color: Color(hex: "#2E9B67"))
+            if hours != nil || distance != nil {
+                HStack(spacing: 12) {
+                    if let hours {
+                        infoChip(icon: "clock", text: hours, color: Color(hex: "#2563EB"))
+                    }
+                    if let distance {
+                        infoChip(icon: "location.circle", text: distance, color: Color(hex: "#2E9B67"))
+                    }
+                }
             }
 
+            if !tags.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(tags, id: \.self) { tag in
@@ -139,6 +175,7 @@ struct NearbySpotDetailView: View {
                             .cornerRadius(13)
                     }
                 }
+            }
             }
         }
     }
@@ -160,7 +197,9 @@ struct NearbySpotDetailView: View {
 
     // MARK: - 설명
 
+    @ViewBuilder
     private var descriptionSection: some View {
+        if let description, !description.isEmpty {
         VStack(alignment: .leading, spacing: 10) {
             Text("소개")
                 .font(.system(size: 14, weight: .bold))
@@ -171,11 +210,14 @@ struct NearbySpotDetailView: View {
                 .lineSpacing(4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     // MARK: - 미니맵
 
+    @ViewBuilder
     private var mapPreviewSection: some View {
+        if coordinate != nil {
         VStack(alignment: .leading, spacing: 10) {
             Text("위치")
                 .font(.system(size: 14, weight: .bold))
@@ -198,10 +240,19 @@ struct NearbySpotDetailView: View {
             .disabled(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+            if let coordinate {
+                region = MKCoordinateRegion(
+                    center: coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006)
+                )
+            }
+        }
+        }
     }
 
     private var nearbyPin: NearbyPin {
-        NearbyPin(coordinate: CLLocationCoordinate2D(latitude: 35.1588, longitude: 129.1603))
+        NearbyPin(coordinate: coordinate ?? region.center)
     }
 
     // MARK: - 하단 버튼

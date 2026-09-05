@@ -11,6 +11,8 @@ struct TripListView: View {
     @State private var showChat = false
     @State private var showNotice = false
     @State private var showNearbySpot = false
+    @State private var showNotificationList = false
+    @State private var selectedSpot: TravelerSpotDTO?
 
     var body: some View {
         NavigationStack {
@@ -49,6 +51,17 @@ struct TripListView: View {
                 TouristChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
             }
             .navigationDestination(isPresented: $showNearbySpot) { NearbySpotView() }
+            .navigationDestination(isPresented: $showNotificationList) { TouristNotificationListView() }
+            .navigationDestination(item: $selectedSpot) { spot in
+                NearbySpotDetailView(
+                    name: spot.title,
+                    address: spot.place.address,
+                    description: spot.description,
+                    imageUrl: spot.imageUrl.isEmpty ? nil : spot.imageUrl,
+                    latitude: spot.place.latitude.flatMap(Double.init),
+                    longitude: spot.place.longitude.flatMap(Double.init)
+                )
+            }
         }
     }
 
@@ -110,7 +123,7 @@ struct TripListView: View {
                     .offset(x: 6, y: -4)
                 }
             }
-            .onTapGesture { showNotice = true }
+            .onTapGesture { showNotificationList = true }
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
@@ -258,7 +271,7 @@ struct TripListView: View {
                 HStack(spacing: 12) {
                     ForEach(viewModel.popularSpots) { spot in
                         spotCard(spot)
-                            .onTapGesture { showNearbySpot = true }
+                            .onTapGesture { selectedSpot = spot }
                     }
                 }
                 .padding(.horizontal, 24)
