@@ -28,12 +28,18 @@ final class TravelerHomeViewModel: ObservableObject {
     @Published private(set) var home: TravelerHomeDTO?
     @Published private(set) var notices: [TravelerNoticeDTO] = []
     @Published private(set) var popularSpots: [TravelerSpotDTO] = []
+    @Published private(set) var unreadMessageCount: Int = 0
 
     private let repository: TravelerRepositoryProtocol
+    private let chatRepository: ChatRepositoryProtocol
     private let disposeBag = DisposeBag()
 
-    init(repository: TravelerRepositoryProtocol = AppDIContainer.shared.travelerRepositoryForHome) {
+    init(
+        repository: TravelerRepositoryProtocol = AppDIContainer.shared.travelerRepositoryForHome,
+        chatRepository: ChatRepositoryProtocol = AppDIContainer.shared.chatRepositoryForHome
+    ) {
         self.repository = repository
+        self.chatRepository = chatRepository
     }
 
     // MARK: - Load
@@ -70,7 +76,17 @@ final class TravelerHomeViewModel: ObservableObject {
             .subscribe(onSuccess: { [weak self] in self?.popularSpots = $0 },
                        onFailure: { _ in })
             .disposed(by: disposeBag)
+
+        // 하단 "메시지 및 문의" 뱃지 — 전체 채팅방의 안 읽음 합계
+        chatRepository.fetchAllRooms()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] rooms in
+                self?.unreadMessageCount = rooms.reduce(0) { $0 + $1.unreadCount }
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
     }
+
+    var hasUnreadMessage: Bool { unreadMessageCount > 0 }
 
     private static func message(for error: Error) -> String {
         if let e = error as? HiTripError {
@@ -109,18 +125,60 @@ final class TravelerHomeViewModel: ObservableObject {
 
     var todaySchedules: [TravelerScheduleDTO] { home?.todaySchedules ?? [] }
 
-    /// 현재 진행 중인 일정 — 지금 시각이 걸쳐 있는 것, 없으면 첫 일정
-    var currentSchedule: TravelerScheduleDTO? {
-        let now = Self.minutesNow()
-        return todaySchedules.first { s in
-            guard let st = Self.minutes(s.startTime), let et = Self.minutes(s.endTime) else { return false }
-            return st <= now && now < et
-        } ?? todaySchedules.first
+    /// 오늘 일정의 진행 상태 — 화면 상단 카드가 무엇을 보여줄지 결정
+    enum TodayState: Equatable {
+        /// 지금 진행 중
+        case ongoing(TravelerScheduleDTO)
+        /// 아직 시작 전 — 가장 이른 예정 일정
+        case upcoming(TravelerScheduleDTO)
+        /// 오늘 일정이 모두 끝남
+        case finished
+        /// 오늘 배정된 일정이 없음
+        case none
+
+        static func == (l: TodayState, r: TodayState) -> Bool {
+            switch (l, r) {
+            case (.finished, .finished), (.none, .none): return true
+            case let (.ongoing(a), .ongoing(b)):   return a.id == b.id
+            case let (.upcoming(a), .upcoming(b)): return a.id == b.id
+            default: return false
+            }
+        }
     }
 
-    /// 다음 일정 — 서버가 준 것을 우선 사용
+    var todayState: TodayState {
+        guard !todaySchedules.isEmpty else { return .none }
+        let now = Self.minutesNow()
+
+        if let ongoing = todaySchedules.first(where: { s in
+            guard let st = Self.minutes(s.startTime), let et = Self.minutes(s.endTime) else { return false }
+            return st <= now && now < et
+        }) {
+            return .ongoing(ongoing)
+        }
+
+        // 진행 중인 게 없으면 아직 시작 안 한 것 중 가장 이른 것
+        let upcoming = todaySchedules
+            .filter { (Self.minutes($0.startTime) ?? 0) > now }
+            .min { (Self.minutes($0.startTime) ?? 0) < (Self.minutes($1.startTime) ?? 0) }
+
+        return upcoming.map { .upcoming($0) } ?? .finished
+    }
+
+    /// 상단 카드에 띄울 일정 — 끝났거나 없으면 nil
+    var currentSchedule: TravelerScheduleDTO? {
+        switch todayState {
+        case .ongoing(let s), .upcoming(let s): return s
+        case .finished, .none:                  return nil
+        }
+    }
+
+    /// 다음 일정 — 서버가 준 것을 우선 사용하되, 이미 지난 것은 버립니다.
     var nextSchedule: TravelerScheduleDTO? {
-        if let n = home?.nextSchedule { return n }
+        let now = Self.minutesNow()
+
+        if let n = home?.nextSchedule, (Self.minutes(n.startTime) ?? 0) > now { return n }
+
         guard let current = currentSchedule,
               let idx = todaySchedules.firstIndex(where: { $0.id == current.id }) else { return nil }
         return todaySchedules.indices.contains(idx + 1) ? todaySchedules[idx + 1] : nil

@@ -206,7 +206,9 @@ struct TripListView: View {
                 .cornerRadius(12)
                 .padding(.horizontal, 24)
             } else {
-                Text("오늘은 예정된 일정이 없어요")
+                Text(viewModel.todayState == .finished
+                     ? "오늘 일정이 모두 끝났어요"
+                     : "오늘은 예정된 일정이 없어요")
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: "#6B7280"))
                     .frame(maxWidth: .infinity)
@@ -397,15 +399,17 @@ struct TripListView: View {
                 }
                 .buttonStyle(.plain)
 
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "#EF4444"))
-                        .frame(width: 20, height: 20)
-                    Text("3")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
+                if viewModel.hasUnreadMessage {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "#EF4444"))
+                            .frame(width: 20, height: 20)
+                        Text("\(viewModel.unreadMessageCount)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .offset(x: -4, y: -4)
                 }
-                .offset(x: -4, y: -4)
             }
         }
         .padding(.horizontal, 24)
