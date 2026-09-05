@@ -250,17 +250,17 @@ struct TripDetailView: View {
                 }
             } label: {
                 HStack(spacing: 10) {
+                    // 펼친 일차만 파란 칩, 나머지는 회색
                     Text("\(day.dayNumber)일차")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .frame(height: 24)
-                        .background(Color(hex: "#2563EB"))
+                        .foregroundColor(isExpanded ? .white : Color(hex: "#6B7280"))
+                        .frame(width: 48, height: 24)
+                        .background(isExpanded ? Color(hex: "#2563EB") : Color(hex: "#E5E7EB"))
                         .cornerRadius(6)
 
                     Text(day.date.replacingOccurrences(of: "-", with: "."))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .foregroundColor(isExpanded ? Color(hex: "#111827") : Color(hex: "#6B7280"))
 
                     Spacer()
 
@@ -269,9 +269,9 @@ struct TripDetailView: View {
                         .foregroundColor(Color(hex: "#6B7280"))
                 }
                 .padding(.horizontal, 14)
-                .frame(height: 48)
-                .background(isExpanded ? Color(hex: "#E8F0FF") : Color(hex: "#F9FAFB"))
-                .cornerRadius(10)
+                .frame(height: 52)
+                .background(isExpanded ? Color(hex: "#E8F0FF") : Color(hex: "#F3F4F6"))
+                .cornerRadius(12)
             }
             .buttonStyle(.plain)
 
@@ -334,9 +334,9 @@ struct TripDetailView: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
-        .cornerRadius(10)
+        .cornerRadius(12)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(Color(hex: "#E5E7EB"), lineWidth: 1)
         )
     }
@@ -348,10 +348,9 @@ struct TripDetailView: View {
             Text("내 일정")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(Color(hex: "#2563EB"))
-                .padding(.horizontal, 8)
-                .frame(height: 22)
+                .frame(width: 52, height: 22)
                 .background(Color(hex: "#E8F0FF"))
-                .cornerRadius(5)
+                .cornerRadius(6)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(p.title)
@@ -378,13 +377,13 @@ struct TripDetailView: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 52)
+        .padding(.horizontal, 14)
+        .frame(minHeight: 60)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: "#F8FAFF"))
-        .cornerRadius(10)
+        .background(Color.white)
+        .cornerRadius(12)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color(hex: "#2563EB"), style: StrokeStyle(lineWidth: 1, dash: [4]))
         )
         .contextMenu {
@@ -404,15 +403,15 @@ struct TripDetailView: View {
             showAddSheet = true
         } label: {
             Text("+ 개인 일정 추가")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(Color(hex: "#2563EB"))
                 .frame(maxWidth: .infinity)
-                .frame(height: 46)
-                .background(Color.white)
-                .cornerRadius(10)
+                .frame(height: 52)
+                .background(Color(hex: "#F3F4F6"))
+                .cornerRadius(12)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color(hex: "#C3CDDA"), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color(hex: "#6B7280"), style: StrokeStyle(lineWidth: 1, dash: [4]))
                 )
         }
         .buttonStyle(.plain)
