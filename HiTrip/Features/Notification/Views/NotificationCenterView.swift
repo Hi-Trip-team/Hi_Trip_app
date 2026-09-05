@@ -1,160 +1,175 @@
 import SwiftUI
 
-// MARK: - NotificationCenterView
-/// 알림 센터 화면
-///
-/// 피그마 0827 수정본:
-/// - 헤더: 뒤로가기 + "알림"
-/// - 카테고리 탭 필터: 전체 / 위험 / 경고 / 이탈 / 알반
-/// - 알림 목록: NotificationItemView
-/// - 위험 알림은 "확인" 버튼 포함 (빨간)
-
 struct NotificationCenterView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedCategory: NotificationCategory = .all
-    @State private var items: [NotificationItem] = Self.mockItems
+    @State private var selectedFilter = "전체"
 
-    private var filteredItems: [NotificationItem] {
-        guard selectedCategory != .all else { return items }
-        return items.filter { $0.category == selectedCategory }
+    private let filters = ["전체", "위험", "경고", "이탈", "일반"]
+
+    private let notifications: [NCItem] = [
+        NCItem(type: "위험", title: "에디님의 심박수가 위험 수치입니다! 바로 확인하세요!",
+               detail: "10:24 · 심박 187bpm", time: "10:24", requiresAction: true),
+        NCItem(type: "이탈", title: "둘리님이 안전 구역을 벗어났습니다 (1.2km)",
+               detail: "10:18 · 탭하여 위치 확인", time: "10:18", requiresAction: false),
+        NCItem(type: "경고", title: "펭수님의 심박수가 경고 수치입니다. 확인이 필요합니다.",
+               detail: "09:52 · 심박 135bpm", time: "09:52", requiresAction: false),
+        NCItem(type: "일반", title: "일정이 변경되었습니다 — 2일차 13:00 점심 장소 변경",
+               detail: "09:30", time: "09:30", requiresAction: false),
+    ]
+
+    private var filtered: [NCItem] {
+        selectedFilter == "전체" ? notifications : notifications.filter { $0.type == selectedFilter }
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                categoryTabBar
-                    .padding(.top, HiTripSpacing.md)
+        VStack(spacing: 0) {
+            headerSection
 
-                Divider()
-                    .padding(.top, HiTripSpacing.sm)
+            filterRow
+                .padding(.top, 8)
 
-                if filteredItems.isEmpty {
-                    emptyState
-                } else {
-                    notificationList
-                }
-            }
-            .background(HiTripColor.screenBackground)
-            .navigationTitle("알림")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(HiTripColor.textBlack)
+            ScrollView {
+                LazyVStack(spacing: 10) {
+                    ForEach(filtered) { item in
+                        notificationCard(item)
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 32)
             }
         }
+        .background(Color.white)
+        .navigationBarHidden(true)
     }
 
-    // MARK: - Category Tab Bar
+    // MARK: - Header
 
-    private var categoryTabBar: some View {
+    private var headerSection: some View {
+        ZStack {
+            Text("알림")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(Color(hex: "#111827"))
+            HStack {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.black)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+        }
+        .frame(height: 44)
+        .padding(.top, 8)
+    }
+
+    // MARK: - 필터 칩
+
+    private var filterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: HiTripSpacing.sm) {
-                ForEach(NotificationCategory.allCases) { cat in
-                    categoryTab(cat)
+            HStack(spacing: 8) {
+                ForEach(filters, id: \.self) { f in
+                    Button { selectedFilter = f } label: {
+                        Text(f)
+                            .font(.system(size: 12, weight: selectedFilter == f ? .bold : .medium))
+                            .foregroundColor(selectedFilter == f ? .white : Color(hex: "#6B7280"))
+                            .padding(.horizontal, 16)
+                            .frame(height: 34)
+                            .background(selectedFilter == f ? Color(hex: "#2563EB") : Color(hex: "#F3F4F6"))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, HiTripSpacing.pagePadding)
+            .padding(.horizontal, 20)
         }
+        .padding(.bottom, 4)
     }
 
-    private func categoryTab(_ cat: NotificationCategory) -> some View {
-        let isSelected = selectedCategory == cat
-        return Button {
-            selectedCategory = cat
-        } label: {
-            Text(cat.rawValue)
-                .font(HiTripFont.labelM)
-                .foregroundColor(isSelected ? .white : HiTripColor.gray500)
-                .padding(.horizontal, HiTripSpacing.mdl)
-                .padding(.vertical, HiTripSpacing.sm)
-                .background(isSelected ? categoryColor(cat) : HiTripColor.gray100)
-                .cornerRadius(HiTripRadius.pill)
-        }
-        .buttonStyle(.plain)
-    }
+    // MARK: - 알림 카드
 
-    private func categoryColor(_ cat: NotificationCategory) -> Color {
-        switch cat {
-        case .danger:  return HiTripColor.danger
-        case .leave:   return HiTripColor.caution
-        case .warning: return HiTripColor.warningYellow
-        case .normal:  return HiTripColor.gray400
-        case .all:     return HiTripColor.primary800
-        }
-    }
+    private func notificationCard(_ item: NCItem) -> some View {
+        let colors = badgeColors(item.type)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                Text(item.type)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(colors.text)
+                    .padding(.horizontal, 10)
+                    .frame(height: 22)
+                    .background(colors.bg)
+                    .cornerRadius(6)
 
-    // MARK: - Notification List
-
-    private var notificationList: some View {
-        ScrollView {
-            VStack(spacing: HiTripSpacing.sm) {
-                ForEach(filteredItems) { item in
-                    NotificationItemView(item: item) {
-                        actionItem(item)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(hex: "#111827"))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if !item.detail.isEmpty {
+                        Text(item.detail)
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "#6B7280"))
                     }
                 }
+
+                Spacer()
             }
-            .padding(.horizontal, HiTripSpacing.pagePadding)
-            .padding(.top, HiTripSpacing.md)
-            .padding(.bottom, HiTripSpacing.xxl)
+
+            if item.requiresAction {
+                HStack {
+                    Spacer()
+                    Button { } label: {
+                        Text("확인")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(Color(hex: "#EF4444"))
+                            .frame(width: 60, height: 32)
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(hex: "#EF4444"), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Text("[확인] 전까지 5분 주기 재알림")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(Color(hex: "#EF4444"))
+            }
         }
-    }
-
-    // MARK: - Empty State
-
-    private var emptyState: some View {
-        VStack(spacing: HiTripSpacing.md) {
-            Spacer()
-            Image(systemName: "bell.slash")
-                .font(.system(size: 40))
-                .foregroundColor(HiTripColor.gray300)
-            Text("알림이 없습니다")
-                .font(HiTripFont.bodyBold)
-                .foregroundColor(HiTripColor.textBlack)
-            Spacer()
-        }
-    }
-
-    // MARK: - Actions
-
-    private func actionItem(_ item: NotificationItem) {
-        if let idx = items.firstIndex(where: { $0.id == item.id }) {
-            items[idx].isActioned = true
-        }
-    }
-
-    // MARK: - Mock Data
-
-    private static var mockItems: [NotificationItem] = [
-        NotificationItem(
-            category: .danger,
-            title: "에디님의 심박수가 위험 수치입니다! 바로 확인하세요!",
-            subtitle: "10:24 · 심박 187bpm",
-            time: "10:24",
-            requiresAction: true
-        ),
-        NotificationItem(
-            category: .leave,
-            title: "돌리님이 안전 구역을 벗어났습니다 (1.2km)",
-            subtitle: "10:18 · 멤버 위치 확인",
-            time: "10:18"
-        ),
-        NotificationItem(
-            category: .warning,
-            title: "팽수님의 심박수가 경고 수치입니다. 확인이 필요합니다.",
-            subtitle: "09:52 · 심박 135bpm",
-            time: "09:52"
-        ),
-        NotificationItem(
-            category: .normal,
-            title: "일정이 변경되었습니다 — 2일차 13:00 점심 장소 변경",
-            subtitle: "",
-            time: "09:30"
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .background(colors.cardBg)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(colors.border, lineWidth: 1)
         )
-    ]
+    }
+
+    private func badgeColors(_ type: String) -> (bg: Color, text: Color, cardBg: Color, border: Color) {
+        switch type {
+        case "위험", "이탈":
+            return (Color(hex: "#FCE5E5"), Color(hex: "#EF4444"),
+                    Color(hex: "#FFF5F5"), Color(hex: "#FECACA"))
+        case "경고":
+            return (Color(hex: "#FFF2D9"), Color(hex: "#EB8C0D"),
+                    Color(hex: "#FFFBF0"), Color(hex: "#FDE68A"))
+        default:
+            return (Color(hex: "#E8F0FF"), Color(hex: "#2563EB"),
+                    Color(hex: "#F8FAFF"), Color(hex: "#BFDBFE"))
+        }
+    }
+}
+
+private struct NCItem: Identifiable {
+    let id = UUID()
+    let type: String
+    let title: String
+    let detail: String
+    let time: String
+    let requiresAction: Bool
 }
