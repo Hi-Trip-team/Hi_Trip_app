@@ -132,6 +132,8 @@ struct TripDetailView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 20)
 
+                todaySection
+
                 if viewModel.days.isEmpty {
                     Text("등록된 일정이 없습니다")
                         .font(.system(size: 14))
@@ -178,6 +180,63 @@ struct TripDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(hex: "#F3F4F6"))
         .cornerRadius(12)
+    }
+
+    // MARK: - 오늘의 일정
+
+    /// 여행 기간 밖(출발 전·종료 후)이면 표시하지 않습니다.
+    @ViewBuilder
+    private var todaySection: some View {
+        if viewModel.todayDayNumber != nil {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("오늘의 일정")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Color(hex: "#111827"))
+                    .padding(.bottom, 10)
+
+                // 오늘 일정 전체 구간의 경과 비율
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(hex: "#E5E7EB"))
+                            .frame(height: 4)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(hex: "#2563EB"))
+                            .frame(width: geo.size.width * viewModel.todayProgress, height: 4)
+                    }
+                }
+                .frame(height: 4)
+                .padding(.bottom, 12)
+
+                if let current = viewModel.todayCurrentSchedule {
+                    HStack {
+                        Text(current.placeName ?? current.mainContent ?? "일정")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "#111827"))
+                        Spacer()
+                        Text(TripScheduleViewModel.timeRange(current.startTime, current.endTime))
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "#6B7280"))
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 56)
+                    .background(Color(hex: "#F3F4F6"))
+                    .cornerRadius(12)
+                } else {
+                    Text(viewModel.todaySchedules.isEmpty
+                         ? "오늘은 예정된 일정이 없어요"
+                         : "오늘 일정이 모두 끝났어요")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(hex: "#6B7280"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color(hex: "#F3F4F6"))
+                        .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 22)
+        }
     }
 
     // MARK: - 일차 섹션
@@ -387,6 +446,9 @@ struct TripDetailView: View {
                     .foregroundColor(Color(hex: "#6B7280"))
                     .padding(.horizontal, 24)
 
+                // 입력 중에는 자르지 않습니다. 한국어·일본어·중국어는 여러 타를
+                // 조합해 한 글자를 만들기 때문에, 조합 중 바인딩을 덮어쓰면 입력이 깨집니다.
+                // 대신 초과분을 카운터에 빨간색으로 표시하고 저장을 막습니다.
                 TextField("예: 기념품 쇼핑", text: $addTitle)
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: "#111827"))
@@ -394,16 +456,18 @@ struct TripDetailView: View {
                     .frame(height: 48)
                     .background(Color(hex: "#F3F4F6"))
                     .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isTitleOverLimit ? Color(hex: "#EF4444") : Color.clear, lineWidth: 1)
+                            .padding(.horizontal, 24)
+                    )
                     .padding(.horizontal, 24)
-                    .onChange(of: addTitle) { value in
-                        if value.count > titleLimit { addTitle = String(value.prefix(titleLimit)) }
-                    }
 
                 HStack {
                     Spacer()
                     Text("\(addTitle.count)/\(titleLimit)")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .font(.system(size: 11, weight: isTitleOverLimit ? .bold : .regular))
+                        .foregroundColor(isTitleOverLimit ? Color(hex: "#EF4444") : Color(hex: "#9CA3AF"))
                 }
                 .padding(.horizontal, 24)
             }
@@ -425,17 +489,29 @@ struct TripDetailView: View {
             .padding(.bottom, 12)
 
             // 메모
-            TextField("메모 (선택 · \(memoLimit)자)", text: $addMemo)
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#111827"))
-                .padding(.horizontal, 16)
-                .frame(height: 56)
-                .background(Color(hex: "#F3F4F6"))
-                .cornerRadius(12)
-                .padding(.horizontal, 24)
-                .onChange(of: addMemo) { value in
-                    if value.count > memoLimit { addMemo = String(value.prefix(memoLimit)) }
+            VStack(alignment: .leading, spacing: 4) {
+                TextField("메모 (선택 · \(memoLimit)자)", text: $addMemo)
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(hex: "#111827"))
+                    .padding(.horizontal, 16)
+                    .frame(height: 56)
+                    .background(Color(hex: "#F3F4F6"))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isMemoOverLimit ? Color(hex: "#EF4444") : Color.clear, lineWidth: 1)
+                    )
+
+                if isMemoOverLimit {
+                    HStack {
+                        Spacer()
+                        Text("\(addMemo.count)/\(memoLimit)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Color(hex: "#EF4444"))
+                    }
                 }
+            }
+            .padding(.horizontal, 24)
 
             // 저장
             Button { save() } label: {
@@ -482,8 +558,13 @@ struct TripDetailView: View {
 
     // MARK: - 동작
 
+    private var isTitleOverLimit: Bool { addTitle.count > titleLimit }
+    private var isMemoOverLimit: Bool { addMemo.count > memoLimit }
+
     private var canSave: Bool {
         !addTitle.trimmingCharacters(in: .whitespaces).isEmpty
+            && !isTitleOverLimit
+            && !isMemoOverLimit
             && isValidTime(addStart)
             && isValidTime(addEnd)
             && addStart < addEnd

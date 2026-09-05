@@ -34,7 +34,11 @@ struct PersonalScheduleAddSheet: View {
         return "공용 일정과 겹칩니다 (\(f.string(from: o.startTime)) \(o.title))"
     }
 
-    private var isSaveEnabled: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isSaveEnabled: Bool {
+        !title.trimmingCharacters(in: .whitespaces).isEmpty
+            && title.count <= 20
+            && memo.count <= maxMemo
+    }
 
     init(officialSchedules: [TripOfficialSchedule], defaultDate: Date = Date()) {
         self.officialSchedules = officialSchedules
@@ -99,11 +103,8 @@ struct PersonalScheduleAddSheet: View {
             .padding(.vertical, HiTripSpacing.md)
             .background(HiTripColor.gray100)
             .cornerRadius(HiTripRadius.card)
-            .onChange(of: title) { newValue in
-                if newValue.count > 20 {
-                    title = String(newValue.prefix(20))
-                }
-            }
+            // 입력 중 자르지 않습니다 — 조합형 문자(한국어·일본어·중국어)가 깨집니다.
+            // 초과 여부는 카운터와 저장 버튼 활성화로 알립니다.
         }
     }
 
@@ -166,11 +167,7 @@ struct PersonalScheduleAddSheet: View {
                 TextEditor(text: $memo)
                     .font(HiTripFont.body)
                     .frame(minHeight: 80)
-                    .onChange(of: memo) { newValue in
-                        if newValue.count > maxMemo {
-                            memo = String(newValue.prefix(maxMemo))
-                        }
-                    }
+                    // 위와 같은 이유로 입력 중 자르지 않습니다.
             }
             .padding(HiTripSpacing.sm)
             .background(HiTripColor.gray100)

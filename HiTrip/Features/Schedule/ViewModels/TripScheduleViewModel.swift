@@ -199,18 +199,53 @@ final class TripScheduleViewModel: ObservableObject {
     }
 
     /// 오늘이 몇 일차인지 — 여행 기간 밖이면 nil
+    ///
+    /// 기기 날짜로 계산하지 않고 서버가 준 d_day를 씁니다.
+    /// d_day는 출발까지 남은 일수라 0이면 출발일, -1이면 2일차입니다.
     var todayDayNumber: Int? {
-        guard let trip else { return nil }
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        df.locale = Locale(identifier: "en_US_POSIX")
-        guard let start = df.date(from: trip.startDate) else { return nil }
-        let cal = Calendar.current
-        let diff = cal.dateComponents([.day],
-                                      from: cal.startOfDay(for: start),
-                                      to: cal.startOfDay(for: Date())).day ?? 0
-        let day = diff + 1
-        return (1...max(trip.durationDays, 1)).contains(day) ? day : nil
+        guard let trip, trip.dDay <= 0 else { return nil }
+        let day = 1 - trip.dDay
+        return day <= max(trip.durationDays, 1) ? day : nil
+    }
+
+    // MARK: - 오늘의 일정 (상단 요약)
+
+    var todaySchedules: [TravelerScheduleDTO] {
+        guard let today = todayDayNumber else { return [] }
+        return shared.filter { $0.dayNumber == today }.sorted { $0.startTime < $1.startTime }
+    }
+
+    /// 지금 진행 중인 일정. 없으면 다음 예정 일정, 오늘 일정이 끝났으면 nil.
+    var todayCurrentSchedule: TravelerScheduleDTO? {
+        let now = Self.minutesNow()
+        if let ongoing = todaySchedules.first(where: { s in
+            guard let st = Self.minutes(s.startTime), let et = Self.minutes(s.endTime) else { return false }
+            return st <= now && now < et
+        }) {
+            return ongoing
+        }
+        return todaySchedules
+            .filter { (Self.minutes($0.startTime) ?? 0) > now }
+            .min { (Self.minutes($0.startTime) ?? 0) < (Self.minutes($1.startTime) ?? 0) }
+    }
+
+    /// 오늘 일정 전체 구간에서 지금까지의 경과 비율 (0...1)
+    var todayProgress: Double {
+        let starts = todaySchedules.compactMap { Self.minutes($0.startTime) }
+        let ends   = todaySchedules.compactMap { Self.minutes($0.endTime) }
+        guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
+        return min(max(Double(Self.minutesNow() - first) / Double(last - first), 0), 1)
+    }
+
+    private static func minutes(_ time: String) -> Int? {
+        let p = time.split(separator: ":").compactMap { Int($0) }
+        guard p.count >= 2 else { return nil }
+        return p[0] * 60 + p[1]
+    }
+
+    private static func minutesNow() -> Int {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        return (c.hour ?? 0) * 60 + (c.minute ?? 0)
     }
 
     /// "1일차 2025.04.24" 헤더용
