@@ -2,7 +2,7 @@ import SwiftUI
 
 struct TripListView: View {
 
-    @StateObject private var viewModel = TripListViewModel()
+    @StateObject private var viewModel = TravelerHomeViewModel()
     @EnvironmentObject var router: AppRouter
 
     @State private var showTripDetail = false
@@ -15,15 +15,22 @@ struct TripListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        headerSection
-                        todayScheduleSection
-                        nearbySpotSection
-                        noticeSection
-                        localLanguageCard
-                        bottomActionRow
-                            .padding(.bottom, 32)
+                switch viewModel.state {
+                case .idle, .loading:
+                    loadingView
+                case .failed(let message):
+                    errorView(message)
+                case .loaded:
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            headerSection
+                            todayScheduleSection
+                            nearbySpotSection
+                            noticeSection
+                            localLanguageCard
+                            bottomActionRow
+                                .padding(.bottom, 32)
+                        }
                     }
                 }
 
@@ -34,6 +41,7 @@ struct TripListView: View {
             .animation(.easeInOut(duration: 0.2), value: showNotice)
             .background(Color.white)
             .navigationBarHidden(true)
+            .task { viewModel.load() }
             .navigationDestination(isPresented: $showTripDetail) { TripDetailView() }
             .navigationDestination(isPresented: $showEmergency) { EmergencyView() }
             .navigationDestination(isPresented: $showLocalLanguage) { LocalLanguageView() }
@@ -44,26 +52,63 @@ struct TripListView: View {
         }
     }
 
+    // MARK: - 로딩 / 에러
+
+    private var loadingView: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("여행 정보를 불러오는 중이에요")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            Text("🧭")
+                .font(.system(size: 34))
+            Text(message)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
+                .multilineTextAlignment(.center)
+            Button { viewModel.load() } label: {
+                Text("다시 시도")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .frame(height: 44)
+                    .background(Color(hex: "#2563EB"))
+                    .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     // MARK: - Header
 
     private var headerSection: some View {
         HStack(alignment: .center) {
-            Text("뉴진스 바다여행")
+            Text(viewModel.tripTitle)
                 .font(.system(size: 17, weight: .bold))
                 .foregroundColor(.black)
             Spacer()
             ZStack(alignment: .topTrailing) {
                 Text("🔔")
                     .font(.system(size: 18))
-                ZStack {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 18, height: 18)
-                    Text("2")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white)
+                if viewModel.hasUnreadNotice {
+                    ZStack {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 18, height: 18)
+                        Text("\(viewModel.unreadNoticeCount)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .offset(x: 6, y: -4)
                 }
-                .offset(x: 6, y: -4)
             }
             .onTapGesture { showNotice = true }
         }
@@ -82,7 +127,7 @@ struct TripListView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
 
-            if daysUntilDeparture > 0 {
+            if viewModel.isBeforeTrip {
                 beforeTripCard
             } else {
                 inTripSchedule
@@ -101,9 +146,6 @@ struct TripListView: View {
         }
     }
 
-    /// 출발까지 남은 일수 — 0 이하이면 여행 중
-    private var daysUntilDeparture: Int { 0 }
-
     // MARK: - 여행 시작 전
 
     private var beforeTripCard: some View {
@@ -111,7 +153,7 @@ struct TripListView: View {
             Text("여행 시작 전이에요")
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(Color(hex: "#2563EB"))
-            Text("D-\(daysUntilDeparture) · 2025.04.24 출발")
+            Text(viewModel.departureText)
                 .font(.system(size: 13))
                 .foregroundColor(Color(hex: "#6B7280"))
         }
@@ -126,68 +168,78 @@ struct TripListView: View {
 
     private var inTripSchedule: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 진행률 바 + 버스 이모지
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Spacer().frame(width: 137)
+            // 진행률 바 + 버스 이모지 — 오늘 일정의 경과 비율
+            GeometryReader { geo in
+                let filled = geo.size.width * viewModel.progress
+                VStack(alignment: .leading, spacing: 4) {
                     Text("🚌")
                         .font(.system(size: 16))
-                    Spacer()
+                        .offset(x: max(filled - 8, 0))
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(hex: "#E5E7EB"))
+                            .frame(height: 4)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(hex: "#2563EB"))
+                            .frame(width: filled, height: 4)
+                    }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 4)
-
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(hex: "#E5E7EB"))
-                        .frame(height: 4)
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(hex: "#2563EB"))
-                        .frame(width: 137, height: 4)
-                }
-                .padding(.horizontal, 24)
             }
+            .frame(height: 44)
+            .padding(.horizontal, 24)
             .padding(.bottom, 10)
 
             // 현재 일정
-            HStack {
-                Text("숙소로 이동")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(Color(hex: "#111827"))
-                Spacer()
-                Text("15:00 - 16:00")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#6B7280"))
-            }
-            .padding(.horizontal, 16)
-            .frame(height: 64)
-            .background(Color(hex: "#F3F4F6"))
-            .cornerRadius(12)
-            .padding(.horizontal, 24)
-
-            // 다음 일정 레이블
-            Text("다음 일정")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+            if let current = viewModel.currentSchedule {
+                HStack {
+                    Text(TravelerHomeViewModel.title(of: current))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Color(hex: "#111827"))
+                    Spacer()
+                    Text(TravelerHomeViewModel.timeRange(current.startTime, current.endTime))
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(hex: "#6B7280"))
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 64)
+                .background(Color(hex: "#F3F4F6"))
+                .cornerRadius(12)
                 .padding(.horizontal, 24)
-                .padding(.top, 14)
-                .padding(.bottom, 6)
+            } else {
+                Text("오늘은 예정된 일정이 없어요")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "#6B7280"))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 64)
+                    .background(Color(hex: "#F3F4F6"))
+                    .cornerRadius(12)
+                    .padding(.horizontal, 24)
+            }
 
-            // 다음 일정
-            HStack {
-                Text("자유시간")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#111827"))
-                Spacer()
-                Text("16:00 - 23:00")
+            // 다음 일정 — 없으면 레이블째 숨김
+            if let next = viewModel.nextSchedule {
+                Text("다음 일정")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "#6B7280"))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 14)
+                    .padding(.bottom, 6)
+
+                HStack {
+                    Text(TravelerHomeViewModel.title(of: next))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(hex: "#111827"))
+                    Spacer()
+                    Text(TravelerHomeViewModel.timeRange(next.startTime, next.endTime))
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(hex: "#6B7280"))
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .background(Color(hex: "#F3F4F6"))
+                .cornerRadius(12)
+                .padding(.horizontal, 24)
             }
-            .padding(.horizontal, 16)
-            .frame(height: 48)
-            .background(Color(hex: "#F3F4F6"))
-            .cornerRadius(12)
-            .padding(.horizontal, 24)
         }
     }
 
@@ -202,7 +254,7 @@ struct TripListView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(spotItems, id: \.name) { spot in
+                    ForEach(viewModel.popularSpots) { spot in
                         spotCard(spot)
                             .onTapGesture { showNearbySpot = true }
                     }
@@ -222,36 +274,43 @@ struct TripListView: View {
         }
     }
 
-    private let spotItems: [SpotCardItem] = [
-        SpotCardItem(name: "해운대 해수욕장"),
-        SpotCardItem(name: "광안리 카페거리"),
-        SpotCardItem(name: "자갈치시장"),
-    ]
-
-    private func spotCard(_ spot: SpotCardItem) -> some View {
+    private func spotCard(_ spot: TravelerSpotDTO) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(hex: "#D9DEE5"))
-                    .frame(width: 150, height: 84)
-                Text("광고")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .frame(height: 20)
-                    .background(Color(hex: "#1A1A1A"))
-                    .cornerRadius(4)
-                    .padding(6)
+                AsyncImage(url: URL(string: spot.imageUrl)) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Color(hex: "#D9DEE5")
+                    }
+                }
+                .frame(width: 150, height: 84)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                if spot.isSponsored == true {
+                    Text("광고")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .frame(height: 20)
+                        .background(Color(hex: "#1A1A1A"))
+                        .cornerRadius(4)
+                        .padding(6)
+                }
             }
-            Text(spot.name)
+            Text(spot.title)
                 .font(.system(size: 12))
                 .foregroundColor(Color(hex: "#333840"))
+                .lineLimit(1)
+                .frame(width: 150, alignment: .leading)
         }
     }
 
     // MARK: - 공지
 
+    @ViewBuilder
     private var noticeSection: some View {
+        if let notice = viewModel.representativeNotice {
         ZStack(alignment: .topTrailing) {
             HStack(alignment: .top, spacing: 10) {
                 Text("공지")
@@ -261,9 +320,10 @@ struct TripListView: View {
                     .frame(height: 20)
                     .background(Color(hex: "#2563EB"))
                     .cornerRadius(4)
-                Text("오늘 자유 일정은 우천이 예상됩니다. 우산을 꼭 챙겨주세요. 집합 시간은 18:00 …")
+                Text(notice.content)
                     .font(.system(size: 12))
                     .foregroundColor(Color(hex: "#333840"))
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 14)
@@ -272,15 +332,18 @@ struct TripListView: View {
             .background(Color(hex: "#F3F4F6"))
             .cornerRadius(12)
 
-            Circle()
-                .fill(Color(hex: "#EF4444"))
-                .frame(width: 8, height: 8)
-                .offset(x: -8, y: 8)
+            if notice.isRead != true {
+                Circle()
+                    .fill(Color(hex: "#EF4444"))
+                    .frame(width: 8, height: 8)
+                    .offset(x: -8, y: 8)
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture { showNotice = true }
         .padding(.horizontal, 24)
         .padding(.bottom, 10)
+        }
     }
 
     // MARK: - 현지 언어 카드
@@ -349,6 +412,4 @@ struct TripListView: View {
     }
 }
 
-private struct SpotCardItem {
-    let name: String
-}
+

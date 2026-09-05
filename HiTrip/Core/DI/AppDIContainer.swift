@@ -43,6 +43,9 @@ final class AppDIContainer {
     }()
 
 
+    /// 여행객 홈 ViewModel이 주입받는 저장소 (기본 인자용)
+    var travelerRepositoryForHome: TravelerRepositoryProtocol { travelerRepository }
+
     /// 문의 스레드 + 메시지 — 스레드 기반이므로 별도 Repository
     private lazy var chatRepository: ChatRepositoryProtocol = {
         ChatRepository(networkService: networkService)

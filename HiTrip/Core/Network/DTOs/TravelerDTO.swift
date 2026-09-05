@@ -125,23 +125,23 @@ struct TravelerHomeDTO: Decodable {
     let nextSchedule: TravelerScheduleDTO?
     let managerContact: [String: String]?
     let todayCongestion: [HomeCongestionDTO]?
-    let weather: HomeWeatherDTO?
+    /// 혼잡도 외부 데이터 수신 상태 — fresh/fallback/unavailable 등
+    let congestionStatus: HomeExternalDataStatusDTO?
     let advisory: HomeAdvisoryDTO?
+}
+
+/// 외부 데이터(혼잡도) 수신 상태
+struct HomeExternalDataStatusDTO: Decodable {
+    let status: String?
+    let fallbackUsed: Bool?
+    let sourceFetchedAt: String?
+    let errorCode: String?
 }
 
 struct HomeCongestionDTO: Decodable {
     let spotName: String
     let baseDate: String        // "yyyy-MM-dd"
     let congestionRate: Double
-}
-
-struct HomeWeatherDTO: Decodable {
-    let source: String
-    let areaNm: String?
-    let temp: String?
-    let sky: String?
-    let pm10: String?
-    let pm25: String?
 }
 
 struct HomeAdvisoryDTO: Decodable {
@@ -273,6 +273,8 @@ struct TravelerNoticeDTO: Decodable, Identifiable {
     let publishedAt: String?
     let createdAt: String?
     let updatedAt: String?
+    /// 읽음 여부 — 홈의 안 읽음 뱃지 계산에 사용
+    let isRead: Bool?
 }
 
 // MARK: - Messages (Thread 기반)
@@ -318,6 +320,8 @@ struct TravelerSpotDTO: Decodable, Identifiable, Hashable {
     let imageUrl: String
     let displayOrder: Int
     let place: TripSpotPlaceDTO
+    /// 광고 여부 — 카드 좌상단 "광고" 뱃지
+    let isSponsored: Bool?
     let createdAt: String?
     let updatedAt: String?
 }

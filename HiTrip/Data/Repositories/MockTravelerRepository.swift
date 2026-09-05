@@ -76,7 +76,7 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
             nextSchedule: mockSchedules.filter { $0.dayNumber == 2 }.dropFirst(3).first,
             managerContact: ["phone": "010-1234-5678", "name": "김담당"],
             todayCongestion: nil,
-            weather: nil,
+            congestionStatus: nil,
             advisory: nil
         ))
     }
@@ -294,17 +294,20 @@ private extension MockTravelerRepository {
             TravelerNoticeDTO(id: 1, title: "⚠️ 한라산 등반 안전 수칙",
                 content: "내일 한라산 등반 시 반드시 등산화를 착용해 주세요. 기상 변화가 심하므로 방수 재킷도 필수입니다. 오전 9시 30분 호텔 로비에서 집결합니다.",
                 priority: "important", publishedAt: "2026-07-19T18:00:00.000000Z",
-                createdAt: "2026-07-19T18:00:00.000000Z", updatedAt: "2026-07-19T18:00:00.000000Z"),
+                createdAt: "2026-07-19T18:00:00.000000Z", updatedAt: "2026-07-19T18:00:00.000000Z",
+                isRead: false),
 
             TravelerNoticeDTO(id: 2, title: "우도 스노클링 장비 신청 마감",
                 content: "내일 우도 스노클링 체험을 원하시는 분은 오늘 밤 10시까지 담당자에게 연락 주시기 바랍니다. 장비는 현장에서 제공됩니다.",
                 priority: "normal", publishedAt: "2026-07-19T20:00:00.000000Z",
-                createdAt: "2026-07-19T20:00:00.000000Z", updatedAt: "2026-07-19T20:00:00.000000Z"),
+                createdAt: "2026-07-19T20:00:00.000000Z", updatedAt: "2026-07-19T20:00:00.000000Z",
+                isRead: false),
 
             TravelerNoticeDTO(id: 3, title: "내일 조식 시간 변경 안내",
                 content: "7월 20일(일) 조식이 08:00으로 변경되었습니다. 한라산 등반 일정이 앞당겨진 관계로 시간을 엄수해 주시기 바랍니다.",
                 priority: "normal", publishedAt: "2026-07-19T21:00:00.000000Z",
-                createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z"),
+                createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z",
+                isRead: true),
         ]
     }
 
@@ -379,6 +382,8 @@ private extension MockTravelerRepository {
                 categoryName: category,
                 imageUrl: imageUrl
             ),
+            // 광고 뱃지 렌더링 확인용 — 인기 스팟 첫 항목만 광고
+            isSponsored: id == 201,
             createdAt: "2026-06-01T00:00:00.000000Z",
             updatedAt: "2026-06-01T00:00:00.000000Z"
         )
