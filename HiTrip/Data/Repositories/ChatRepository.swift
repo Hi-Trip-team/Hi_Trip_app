@@ -40,6 +40,15 @@ final class ChatRepository: ChatRepositoryProtocol {
                 let rooms = dtos.map { dto -> ChatRoom in
                     let room = dto.toChatRoom()
                     self?.cachedRooms[room.id] = room
+
+                    // 목록의 마지막 메시지 id를 읽음 기준점으로 삼습니다.
+                    // 방을 열지 않아도 "모두 확인"으로 읽음 처리할 수 있어야 하는데,
+                    // 서버 읽음 API가 message_id를 필수로 받기 때문입니다.
+                    let rawLatestId = dto.latestMessage?["id"]?.value
+                    if let latestId = rawLatestId as? Int ?? (rawLatestId as? Double).map(Int.init) {
+                        let prev = self?.lastSeenMessageId[room.id] ?? 0
+                        self?.lastSeenMessageId[room.id] = max(prev, latestId)
+                    }
                     return room
                 }
                 return rooms.sorted { $0.lastMessageDate > $1.lastMessageDate }

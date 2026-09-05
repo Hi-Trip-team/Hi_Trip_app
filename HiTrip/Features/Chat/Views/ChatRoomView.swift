@@ -15,6 +15,9 @@ struct ChatRoomView: View {
     @Environment(\.dismiss) private var dismiss
     let chatRoom: ChatRoom
 
+    /// 입력창 포커스 — 대화 영역을 누르면 키보드를 내립니다
+    @FocusState private var isInputFocused: Bool
+
     private var chatMessages: [ChatMessage] {
         viewModel.messages.map { $0.toChatMessage(currentUserId: viewModel.currentUserId) }
     }
@@ -29,6 +32,7 @@ struct ChatRoomView: View {
         }
         .background(Color.white)
         .navigationBarHidden(true)
+        .onTapGesture { isInputFocused = false }
         .onAppear {
             viewModel.fetchMessages(chatRoomId: chatRoom.id)
             viewModel.markAsRead(chatRoomId: chatRoom.id)
@@ -105,6 +109,7 @@ struct ChatRoomView: View {
                 }
                 .padding(.vertical, 16)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: chatMessages.count) { _ in
                 withAnimation {
                     proxy.scrollTo(chatMessages.last?.id, anchor: .bottom)
@@ -146,6 +151,7 @@ struct ChatRoomView: View {
 
             // 텍스트 입력
             TextField("메시지를 입력하세요", text: $viewModel.messageText)
+                .focused($isInputFocused)
                 .font(.system(size: 16))
                 .foregroundColor(Color(hex: "#1B1E28"))
                 .padding(.horizontal, 14)

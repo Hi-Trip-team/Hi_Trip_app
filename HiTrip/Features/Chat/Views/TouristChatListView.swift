@@ -16,6 +16,9 @@ struct TouristChatListView: View {
     @State private var selectedRoom: ChatRoom?
     @State private var searchText = ""
 
+    /// 검색창 포커스 — 목록을 누르면 키보드를 내립니다
+    @FocusState private var isSearchFocused: Bool
+
     private var filteredRooms: [ChatRoom] {
         guard !searchText.isEmpty else { return viewModel.chatRooms }
         return viewModel.chatRooms.filter {
@@ -37,6 +40,7 @@ struct TouristChatListView: View {
                 emptyState(isSearching: !searchText.isEmpty)
             } else {
                 roomList
+                    .scrollDismissesKeyboard(.immediately)
             }
         }
         .background(Color.white)
@@ -82,6 +86,7 @@ struct TouristChatListView: View {
                 .font(.system(size: 14))
                 .foregroundColor(Color(hex: "#6B7280"))
             TextField("채팅 및 메시지 검색", text: $searchText)
+                .focused($isSearchFocused)
                 .font(.system(size: 13))
                 .foregroundColor(Color(hex: "#111827"))
         }
@@ -97,7 +102,10 @@ struct TouristChatListView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(filteredRooms) { room in
-                    Button { selectedRoom = room } label: {
+                    Button {
+                        isSearchFocused = false
+                        selectedRoom = room
+                    } label: {
                         roomRow(room)
                     }
                     .buttonStyle(.plain)
