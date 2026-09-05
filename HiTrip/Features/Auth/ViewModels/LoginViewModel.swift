@@ -41,6 +41,7 @@ final class LoginViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var loginSuccess: Bool = false
+    @Published var loggedInUserType: UserType = .guide
 
     // MARK: - Validation (회원가입 조건과 동일)
 
@@ -127,8 +128,9 @@ final class LoginViewModel: ObservableObject {
         loginUseCase.execute(id: id, password: password)
             .observe(on: MainScheduler.instance) // UI 업데이트는 반드시 메인 스레드
             .subscribe(
-                onSuccess: { [weak self] _ in
+                onSuccess: { [weak self] userInfo in
                     self?.isLoading = false
+                    self?.loggedInUserType = userInfo.userType
                     self?.loginSuccess = true
                     // 로그인 성공 → 서버 데이터 로드 시작
                     TripDataStore.shared.reload()

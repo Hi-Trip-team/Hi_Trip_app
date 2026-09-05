@@ -27,6 +27,7 @@ final class AppRouter: ObservableObject {
     }
 
     @Published var currentScreen: Screen = .splash
+    @Published var userType: UserType = .guide
 
     func navigateToLogin() {
         currentScreen = .login
@@ -45,6 +46,11 @@ final class AppRouter: ObservableObject {
     }
 
     func navigateToHome() {
+        currentScreen = .home
+    }
+
+    func navigateToHomeAs(_ type: UserType) {
+        userType = type
         currentScreen = .home
     }
 

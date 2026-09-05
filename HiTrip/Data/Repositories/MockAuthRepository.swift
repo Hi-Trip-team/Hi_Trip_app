@@ -7,7 +7,8 @@ final class MockAuthRepository: AuthRepositoryProtocol {
     private var savedToken: String? = nil
 
     func login(request: LoginRequest) -> Single<LoginResponse> {
-        let userType: UserType = .guide
+        // ID에 "tourist" 포함 시 여행객, 그 외 여행사
+        let userType: UserType = request.id.lowercased().contains("tourist") ? .tourist : .guide
         let user = UserInfo(id: "1", name: request.id, userType: userType, phone: nil, country: nil)
         let response = LoginResponse(accessToken: mockToken, refreshToken: "mock-refresh-token", user: user)
         savedToken = mockToken

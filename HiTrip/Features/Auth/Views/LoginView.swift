@@ -60,6 +60,16 @@ struct LoginView: View {
                     .padding(.horizontal, HiTripSpacing.pagePadding)
                     .padding(.top, HiTripSpacing.sm)
 
+                #if DEBUG
+                HStack(spacing: 12) {
+                    Button("🧑 Guide") { router.navigateToHomeAs(.guide) }
+                    Button("🧳 Tourist") { router.navigateToHomeAs(.tourist) }
+                }
+                .font(.caption)
+                .foregroundColor(HiTripColor.gray500)
+                .padding(.top, 8)
+                #endif
+
                 Spacer()
                 copyrightSection
             }
@@ -71,7 +81,9 @@ struct LoginView: View {
             }
         }
         .onChange(of: viewModel.loginSuccess) { success in
-            if success { router.navigateToHome() }
+            if success {
+                router.navigateToHomeAs(viewModel.loggedInUserType)
+            }
         }
     }
 
@@ -115,6 +127,7 @@ struct LoginView: View {
             .focused($focusedField, equals: .password)
             .submitLabel(.done)
             .onSubmit {
+                guard !viewModel.password.isEmpty else { return }
                 focusedField = nil
                 viewModel.login()
             }

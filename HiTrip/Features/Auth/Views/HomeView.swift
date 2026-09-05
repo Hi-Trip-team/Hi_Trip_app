@@ -10,12 +10,8 @@ struct HomeView: View {
 
     @EnvironmentObject var router: AppRouter
 
-    private var isTourist: Bool {
-        KeychainManager.shared.getUserType() == "tourist"
-    }
-
     var body: some View {
-        if isTourist {
+        if router.userType == .tourist {
             TripListView()
         } else {
             StaffDashboardView()
