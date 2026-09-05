@@ -23,7 +23,7 @@ final class MockChatRepository: ChatRepositoryProtocol {
         ChatRoom(
             id: groupRoomId,
             serverId: 1,
-            participantName: "📌 여행 단체톡방",
+            participantName: "여행 단체톡방",
             participantType: "trip_group",
             isGroupChat: true,
             lastMessage: "오늘 저녁 집합 시간 안내드립니다",

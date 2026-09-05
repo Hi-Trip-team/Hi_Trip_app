@@ -3,6 +3,12 @@ import SwiftUI
 struct TripListView: View {
 
     @StateObject private var viewModel = TravelerHomeViewModel()
+
+    /// 메시지 화면 전용 ViewModel
+    ///
+    /// navigationDestination 클로저 안에서 만들면 이 화면이 다시 그려질 때마다
+    /// 새 인스턴스가 생겨 입력 중이던 메시지가 사라집니다. 여기서 한 번만 만듭니다.
+    @StateObject private var chatViewModel = AppDIContainer.shared.makeChatViewModel()
     @EnvironmentObject var router: AppRouter
 
     @State private var showTripDetail = false
@@ -56,7 +62,7 @@ struct TripListView: View {
             .navigationDestination(isPresented: $showTripDetail) { TripDetailView() }
             .navigationDestination(isPresented: $showLocalLanguage) { LocalLanguageView() }
             .navigationDestination(isPresented: $showChat) {
-                TouristChatListView(viewModel: AppDIContainer.shared.makeChatViewModel())
+                TouristChatListView(viewModel: chatViewModel)
             }
             .navigationDestination(isPresented: $showNearbySpot) { NearbySpotView() }
             .navigationDestination(isPresented: $showNotificationList) { TouristNotificationListView() }

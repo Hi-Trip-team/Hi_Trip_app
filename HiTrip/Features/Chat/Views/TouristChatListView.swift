@@ -34,7 +34,7 @@ struct TouristChatListView: View {
                 .padding(.bottom, 20)
 
             if filteredRooms.isEmpty {
-                emptyState
+                emptyState(isSearching: !searchText.isEmpty)
             } else {
                 roomList
             }
@@ -159,16 +159,18 @@ struct TouristChatListView: View {
 
     // MARK: - 빈 상태
 
-    private var emptyState: some View {
+    private func emptyState(isSearching: Bool) -> some View {
         VStack(spacing: 10) {
             Spacer()
-            Image(systemName: "bubble.left.and.bubble.right")
+            Image(systemName: isSearching ? "magnifyingglass" : "bubble.left.and.bubble.right")
                 .font(.system(size: 40))
                 .foregroundColor(Color(hex: "#D1D5DB"))
-            Text("메시지가 없습니다")
+            Text(isSearching ? "검색 결과가 없습니다" : "메시지가 없습니다")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(Color(hex: "#111827"))
-            Text("여행사에서 채팅방을 개설하면\n여기에 표시됩니다")
+            Text(isSearching
+                 ? "다른 이름이나 내용으로 검색해 보세요"
+                 : "여행사에서 채팅방을 개설하면\n여기에 표시됩니다")
                 .font(.system(size: 13))
                 .foregroundColor(Color(hex: "#6B7280"))
                 .multilineTextAlignment(.center)

@@ -8,7 +8,7 @@ struct StaffChatListView: View {
     private let filters = ["전체", "미확인", "단체"]
 
     private let chats: [StaffChatItem] = [
-        StaffChatItem(name: "📌 여행 단체톡방", lastMessage: "오늘 저녁 집합 시간 안내드립니다",
+        StaffChatItem(name: "여행 단체톡방", lastMessage: "오늘 저녁 집합 시간 안내드립니다",
                       time: "일 12:40", unread: 9, isGroup: true),
         StaffChatItem(name: "둘리", lastMessage: "가이드님 위치 확인 부탁드려요",
                       time: "일 11:50", unread: 1, isGroup: false),
