@@ -548,7 +548,8 @@ extension ChatRoomV1DTO {
         let lastDateStr = latestMessage?["created_at"]?.value as? String ?? updatedAt ?? ""
         let lastDate = df.date(from: lastDateStr) ?? Date()
         let createdDate = df.date(from: createdAt ?? "") ?? Date()
-        let isGroup = roomType == "group"
+        // 서버 enum은 trip_group | direct
+        let isGroup = roomType == "trip_group"
 
         let name: String
         if let subject, !subject.isEmpty { name = subject }
@@ -572,27 +573,29 @@ extension ChatRoomV1DTO {
 }
 
 extension ChatMessageV1DTO {
-    func toMessage(chatRoomId: UUID, currentUserId: String) -> Message {
+
+    /// - Parameters:
+    ///   - currentUserId: Keychain의 내 사용자 id
+    ///   - currentRole: 내 역할("tourist" | "staff") — 내 말풍선 판정 기준.
+    ///     여행객 앱과 관리자 앱이 같은 방을 보므로 역할을 고정하면 안 됩니다.
+    func toMessage(chatRoomId: UUID, currentUserId: String, currentRole: String) -> Message {
         let df = ISO8601DateFormatter()
         df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let sentAt = df.date(from: createdAt ?? "") ?? Date()
 
-        let isMine = senderRole == "tourist"
-        let senderId = isMine ? currentUserId : "staff_\(sender ?? 0)"
-        let name = senderName ?? (isMine ? "나" : "담당자")
+        let isMine = (senderRole == currentRole)
+        let senderId = isMine ? currentUserId : "\(senderRole ?? "peer")_\(sender ?? 0)"
+        let name = senderName ?? (isMine ? "나" : "상대방")
 
         return Message(
             serverId: id,
-            senderType: senderRole ?? "tourist",
+            senderType: senderRole ?? currentRole,
             chatRoomId: chatRoomId,
             senderId: senderId,
             senderName: name,
             content: body,
             sentAt: sentAt,
-            isRead: unreadCount == 0
+            isRead: true
         )
     }
-
-    // unreadCount 없어서 기본 true
-    private var unreadCount: Int { 0 }
 }

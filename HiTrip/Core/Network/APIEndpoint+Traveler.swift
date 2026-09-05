@@ -370,9 +370,10 @@ extension APIEndpoint {
 
     /// 채팅방 메시지 이력 (cursor 기반)
     /// GET /api/v1/chat/rooms/{room_id}/messages/
+    /// - Parameter cursor: 이 id보다 작은 메시지를 불러옵니다 (서버 파라미터명은 `before`)
     static func chatMessages(roomId: String, cursor: String? = nil) -> APIEndpoint {
         var queryItems: [URLQueryItem]? = nil
-        if let cursor { queryItems = [URLQueryItem(name: "cursor", value: cursor)] }
+        if let cursor { queryItems = [URLQueryItem(name: "before", value: cursor)] }
         return APIEndpoint(path: "/api/v1/chat/rooms/\(roomId)/messages/", queryItems: queryItems)
     }
 
