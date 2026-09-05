@@ -38,22 +38,25 @@ struct ChatRoomView: View {
     // MARK: - Navigation Bar
 
     private var navigationBar: some View {
-        HStack(spacing: HiTripSpacing.md) {
+        HStack(spacing: 0) {
             Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(HiTripColor.textBlack)
+                    .foregroundColor(Color(hex: "#1B1E28"))
+                    .frame(width: 24, height: 24)
             }
+            .padding(.leading, 12)
 
             // 아바타
             Circle()
-                .fill(HiTripColor.gray100)
+                .fill(Color(hex: "#F3F4F6"))
                 .frame(width: 36, height: 36)
                 .overlay(
                     Image(systemName: chatRoom.isGroupChat ? "person.3.fill" : "person.fill")
                         .font(.system(size: chatRoom.isGroupChat ? 13 : 15))
-                        .foregroundColor(HiTripColor.gray400)
+                        .foregroundColor(Color(hex: "#9CA3AF"))
                 )
+                .padding(.leading, 16)
 
             // 이름
             //
@@ -63,20 +66,21 @@ struct ChatRoomView: View {
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(Color(hex: "#111827"))
                 .lineLimit(1)
+                .padding(.leading, 8)
 
-            Spacer()
+            Spacer(minLength: 8)
 
             // 전화 버튼 (개인톡만)
             if !chatRoom.isGroupChat {
                 Button { } label: {
                     Image(systemName: "phone")
-                        .font(.system(size: 18))
-                        .foregroundColor(HiTripColor.textBlack)
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(hex: "#1B1E28"))
                 }
+                .padding(.trailing, 32)
             }
         }
-        .padding(.horizontal, HiTripSpacing.pagePadding)
-        .frame(height: HiTripSpacing.navBarHeight)
+        .frame(height: 62)
         .background(Color.white)
     }
 
@@ -85,7 +89,7 @@ struct ChatRoomView: View {
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: HiTripSpacing.sm) {
+                LazyVStack(spacing: 14) {
                     ForEach(Array(chatMessages.enumerated()), id: \.element.id) { index, msg in
                         // 날짜가 바뀌는 지점마다 구분선을 넣습니다.
                         if let label = dateSeparator(at: index) {
@@ -99,7 +103,7 @@ struct ChatRoomView: View {
                         .id(msg.id)
                     }
                 }
-                .padding(.vertical, HiTripSpacing.md)
+                .padding(.vertical, 16)
             }
             .onChange(of: chatMessages.count) { _ in
                 withAnimation {
@@ -107,7 +111,7 @@ struct ChatRoomView: View {
                 }
             }
         }
-        .background(HiTripColor.screenBackground)
+        .background(Color.white)
     }
 
     /// 앞 메시지와 날짜가 다르면 구분선 문구를 만듭니다. 첫 메시지에는 항상 붙습니다.
@@ -131,47 +135,42 @@ struct ChatRoomView: View {
     // MARK: - Input Bar
 
     private var inputBar: some View {
-        HStack(spacing: HiTripSpacing.md) {
+        HStack(spacing: 0) {
             // + 첨부 버튼
             Button { } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(HiTripColor.gray500)
+                Text("＋")
+                    .font(.system(size: 22))
+                    .foregroundColor(Color(hex: "#6B7280"))
             }
+            .padding(.leading, 18)
 
             // 텍스트 입력
             TextField("메시지를 입력하세요", text: $viewModel.messageText)
-                .font(HiTripFont.body)
-                .padding(.horizontal, HiTripSpacing.md)
-                .padding(.vertical, HiTripSpacing.smd)
-                .background(HiTripColor.gray100)
-                .cornerRadius(HiTripRadius.pill)
+                .font(.system(size: 16))
+                .foregroundColor(Color(hex: "#1B1E28"))
+                .padding(.horizontal, 14)
+                .frame(height: 48)
+                .background(Color(hex: "#F7F7F9"))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(.leading, 11)
 
-            // 전송/마이크 버튼
-            if viewModel.messageText.isEmpty {
-                Button { } label: {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(HiTripColor.primary800)
-                        .clipShape(Circle())
-                }
-            } else {
-                Button {
+            // 전송 / 마이크 버튼
+            Button {
+                if !viewModel.messageText.isEmpty {
                     viewModel.sendMessage(chatRoomId: chatRoom.id)
-                } label: {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(HiTripColor.primary800)
-                        .clipShape(Circle())
                 }
+            } label: {
+                Image(systemName: viewModel.messageText.isEmpty ? "mic.fill" : "arrow.up")
+                    .font(.system(size: viewModel.messageText.isEmpty ? 18 : 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 48, height: 48)
+                    .background(Color(hex: "#0C46C0"))
+                    .clipShape(Circle())
             }
+            .padding(.leading, 14)
+            .padding(.trailing, 21)
         }
-        .padding(.horizontal, HiTripSpacing.pagePadding)
-        .padding(.vertical, HiTripSpacing.inputBarV)
+        .padding(.vertical, 8)
         .background(Color.white)
     }
 }

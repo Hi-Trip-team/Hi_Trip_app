@@ -7,7 +7,7 @@ import RxSwift
 /// 채팅만 목이 없어 .mock 환경에서도 실서버로 붙었고, 토큰이 없으면 항상 빈 화면이 됐습니다.
 /// 다른 화면과 같은 기준으로 맞추기 위해 추가했습니다.
 ///
-/// 전송은 성공을 흉내 내되, 본문이 "실패"로 시작하면 오류를 돌려줍니다.
+/// 전송은 성공을 흉내 내되, 본문이 "실패"(또는 "fail")로 시작하면 오류를 돌려줍니다.
 /// 전송 실패 UI와 재전송을 서버 없이 확인하기 위한 장치입니다.
 
 final class MockChatRepository: ChatRepositoryProtocol {
@@ -111,7 +111,7 @@ final class MockChatRepository: ChatRepositoryProtocol {
 
     func sendMessage(message: Message) -> Single<Message> {
         // 전송 실패 화면을 확인할 수 있게 남겨둔 통로
-        if message.content.hasPrefix("실패") {
+        if message.content.hasPrefix("실패") || message.content.lowercased().hasPrefix("fail") {
             return .error(HiTripError.networkFailure("목 전송 실패"))
         }
 
