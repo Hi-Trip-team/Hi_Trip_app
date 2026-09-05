@@ -26,7 +26,7 @@ struct SpotImageView: View {
                     case .empty:
                         ZStack {
                             placeholderBackground
-                            ProgressView().tint(.white)
+                            ProgressView().tint(Color(hex: "#9CA3AF"))
                         }
                     @unknown default:
                         placeholder
@@ -51,16 +51,12 @@ struct SpotImageView: View {
             placeholderBackground
             Image(systemName: Self.icon(for: categoryName))
                 .font(.system(size: iconSize, weight: .light))
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(Color(hex: "#9CA3AF"))
         }
     }
 
     private var placeholderBackground: some View {
-        LinearGradient(
-            colors: Self.gradient(for: categoryName),
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        Color(hex: "#D9DEE5")
     }
 
     // MARK: - 카테고리 매핑
@@ -92,32 +88,6 @@ struct SpotImageView: View {
             return "binoculars"
         default:
             return "mappin.and.ellipse"
-        }
-    }
-
-    /// 아이콘과 어울리는 배경 — 카테고리별로 색을 달리해 목록이 단조롭지 않게 합니다.
-    static func gradient(for category: String?) -> [Color] {
-        guard let c = category, !c.isEmpty else {
-            return [Color(hex: "#9CA3AF"), Color(hex: "#6B7280")]
-        }
-
-        switch true {
-        case c.contains("해변"), c.contains("해수욕"), c.contains("바다"), c.contains("섬"):
-            return [Color(hex: "#7DD3FC"), Color(hex: "#0284C7")]
-        case c.contains("산책"), c.contains("둘레"), c.contains("트레킹"),
-             c.contains("산"), c.contains("등산"), c.contains("자연"), c.contains("숲"),
-             c.contains("정원"), c.contains("공원"), c.contains("수목"):
-            return [Color(hex: "#86EFAC"), Color(hex: "#15803D")]
-        case c.contains("시장"), c.contains("쇼핑"), c.contains("상점"):
-            return [Color(hex: "#FDBA74"), Color(hex: "#C2410C")]
-        case c.contains("카페"), c.contains("디저트"),
-             c.contains("음식"), c.contains("맛집"), c.contains("식당"):
-            return [Color(hex: "#FCA5A5"), Color(hex: "#B91C1C")]
-        case c.contains("문화재"), c.contains("유적"), c.contains("박물관"),
-             c.contains("사찰"), c.contains("고궁"):
-            return [Color(hex: "#C4B5FD"), Color(hex: "#6D28D9")]
-        default:
-            return [Color(hex: "#93C5FD"), Color(hex: "#2563EB")]
         }
     }
 }
