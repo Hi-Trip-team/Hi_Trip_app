@@ -17,6 +17,8 @@ struct NearbySpotDetailView: View {
     var latitude: Double?
     var longitude: Double?
     var tags: [String] = []
+    /// 이미지가 없을 때 보여줄 대체 아이콘 선택에 사용
+    var categoryName: String?
 
     /// 좌표가 없으면 지도 섹션을 숨깁니다.
     private var coordinate: CLLocationCoordinate2D? {
@@ -90,30 +92,8 @@ struct NearbySpotDetailView: View {
     // MARK: - 썸네일
 
     private var thumbnailSection: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color(hex: "#93C5FD"), Color(hex: "#2563EB")],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            if let urlString = imageUrl, let url = URL(string: urlString) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Image(systemName: "photo")
-                            .font(.system(size: 44))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                }
-            } else {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 52))
-                    .foregroundColor(.white.opacity(0.7))
-            }
-        }
-        .frame(height: 200)
-        .clipped()
+        SpotImageView(imageUrl: imageUrl, categoryName: categoryName, iconSize: 52)
+            .frame(height: 200)
     }
 
     // MARK: - 기본 정보

@@ -57,9 +57,10 @@ struct TripListView: View {
                     name: spot.title,
                     address: spot.place.address,
                     description: spot.description,
-                    imageUrl: spot.imageUrl.isEmpty ? nil : spot.imageUrl,
+                    imageUrl: spot.imageUrl,
                     latitude: spot.place.latitude.flatMap(Double.init),
-                    longitude: spot.place.longitude.flatMap(Double.init)
+                    longitude: spot.place.longitude.flatMap(Double.init),
+                    categoryName: spot.place.categoryName
                 )
             }
         }
@@ -292,13 +293,11 @@ struct TripListView: View {
     private func spotCard(_ spot: TravelerSpotDTO) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .topLeading) {
-                AsyncImage(url: URL(string: spot.imageUrl)) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Color(hex: "#D9DEE5")
-                    }
-                }
+                SpotImageView(
+                    imageUrl: spot.imageUrl,
+                    categoryName: spot.place.categoryName,
+                    iconSize: 26
+                )
                 .frame(width: 150, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
