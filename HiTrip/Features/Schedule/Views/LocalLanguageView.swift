@@ -76,11 +76,12 @@ struct LocalLanguageView: View {
     private var phraseList: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                Divider().padding(.horizontal, 17)
-
+                // 구분선은 각 행 위에만 둡니다 (마지막 행 아래에는 없음)
                 ForEach(viewModel.phrases) { phrase in
+                    Divider()
+                        .padding(.leading, 17)
+                        .padding(.trailing, 20)
                     phraseRow(phrase)
-                    Divider().padding(.horizontal, 17)
                 }
             }
         }
@@ -90,7 +91,7 @@ struct LocalLanguageView: View {
         let isSpeaking = viewModel.speakingId == phrase.id
 
         return HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(phrase.koreanText)
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(Color(hex: "#313131"))
@@ -124,7 +125,8 @@ struct LocalLanguageView: View {
         }
         .padding(.leading, 32)
         .padding(.trailing, 30)
-        .padding(.vertical, 13)
+        .padding(.top, 13)
+        .padding(.bottom, 14)
     }
 
     // MARK: - 로딩 / 빈 상태 / 에러
