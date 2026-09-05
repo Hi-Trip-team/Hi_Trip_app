@@ -223,6 +223,47 @@ extension TravelerScheduleDTO {
     }
 }
 
+// MARK: - Personal Schedule (개인 일정)
+
+struct TravelerPersonalScheduleDTO: Decodable, Identifiable {
+    let id: Int
+    let dayNumber: Int
+    let scheduleDate: String        // "yyyy-MM-dd"
+    let title: String               // 최대 20자
+    let startTime: String           // "HH:mm:ss"
+    let endTime: String
+    let memo: String?               // 최대 100자
+    let isPersonal: Bool
+    /// 공용 일정과 시간이 겹치는지 — 서버가 판정합니다.
+    let overlapWarning: Bool
+    /// 겹치는 공용 일정의 id 목록
+    let overlapWithSharedScheduleIds: [Int]
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+/// 개인 일정 생성·수정 요청
+struct TravelerPersonalScheduleRequest {
+    let dayNumber: Int
+    let scheduleDate: String
+    let title: String
+    let startTime: String
+    let endTime: String
+    let memo: String?
+
+    func asDictionary() -> [String: Any] {
+        var body: [String: Any] = [
+            "day_number": dayNumber,
+            "schedule_date": scheduleDate,
+            "title": title,
+            "start_time": startTime,
+            "end_time": endTime,
+        ]
+        if let memo, !memo.isEmpty { body["memo"] = memo }
+        return body
+    }
+}
+
 // MARK: - Calendar
 
 struct TravelerCalendarDTO: Decodable {

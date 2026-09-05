@@ -81,6 +81,87 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         ))
     }
 
+    // MARK: - 개인 일정
+
+    /// 메모리 보관 — 앱을 다시 켜면 초기화됩니다.
+    private static var personalSchedules: [TravelerPersonalScheduleDTO] = [
+        TravelerPersonalScheduleDTO(
+            id: 9001, dayNumber: 2, scheduleDate: "2026-07-20",
+            title: "기념품 쇼핑", startTime: "20:00:00", endTime: "21:00:00",
+            memo: nil, isPersonal: true,
+            overlapWarning: false, overlapWithSharedScheduleIds: [],
+            createdAt: nil, updatedAt: nil
+        )
+    ]
+    private static var nextPersonalId = 9002
+
+    func fetchPersonalSchedules() -> Single<[TravelerPersonalScheduleDTO]> {
+        .just(Self.personalSchedules)
+    }
+
+    func createPersonalSchedule(_ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO> {
+        // 서버처럼 공용 일정과 겹치는지 판정
+        let overlaps = Self.overlappingSharedIds(
+            dayNumber: request.dayNumber,
+            start: request.startTime,
+            end: request.endTime,
+            schedules: mockSchedules
+        )
+        let dto = TravelerPersonalScheduleDTO(
+            id: Self.nextPersonalId, dayNumber: request.dayNumber,
+            scheduleDate: request.scheduleDate, title: request.title,
+            startTime: request.startTime, endTime: request.endTime,
+            memo: request.memo, isPersonal: true,
+            overlapWarning: !overlaps.isEmpty,
+            overlapWithSharedScheduleIds: overlaps,
+            createdAt: nil, updatedAt: nil
+        )
+        Self.nextPersonalId += 1
+        Self.personalSchedules.append(dto)
+        return .just(dto)
+    }
+
+    func updatePersonalSchedule(id: Int, _ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO> {
+        let overlaps = Self.overlappingSharedIds(
+            dayNumber: request.dayNumber,
+            start: request.startTime,
+            end: request.endTime,
+            schedules: mockSchedules
+        )
+        let dto = TravelerPersonalScheduleDTO(
+            id: id, dayNumber: request.dayNumber,
+            scheduleDate: request.scheduleDate, title: request.title,
+            startTime: request.startTime, endTime: request.endTime,
+            memo: request.memo, isPersonal: true,
+            overlapWarning: !overlaps.isEmpty,
+            overlapWithSharedScheduleIds: overlaps,
+            createdAt: nil, updatedAt: nil
+        )
+        if let idx = Self.personalSchedules.firstIndex(where: { $0.id == id }) {
+            Self.personalSchedules[idx] = dto
+        }
+        return .just(dto)
+    }
+
+    func deletePersonalSchedule(id: Int) -> Single<Void> {
+        Self.personalSchedules.removeAll { $0.id == id }
+        return .just(())
+    }
+
+    private static func overlappingSharedIds(
+        dayNumber: Int, start: String, end: String, schedules: [TravelerScheduleDTO]
+    ) -> [Int] {
+        func mins(_ t: String) -> Int {
+            let p = t.split(separator: ":").compactMap { Int($0) }
+            return p.count >= 2 ? p[0] * 60 + p[1] : 0
+        }
+        let s = mins(start), e = mins(end)
+        return schedules
+            .filter { $0.dayNumber == dayNumber }
+            .filter { mins($0.startTime) < e && s < mins($0.endTime) }
+            .map(\.id)
+    }
+
     func fetchCalendar() -> Single<TravelerCalendarDTO> {
         let days = makeMockCalendarDays()
         return .just(TravelerCalendarDTO(trip: mockTravelerTrip, days: days))
