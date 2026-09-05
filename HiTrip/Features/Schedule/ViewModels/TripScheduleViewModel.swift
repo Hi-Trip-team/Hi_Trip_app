@@ -4,13 +4,15 @@ import RxSwift
 // MARK: - TripScheduleViewModel
 /// 전체일정 화면 — 공용 일정 + 개인 일정
 ///
-/// - GET  /api/v1/tourist/trip/                여행 정보(제목·기간)
+/// - GET  /api/v1/tourist/home/                여행 정보 + 서버가 계산한 오늘 일정
 /// - GET  /api/v1/tourist/schedules/           여행사 공용 일정 전체
 /// - GET  /api/v1/tourist/personal-schedules/  내가 추가한 일정
 /// - POST /api/v1/tourist/personal-schedules/  개인 일정 추가
 ///
-/// 공용 일정과의 시간 겹침은 서버가 판정해 `overlap_warning`으로 내려줍니다.
-/// 앱에서 다시 계산하지 않습니다.
+/// 판정은 서버 값을 그대로 씁니다. 앱에서 다시 계산하지 않습니다.
+/// - 오늘이 몇 일차인지        → home.today_day_number
+/// - 오늘 일정                → home.today_schedules
+/// - 공용 일정과의 시간 겹침    → personal_schedule.overlap_warning
 
 @MainActor
 final class TripScheduleViewModel: ObservableObject {
@@ -51,7 +53,8 @@ final class TripScheduleViewModel: ObservableObject {
     // MARK: - State
 
     @Published private(set) var state: LoadState = .idle
-    @Published private(set) var trip: TravelerTripDTO?
+    /// 홈 요약 — 여행 정보와 서버가 계산한 오늘 일정이 함께 들어 있습니다.
+    @Published private(set) var home: TravelerHomeDTO?
     @Published private(set) var days: [DaySection] = []
     @Published var expandedDay: Int?
 
@@ -78,16 +81,17 @@ final class TripScheduleViewModel: ObservableObject {
         guard state != .loading else { return }
         state = .loading
 
+        // 여행 정보와 "오늘"은 홈 응답에 함께 들어 있어 trip을 따로 부르지 않습니다.
         Single.zip(
-            repository.fetchTrip(),
+            repository.fetchHome(),
             repository.fetchSchedules(),
             repository.fetchPersonalSchedules()
         )
         .observe(on: MainScheduler.instance)
         .subscribe(
-            onSuccess: { [weak self] trip, schedules, personals in
+            onSuccess: { [weak self] home, schedules, personals in
                 guard let self else { return }
-                self.trip = trip
+                self.home = home
                 self.shared = schedules
                 self.personal = personals
                 self.rebuild()
@@ -187,48 +191,30 @@ final class TripScheduleViewModel: ObservableObject {
 
     // MARK: - 표시용
 
-    var tripTitle: String { trip?.title ?? "" }
+    var tripTitle: String { home?.trip.title ?? "" }
 
     /// "2025.04.24 - 04.26"
     var tripPeriod: String {
-        guard let trip else { return "" }
+        guard let trip = home?.trip else { return "" }
         let start = trip.startDate.replacingOccurrences(of: "-", with: ".")
         let endParts = trip.endDate.split(separator: "-")
         let end = endParts.count >= 3 ? "\(endParts[1]).\(endParts[2])" : trip.endDate
         return "\(start) - \(end)"
     }
 
-    /// 오늘 날짜 "yyyy-MM-dd"
-    private static var todayString: String {
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.timeZone = .current
-        return df.string(from: Date())
-    }
+    // MARK: - 오늘의 일정 (서버 계산값)
 
-    /// 오늘이 몇 일차인지 — 오늘 날짜와 일치하는 일정이 없으면 nil
-    ///
-    /// d_day나 일차 번호로 계산하지 않고 각 일정의 schedule_date를 오늘 날짜와
-    /// 직접 맞춥니다. 일차 번호는 날짜와 어긋날 수 있어(여행이 이미 끝났는데도
-    /// "2일차"가 나오는 식) 오늘이 아닌 일정을 오늘로 보여주게 됩니다.
-    var todayDayNumber: Int? {
-        let today = Self.todayString
-        return shared.first { $0.scheduleDate == today }?.dayNumber
-    }
+    /// 오늘이 몇 일차인지 — 서버가 판정해 내려줍니다.
+    var todayDayNumber: Int? { home?.todayDayNumber }
 
-    // MARK: - 오늘의 일정 (상단 요약)
-
-    /// 오늘 날짜에 해당하는 일정만. 여행 기간 밖이면 비어 있습니다.
+    /// 오늘 일정 — 서버가 골라 준 것을 그대로 씁니다.
+    /// 홈 화면과 같은 값을 쓰므로 두 화면이 서로 다른 "오늘"을 보여줄 일이 없습니다.
     var todaySchedules: [TravelerScheduleDTO] {
-        let today = Self.todayString
-        return shared
-            .filter { $0.scheduleDate == today }
-            .sorted { $0.startTime < $1.startTime }
+        (home?.todaySchedules ?? []).sorted { $0.startTime < $1.startTime }
     }
 
     /// 여행이 오늘을 포함하는지 — 상단 "오늘의 일정" 섹션 표시 여부
-    var isTripToday: Bool { !todaySchedules.isEmpty }
+    var isTripToday: Bool { todayDayNumber != nil && !todaySchedules.isEmpty }
 
     /// 지금 진행 중인 일정. 없으면 다음 예정 일정, 오늘 일정이 끝났으면 nil.
     var todayCurrentSchedule: TravelerScheduleDTO? {

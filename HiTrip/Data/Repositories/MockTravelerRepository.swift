@@ -72,14 +72,37 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
             trip: mockTravelerTrip,
             agreementStatus: mockAgreement,
             requiresAgreement: false,
-            todayDayNumber: 2,
-            todaySchedules: Array(mockSchedules.filter { $0.dayNumber == 2 }.prefix(3)),
-            nextSchedule: mockSchedules.filter { $0.dayNumber == 2 }.dropFirst(3).first,
+            todayDayNumber: 2,   // 어제 출발이므로 오늘이 2일차
+            todaySchedules: todayMockSchedules,
+            nextSchedule: nextMockSchedule,
             managerContact: ["phone": "010-1234-5678", "name": "김담당"],
             todayCongestion: nil,
             congestionStatus: nil,
             advisory: nil
         ))
+    }
+
+    /// 오늘(2일차) 일정 전체 — 실제 서버도 오늘 것을 전부 내려줍니다.
+    private var todayMockSchedules: [TravelerScheduleDTO] {
+        mockSchedules.filter { $0.dayNumber == 2 }.sorted { $0.startTime < $1.startTime }
+    }
+
+    /// 아직 시작하지 않은 가장 이른 일정.
+    /// 서버가 현재 시각 기준으로 계산해 주는 값이라 목에서도 같은 방식으로 만듭니다.
+    private var nextMockSchedule: TravelerScheduleDTO? {
+        let now = Self.minutesNow()
+        return todayMockSchedules.first { (Self.minutesOf($0.startTime) ?? 0) > now }
+    }
+
+    private static func minutesOf(_ time: String) -> Int? {
+        let p = time.split(separator: ":").compactMap { Int($0) }
+        guard p.count >= 2 else { return nil }
+        return p[0] * 60 + p[1]
+    }
+
+    private static func minutesNow() -> Int {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        return (c.hour ?? 0) * 60 + (c.minute ?? 0)
     }
 
     // MARK: - 개인 일정

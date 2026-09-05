@@ -173,16 +173,8 @@ final class TravelerHomeViewModel: ObservableObject {
         }
     }
 
-    /// 다음 일정 — 서버가 준 것을 우선 사용하되, 이미 지난 것은 버립니다.
-    var nextSchedule: TravelerScheduleDTO? {
-        let now = Self.minutesNow()
-
-        if let n = home?.nextSchedule, (Self.minutes(n.startTime) ?? 0) > now { return n }
-
-        guard let current = currentSchedule,
-              let idx = todaySchedules.firstIndex(where: { $0.id == current.id }) else { return nil }
-        return todaySchedules.indices.contains(idx + 1) ? todaySchedules[idx + 1] : nil
-    }
+    /// 다음 일정 — 서버가 계산해 준 값을 그대로 씁니다.
+    var nextSchedule: TravelerScheduleDTO? { home?.nextSchedule }
 
     /// 오늘 일정의 진행률 (0...1) — 진행률 바
     var progress: Double {
