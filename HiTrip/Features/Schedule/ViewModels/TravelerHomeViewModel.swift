@@ -84,21 +84,6 @@ final class TravelerHomeViewModel: ObservableObject {
                 self?.unreadMessageCount = rooms.reduce(0) { $0 + $1.unreadCount }
             }, onFailure: { _ in })
             .disposed(by: disposeBag)
-
-        loadWeather()
-    }
-
-    /// 기상청 날씨 — 서버가 주지 않아 목적지 이름으로 직접 조회합니다.
-    /// 키가 없거나 실패하면 조용히 넘어가고 목적지만 표시됩니다.
-    private func loadWeather() {
-        let place = home?.trip.destination ?? ""
-        guard !place.isEmpty else { return }
-
-        WeatherService.shared.fetch(placeName: place)
-            .observe(on: MainScheduler.instance)
-            .subscribe(onSuccess: { [weak self] in self?.weather = $0 },
-                       onFailure: { _ in })
-            .disposed(by: disposeBag)
     }
 
     var hasUnreadMessage: Bool { unreadMessageCount > 0 }
@@ -198,9 +183,6 @@ final class TravelerHomeViewModel: ObservableObject {
         return next
     }
 
-    /// 기상청에서 받아온 현재 날씨 — 실패하면 nil로 두고 목적지만 표시합니다
-    @Published private(set) var weather: WeatherSnapshot?
-
     // MARK: - 여행 진행률 카드
 
     /// 여행 전체 진행률 (0...1)
@@ -228,15 +210,11 @@ final class TravelerHomeViewModel: ObservableObject {
         return "여행 진행률 · 일정 종료"
     }
 
-    /// 카드 오른쪽 — "제주 / 맑음 22°C"
+    /// 카드 오른쪽 목적지
     ///
-    /// 서버가 날씨를 주지 않아 기상청 API로 직접 받아옵니다.
-    /// 키가 없거나 실패하면 목적지만 보여줍니다.
-    var destinationText: String {
-        let place = home?.trip.destination ?? ""
-        guard let weather else { return place }
-        return place.isEmpty ? weather.text : "\(place) / \(weather.text)"
-    }
+    /// 디자인에는 "제주 / 맑음 22°C"처럼 날씨가 붙지만 서버가 주지 않습니다.
+    /// 기상청 API는 개인 키가 필요해 배포용으로 쓸 수 없어, 서버가 내려줄 때까지 목적지만 표시합니다.
+    var destinationText: String { home?.trip.destination ?? "" }
 
     /// 오늘 일정의 진행률 (0...1) — 진행률 바
     var progress: Double {
