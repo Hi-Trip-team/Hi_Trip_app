@@ -456,6 +456,12 @@ private extension MockTravelerRepository {
                 priority: "normal", publishedAt: "2026-07-19T21:00:00.000000Z",
                 createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z",
                 isRead: true, isActive: true),
+
+            TravelerNoticeDTO(id: 4, title: "1일차 집합 안내",
+                content: "공항 3번 게이트 앞에서 09:00에 집합합니다. 늦으시는 분은 담당자에게 연락 주세요.",
+                priority: "normal", publishedAt: "2026-07-18T09:00:00.000000Z",
+                createdAt: "2026-07-18T09:00:00.000000Z", updatedAt: "2026-07-18T09:00:00.000000Z",
+                isRead: true, isActive: false),
         ]
     }
 

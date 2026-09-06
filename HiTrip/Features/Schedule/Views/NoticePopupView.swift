@@ -11,7 +11,7 @@ struct NoticePopupView: View {
     @Binding var isPresented: Bool
 
     let notice: TravelerNoticeDTO
-    /// 접어둔 이전 공지들 — 없으면 "이전 공지 보기" 버튼을 숨깁니다
+    /// 지난 공지(비활성) — 없으면 "이전 공지 보기" 버튼을 숨깁니다
     var previousNotices: [TravelerNoticeDTO] = []
 
     @State private var showPrevious = false
@@ -72,6 +72,7 @@ struct NoticePopupView: View {
             .padding(.top, 20)
             .padding(.bottom, 20)
 
+            ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(paragraphs, id: \.self) { p in
                     Text(p)
@@ -83,6 +84,9 @@ struct NoticePopupView: View {
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
+            }
+            // 긴 공지도 팝업 안에서 읽을 수 있게 본문만 스크롤합니다
+            .frame(maxHeight: 320)
 
             if !previousNotices.isEmpty {
             Divider()

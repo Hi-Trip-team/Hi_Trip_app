@@ -275,8 +275,12 @@ final class TravelerHomeViewModel: ObservableObject {
         activeNotices.first
     }
 
-    /// 대표 공지를 뺀 나머지 활성 공지 — 팝업의 "이전 공지 보기"
-    var previousNotices: [TravelerNoticeDTO] { Array(activeNotices.dropFirst()) }
+    /// 지난 공지 — 팝업의 "이전 공지 보기"
+    ///
+    /// 기획상 "비활성(과거) 공지 최신순"입니다. 활성 공지는 대표 1건으로만 보여줍니다.
+    var previousNotices: [TravelerNoticeDTO] {
+        notices.filter { $0.isActive == false }
+    }
 
     /// 활성 공지만 — 홈 미리보기와 안 읽음 뱃지의 기준
     private var activeNotices: [TravelerNoticeDTO] {
