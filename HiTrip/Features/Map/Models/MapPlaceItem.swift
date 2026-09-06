@@ -56,6 +56,7 @@ struct MapPlaceItem: Identifiable, Equatable, Hashable {
     let isOfficialSpot: Bool  // 안내사가 등록한 공식 스팟
     let placeUrl: String?
     let distanceMeters: Int?  // 현위치 기준 거리 (m)
+    let imageUrl: String?
     let rating: Double?       // 평점 (Mock — Kakao Local API 미제공)
     let ratingCount: Int?     // 리뷰 수 (Mock)
 
@@ -83,6 +84,7 @@ extension KakaoLocalPlace {
             isOfficialSpot: false,
             placeUrl: placeUrl.isEmpty ? nil : placeUrl,
             distanceMeters: distance.flatMap { Int($0) },
+            imageUrl: nil,
             rating: nil,
             ratingCount: nil
         )
@@ -101,6 +103,7 @@ extension TravelerMapPlaceDTO {
             isOfficialSpot: true,
             placeUrl: nil,
             distanceMeters: nil,
+            imageUrl: nil,
             rating: nil,
             ratingCount: nil
         )

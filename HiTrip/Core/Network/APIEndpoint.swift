@@ -49,126 +49,92 @@ struct APIEndpoint {
 
 extension APIEndpoint {
 
-    /// 로그인 API
-    /// - POST /api/auth/login/
+    // MARK: - Staff Auth
+
+    /// 스태프 로그인
+    /// POST /api/v1/staff/auth/login/
     static func login(username: String, password: String) -> APIEndpoint {
         APIEndpoint(
-            path: "/api/auth/login/",
+            path: "/api/v1/staff/auth/login/",
             method: .post,
             body: ["username": username, "password": password]
         )
     }
 
-    /// 로그아웃 API
-    /// - POST /api/auth/logout/
+    /// 스태프 로그아웃
+    /// POST /api/v1/staff/auth/logout/
     static func logout() -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/logout/", method: .post)
+        APIEndpoint(path: "/api/v1/staff/auth/logout/", method: .post)
     }
 
-    /// 프로필 조회 API
-    /// - GET /api/auth/profile/
+    /// 스태프 내 프로필 조회
+    /// GET /api/v1/staff/auth/me/
     static func profile() -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/profile/")
+        APIEndpoint(path: "/api/v1/staff/auth/me/")
     }
 
-    /// 프로필 수정 API
-    /// - PUT /api/auth/profile/
+    /// 스태프 프로필 수정
+    /// PATCH /api/v1/staff/auth/me/
     static func profileUpdate(body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/profile/", method: .put, body: body)
+        APIEndpoint(path: "/api/v1/staff/auth/me/", method: .patch, body: body)
     }
 
-    /// 회원가입 API
-    /// - POST /api/auth/register/
-    static func register(username: String, password: String, email: String) -> APIEndpoint {
-        APIEndpoint(
-            path: "/api/auth/register/",
-            method: .post,
-            body: [
-                "username": username,
-                "password": password,
-                "email": email
-            ]
-        )
+    // MARK: - Staff CRUD
+
+    /// 스태프 목록 조회
+    /// GET /api/v1/staff/
+    static func staffList() -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/staff/")
     }
+
+    /// 스태프 계정 생성
+    /// POST /api/v1/staff/
+    static func staffCreate(body: [String: Any]) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/staff/", method: .post, body: body)
+    }
+
+    /// 스태프 상세 조회
+    /// GET /api/v1/staff/{id}/
+    static func staffRetrieve(id: Int) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/staff/\(id)/")
+    }
+
+    /// 스태프 전체 수정
+    /// PUT /api/v1/staff/{id}/
+    static func staffUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/staff/\(id)/", method: .put, body: body)
+    }
+
+    /// 스태프 일부 수정
+    /// PATCH /api/v1/staff/{id}/
+    static func staffPartialUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/staff/\(id)/", method: .patch, body: body)
+    }
+
+    /// 스태프 삭제
+    /// DELETE /api/v1/staff/{id}/
+    static func staffDestroy(id: Int) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/staff/\(id)/", method: .delete)
+    }
+
+    /// 스태프 승인
+    /// POST /api/v1/staff/{id}/approve/
+    static func staffApprove(id: Int) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/staff/\(id)/approve/", method: .post)
+    }
+
+    // MARK: - Tourists (매니저측 관광객 관리)
 
     /// 여행객 목록 조회
-    /// - GET /api/auth/travelers/
+    /// GET /api/auth/travelers/
     static func travelersList() -> APIEndpoint {
         APIEndpoint(path: "/api/auth/travelers/")
     }
 
-    /// 스태프 목록 조회
-    /// - GET /api/auth/staff/
-    static func staffList() -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/staff/")
-    }
-
-    /// 스태프 계정 생성
-    /// - POST /api/auth/staff/
-    static func staffCreate(body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/staff/", method: .post, body: body)
-    }
-
-    /// 스태프 상세 조회
-    /// - GET /api/auth/staff/:id/
-    static func staffRetrieve(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/staff/\(id)/")
-    }
-
-    /// 스태프 정보 수정
-    /// - PUT /api/auth/staff/:id/
-    static func staffUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/staff/\(id)/", method: .put, body: body)
-    }
-
-    /// 스태프 정보 부분 수정
-    /// - PATCH /api/auth/staff/:id/
-    static func staffPartialUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/staff/\(id)/", method: .patch, body: body)
-    }
-
-    /// 스태프 삭제
-    /// - DELETE /api/auth/staff/:id/
-    static func staffDestroy(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/staff/\(id)/", method: .delete)
-    }
-
-    /// 스태프 승인
-    /// - POST /api/auth/staff/:id/approve/
-    static func staffApprove(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/staff/\(id)/approve/", method: .post)
-    }
-
-    // MARK: - Travelers 관리
-
-    /// 여행객 생성
-    /// - POST /api/auth/travelers/
-    static func travelersCreate(body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/travelers/", method: .post, body: body)
-    }
-
     /// 여행객 상세 조회
-    /// - GET /api/auth/travelers/:id/
+    /// GET /api/auth/travelers/{id}/
     static func travelersRetrieve(id: Int) -> APIEndpoint {
         APIEndpoint(path: "/api/auth/travelers/\(id)/")
-    }
-
-    /// 여행객 정보 수정
-    /// - PUT /api/auth/travelers/:id/
-    static func travelersUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/travelers/\(id)/", method: .put, body: body)
-    }
-
-    /// 여행객 정보 부분 수정
-    /// - PATCH /api/auth/travelers/:id/
-    static func travelersPartialUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/travelers/\(id)/", method: .patch, body: body)
-    }
-
-    /// 여행객 삭제
-    /// - DELETE /api/auth/travelers/:id/
-    static func travelersDestroy(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/travelers/\(id)/", method: .delete)
     }
 }
 

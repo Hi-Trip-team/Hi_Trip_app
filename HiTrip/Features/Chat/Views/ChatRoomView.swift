@@ -1,91 +1,90 @@
 import SwiftUI
 
 // MARK: - ChatRoomView
-/// 채팅 메시지 화면 (대화창)
+/// 채팅방 내부 화면
 ///
-/// 피그마 디자인:
-/// - 상단: ← "이름" (활동중 표시) 전화 아이콘
-/// - "오늘" 날짜 구분선
-/// - 메시지 말풍선:
-///   - 내 메시지: 연한 파란 배경 (#ECF2FE), 오른쪽 정렬
-///   - 상대 메시지: 회색 배경, 왼쪽 정렬 + 아바타
-/// - 읽음 표시: 초록 ✓✓
-/// - 하단: "메시지를 입력하세요" + 첨부 아이콘 + 파란 마이크 버튼
+/// 피그마 0827 수정본:
+/// - 헤더: 뒤로가기 / 아바타 / 이름 / 📞 전화 버튼
+/// - 날짜 구분선 ("오늘")
+/// - 말풍선: ChatBubbleView 컴포넌트 사용
+/// - 입력창: + 버튼 / TextField / 🎤 파란 마이크 버튼
 
 struct ChatRoomView: View {
 
     @ObservedObject var viewModel: ChatViewModel
     @Environment(\.dismiss) private var dismiss
-
     let chatRoom: ChatRoom
+
+    /// 입력창 포커스 — 대화 영역을 누르면 키보드를 내립니다
+    @FocusState private var isInputFocused: Bool
+
+    private var chatMessages: [ChatMessage] {
+        viewModel.messages.map { $0.toChatMessage(currentUserId: viewModel.currentUserId) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // 커스텀 네비게이션 바
-            chatNavigationBar
-
+            navigationBar
             Divider()
-
-            // 메시지 목록
             messageList
-
-            // 입력창
-            messageInputBar
+            Divider()
+            inputBar
         }
         .background(Color.white)
         .navigationBarHidden(true)
+        .onTapGesture { isInputFocused = false }
         .onAppear {
             viewModel.fetchMessages(chatRoomId: chatRoom.id)
             viewModel.markAsRead(chatRoomId: chatRoom.id)
         }
     }
 
-    // MARK: - Custom Navigation Bar
+    // MARK: - Navigation Bar
 
-    private var chatNavigationBar: some View {
-        HStack(spacing: 12) {
-            // 뒤로가기
-            Button {
-                dismiss()
-            } label: {
+    private var navigationBar: some View {
+        HStack(spacing: 0) {
+            Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(HiTripColor.textBlack)
+                    .foregroundColor(Color(hex: "#1B1E28"))
+                    .frame(width: 24, height: 24)
             }
+            .padding(.leading, 12)
 
-            // 이름 + 활동 상태
-            VStack(alignment: .leading, spacing: 2) {
-                Text(chatRoom.participantName)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(HiTripColor.textBlack)
+            // 아바타
+            Circle()
+                .fill(Color(hex: "#F3F4F6"))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: chatRoom.isGroupChat ? "person.3.fill" : "person.fill")
+                        .font(.system(size: chatRoom.isGroupChat ? 13 : 15))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                )
+                .padding(.leading, 16)
 
-                if chatRoom.isOnline && !chatRoom.isGroupChat {
-                    Text("활동중")
-                        .font(.system(size: 12))
-                        .foregroundColor(HiTripColor.readCheck)
-                }
-            }
+            // 이름
+            //
+            // 디자인에는 "● 활동중"이 있으나 서버가 접속 상태를 주지 않습니다.
+            // 근거 없는 상태를 표시하지 않고 이름만 보여줍니다.
+            Text(chatRoom.participantName)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(Color(hex: "#111827"))
+                .lineLimit(1)
+                .padding(.leading, 8)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            // 전화 아이콘 (개인톡만)
+            // 전화 버튼 (개인톡만)
             if !chatRoom.isGroupChat {
                 Button { } label: {
                     Image(systemName: "phone")
-                        .font(.system(size: 18))
-                        .foregroundColor(HiTripColor.textBlack)
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(hex: "#1B1E28"))
                 }
-            }
-
-            // 더보기
-            Button { } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 18))
-                    .foregroundColor(HiTripColor.textBlack)
+                .padding(.trailing, 32)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .frame(height: 62)
         .background(Color.white)
     }
 
@@ -94,247 +93,90 @@ struct ChatRoomView: View {
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    // 날짜 구분선
-                    dateSeparator
-
-                    ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
-                        let isMe = viewModel.isMyMessage(message)
-                        let showAvatar = shouldShowAvatar(at: index)
-                        let showTime = shouldShowTime(at: index)
-
-                        messageBubble(message, isMe: isMe, showAvatar: showAvatar, showTime: showTime)
-                            .id(message.id)
-                            .padding(.top, showAvatar ? 12 : 4)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-            }
-            .onChange(of: viewModel.messages.count) { _ in
-                if let lastMessage = viewModel.messages.last {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Date Separator
-
-    private var dateSeparator: some View {
-        HStack {
-            line
-            Text(dateSeparatorText)
-                .font(.system(size: 12))
-                .foregroundColor(HiTripColor.gray400)
-                .padding(.horizontal, 12)
-            line
-        }
-        .padding(.vertical, 16)
-    }
-
-    private var line: some View {
-        Rectangle()
-            .fill(HiTripColor.gray200)
-            .frame(height: 0.5)
-    }
-
-    /// 날짜 구분 텍스트 ("오늘", "어제", "5월 3일" 등)
-    private var dateSeparatorText: String {
-        guard let firstMessage = viewModel.messages.first else { return "오늘" }
-        let cal = Calendar.current
-        if cal.isDateInToday(firstMessage.sentAt) {
-            return "오늘"
-        } else if cal.isDateInYesterday(firstMessage.sentAt) {
-            return "어제"
-        } else {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ko_KR")
-            formatter.dateFormat = "M월 d일"
-            return formatter.string(from: firstMessage.sentAt)
-        }
-    }
-
-    // MARK: - Message Bubble
-
-    private func messageBubble(_ message: Message, isMe: Bool, showAvatar: Bool, showTime: Bool) -> some View {
-        HStack(alignment: .bottom, spacing: 6) {
-            if isMe {
-                Spacer(minLength: 60)
-
-                // 읽음 표시 + 시간 (왼쪽)
-                VStack(alignment: .trailing, spacing: 2) {
-                    if showTime {
-                        // 읽음 체크 (✓✓)
-                        if message.isRead {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(HiTripColor.readCheck)
+                LazyVStack(spacing: 14) {
+                    ForEach(Array(chatMessages.enumerated()), id: \.element.id) { index, msg in
+                        // 날짜가 바뀌는 지점마다 구분선을 넣습니다.
+                        if let label = dateSeparator(at: index) {
+                            ChatDateSeparatorView(text: label)
+                                .padding(.vertical, 6)
                         }
 
-                        Text(formatTime(message.sentAt))
-                            .font(.system(size: 11))
-                            .foregroundColor(HiTripColor.gray400)
+                        ChatBubbleView(message: msg) {
+                            viewModel.retry(messageId: UUID(uuidString: msg.id) ?? UUID())
+                        }
+                        .id(msg.id)
                     }
                 }
-
-                // 내 말풍선 (연한 파란 배경)
-                Text(message.content)
-                    .font(.system(size: 15))
-                    .foregroundColor(HiTripColor.textBlack)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(HiTripColor.secondary100)
-                    .cornerRadius(16)
-                    .cornerRadius(4, corners: .bottomRight)
-
-            } else {
-                // 아바타 (첫 메시지 or 발신자 변경 시)
-                if showAvatar {
-                    Circle()
-                        .fill(HiTripColor.gray200)
-                        .frame(width: 36, height: 36)
-                        .overlay(
-                            Image(systemName: chatRoom.isGroupChat ? "person.fill" : "person.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(HiTripColor.gray400)
-                        )
-                } else {
-                    Spacer().frame(width: 36)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    // 이름 (아바타 표시 시에만)
-                    if showAvatar && chatRoom.isGroupChat {
-                        Text(message.senderName)
-                            .font(.system(size: 12))
-                            .foregroundColor(HiTripColor.gray500)
-                    }
-
-                    // 상대 말풍선 (회색 배경)
-                    Text(message.content)
-                        .font(.system(size: 15))
-                        .foregroundColor(HiTripColor.textGrayA)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(HiTripColor.gray100)
-                        .cornerRadius(16)
-                        .cornerRadius(4, corners: .bottomLeft)
-                }
-
-                // 시간 (오른쪽)
-                if showTime {
-                    Text(formatTime(message.sentAt))
-                        .font(.system(size: 11))
-                        .foregroundColor(HiTripColor.gray400)
-                }
-
-                Spacer(minLength: 60)
+                .padding(.vertical, 16)
             }
-        }
-    }
-
-    // MARK: - Input Bar
-
-    private var messageInputBar: some View {
-        VStack(spacing: 0) {
-            Divider()
-
-            HStack(spacing: 10) {
-                // 첨부 버튼
-                Button { } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(HiTripColor.gray400)
-                }
-
-                // 텍스트 입력
-                TextField("메시지를 입력하세요", text: $viewModel.messageText)
-                    .font(.system(size: 15))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(HiTripColor.gray100)
-                    .cornerRadius(20)
-
-                // 전송/마이크 버튼
-                if viewModel.isMessageValid {
-                    Button {
-                        viewModel.sendMessage(chatRoomId: chatRoom.id)
-                    } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(HiTripColor.primary800)
-                    }
-                } else {
-                    Button { } label: {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.white)
-                            .frame(width: 36, height: 36)
-                            .background(HiTripColor.primary800)
-                            .clipShape(Circle())
-                    }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: chatMessages.count) { _ in
+                withAnimation {
+                    proxy.scrollTo(chatMessages.last?.id, anchor: .bottom)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
         }
         .background(Color.white)
     }
 
-    // MARK: - Helpers
-
-    /// 아바타 표시 여부: 첫 메시지거나 이전 메시지의 발신자가 다를 때
-    private func shouldShowAvatar(at index: Int) -> Bool {
-        let message = viewModel.messages[index]
-        if viewModel.isMyMessage(message) { return false }
-        if index == 0 { return true }
-        let prev = viewModel.messages[index - 1]
-        return prev.senderId != message.senderId
-    }
-
-    /// 시간 표시 여부: 마지막 메시지거나 다음 메시지와 시간이 다를 때
-    private func shouldShowTime(at index: Int) -> Bool {
-        if index == viewModel.messages.count - 1 { return true }
-        let current = viewModel.messages[index]
-        let next = viewModel.messages[index + 1]
-        // 발신자가 다르면 항상 표시
-        if current.senderId != next.senderId { return true }
-        // 같은 발신자라도 분이 다르면 표시
+    /// 앞 메시지와 날짜가 다르면 구분선 문구를 만듭니다. 첫 메시지에는 항상 붙습니다.
+    private func dateSeparator(at index: Int) -> String? {
         let cal = Calendar.current
-        return cal.component(.minute, from: current.sentAt) != cal.component(.minute, from: next.sentAt)
+        let current = chatMessages[index].sentAt
+        if index > 0,
+           cal.isDate(chatMessages[index - 1].sentAt, inSameDayAs: current) {
+            return nil
+        }
+        if cal.isDateInToday(current)     { return "오늘" }
+        if cal.isDateInYesterday(current) { return "어제" }
+
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = cal.isDate(current, equalTo: Date(), toGranularity: .year)
+            ? "M월 d일 EEEE" : "yyyy년 M월 d일"
+        return f.string(from: current)
     }
 
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "a h:mm"
-        return formatter.string(from: date)
-    }
-}
+    // MARK: - Input Bar
 
-// MARK: - 특정 모서리만 둥글게 하는 Extension
-/// .cornerRadius(4, corners: .bottomRight) 같은 사용을 위한 헬퍼
+    private var inputBar: some View {
+        HStack(spacing: 0) {
+            // + 첨부 버튼
+            Button { } label: {
+                Text("＋")
+                    .font(.system(size: 22))
+                    .foregroundColor(Color(hex: "#6B7280"))
+            }
+            .padding(.leading, 18)
 
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCornerShape(radius: radius, corners: corners))
-    }
-}
+            // 텍스트 입력
+            TextField("메시지를 입력하세요", text: $viewModel.messageText)
+                .focused($isInputFocused)
+                .font(.system(size: 16))
+                .foregroundColor(Color(hex: "#1B1E28"))
+                .padding(.horizontal, 14)
+                .frame(height: 48)
+                .background(Color(hex: "#F7F7F9"))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(.leading, 11)
 
-/// 특정 모서리만 둥글게 만드는 Shape
-struct RoundedCornerShape: Shape {
-    var radius: CGFloat
-    var corners: UIRectCorner
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
-        )
-        return Path(path.cgPath)
+            // 전송 / 마이크 버튼
+            Button {
+                if !viewModel.messageText.isEmpty {
+                    viewModel.sendMessage(chatRoomId: chatRoom.id)
+                }
+            } label: {
+                Image(systemName: viewModel.messageText.isEmpty ? "mic.fill" : "arrow.up")
+                    .font(.system(size: viewModel.messageText.isEmpty ? 18 : 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 48, height: 48)
+                    .background(Color(hex: "#0C46C0"))
+                    .clipShape(Circle())
+            }
+            .padding(.leading, 14)
+            .padding(.trailing, 21)
+        }
+        .padding(.vertical, 8)
+        .background(Color.white)
     }
 }

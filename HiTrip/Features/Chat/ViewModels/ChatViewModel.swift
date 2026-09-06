@@ -157,25 +157,63 @@ final class ChatViewModel: ObservableObject {
 
     /// 메시지 전송
     /// - 입력창의 텍스트로 Message 생성 후 전송
+    /// 메시지 전송
+    ///
+    /// 화면에 먼저 붙이고(.sending) 결과에 따라 .sent / .failed 로 바꿉니다.
+    /// 실패한 메시지를 목록에서 지우지 않아야 사용자가 재전송할 수 있습니다.
     func sendMessage(chatRoomId: UUID) {
-        let newMessage = Message(
+        let text = messageText.trimmed
+        guard !text.isEmpty else { return }
+
+        let pending = Message(
             chatRoomId: chatRoomId,
             senderId: currentUserId,
             senderName: currentUserName,
-            content: messageText.trimmed
+            content: text,
+            sendStatus: .sending
         )
 
         errorMessage = nil
+        messages.append(pending)
+        messageText = ""
 
-        chatUseCase.sendMessage(message: newMessage)
+        deliver(pending)
+    }
+
+    /// 실패한 메시지 재전송
+    ///
+    /// Message.id를 client_message_id로 그대로 다시 보내므로,
+    /// 서버에 이미 저장됐다면 중복 생성되지 않습니다.
+    func retry(messageId: UUID) {
+        guard let idx = messages.firstIndex(where: { $0.id == messageId }),
+              messages[idx].sendStatus == .failed else { return }
+
+        messages[idx].sendStatus = .sending
+        deliver(messages[idx])
+    }
+
+    /// 실패한 메시지 삭제 (로컬)
+    func discard(messageId: UUID) {
+        messages.removeAll { $0.id == messageId && $0.sendStatus == .failed }
+    }
+
+    private func deliver(_ message: Message) {
+        chatUseCase.sendMessage(message: message)
             .observe(on: MainScheduler.instance)
             .subscribe(
-                onSuccess: { [weak self] message in
-                    self?.messages.append(message)
-                    self?.messageText = ""  // 입력창 비우기
+                onSuccess: { [weak self] saved in
+                    guard let self,
+                          let idx = self.messages.firstIndex(where: { $0.id == message.id }) else { return }
+                    // 로컬 id는 그대로 둡니다. 이 값이 client_message_id로 나가므로
+                    // 바꾸면 재전송 시 멱등키가 달라져 메시지가 중복될 수 있습니다.
+                    self.messages[idx].serverId = saved.serverId
+                    self.messages[idx].sendStatus = .sent
                 },
                 onFailure: { [weak self] error in
-                    self?.errorMessage = error.localizedDescription
+                    guard let self,
+                          let idx = self.messages.firstIndex(where: { $0.id == message.id }) else { return }
+                    self.messages[idx].sendStatus = .failed
+                    self.errorMessage = error.localizedDescription
                 }
             )
             .disposed(by: disposeBag)
@@ -195,6 +233,22 @@ final class ChatViewModel: ObservableObject {
                 onFailure: { _ in }
             )
             .disposed(by: disposeBag)
+    }
+
+    /// 모든 채팅방 읽음 처리 — "모두 확인"
+    ///
+    /// 뱃지는 즉시 지우고, 서버에도 방마다 읽음을 보냅니다.
+    /// 실패해도 다음 목록 조회 때 서버 값으로 되돌아옵니다.
+    func markAllAsRead() {
+        let unreadIds = chatRooms.filter { $0.unreadCount > 0 }.map(\.id)
+        for i in chatRooms.indices {
+            chatRooms[i].unreadCount = 0
+        }
+        for id in unreadIds {
+            chatUseCase.markAsRead(chatRoomId: id)
+                .subscribe(onSuccess: { _ in }, onFailure: { _ in })
+                .disposed(by: disposeBag)
+        }
     }
 
     // MARK: - 내 메시지인지 확인

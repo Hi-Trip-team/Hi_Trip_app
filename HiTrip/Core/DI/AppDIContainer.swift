@@ -28,18 +28,33 @@ final class AppDIContainer {
     // MARK: - Repositories
 
     private lazy var authRepository: AuthRepositoryProtocol = {
-        AuthRepository(networkService: networkService)
+        if APIEnvironment.current.useMock {
+            return MockAuthRepository()
+        }
+        return AuthRepository(networkService: networkService)
     }()
 
     /// 여행객 전용 API 저장소 — TripDataStore, ProfileVM, AgreementVM이 공유
     private lazy var travelerRepository: TravelerRepositoryProtocol = {
-        TravelerRepository(networkService: networkService)
+        if APIEnvironment.current.useMock {
+            return MockTravelerRepository()
+        }
+        return TravelerRepository(networkService: networkService)
     }()
 
 
+    /// 여행객 홈 ViewModel이 주입받는 저장소 (기본 인자용)
+    var travelerRepositoryForHome: TravelerRepositoryProtocol { travelerRepository }
+
+    /// 홈 하단 메시지 뱃지용 — 안 읽음 합계만 사용
+    var chatRepositoryForHome: ChatRepositoryProtocol { chatRepository }
+
     /// 문의 스레드 + 메시지 — 스레드 기반이므로 별도 Repository
     private lazy var chatRepository: ChatRepositoryProtocol = {
-        ChatRepository(networkService: networkService)
+        if APIEnvironment.current.useMock {
+            return MockChatRepository()
+        }
+        return ChatRepository(networkService: networkService)
     }()
 
     /// 로컬 긴급 연락처 (프리셋 + 개인 저장)

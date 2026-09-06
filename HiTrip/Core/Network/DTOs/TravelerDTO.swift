@@ -3,9 +3,9 @@ import Foundation
 // MARK: - Auth
 
 struct TravelerLoginRequest: Encodable {
-    let phone: String
-    let birthDate: String       // "yyyy-MM-dd"
-    let inviteCode: String
+    let username: String
+    let password: String
+    let tripId: Int?
 }
 
 struct TravelerAuthResponseDTO: Decodable {
@@ -124,6 +124,35 @@ struct TravelerHomeDTO: Decodable {
     let todaySchedules: [TravelerScheduleDTO]
     let nextSchedule: TravelerScheduleDTO?
     let managerContact: [String: String]?
+    let todayCongestion: [HomeCongestionDTO]?
+    /// 혼잡도 외부 데이터 수신 상태 — fresh/fallback/unavailable 등
+    let congestionStatus: HomeExternalDataStatusDTO?
+    let advisory: HomeAdvisoryDTO?
+}
+
+/// 외부 데이터(혼잡도) 수신 상태
+struct HomeExternalDataStatusDTO: Decodable {
+    let status: String?
+    let fallbackUsed: Bool?
+    let sourceFetchedAt: String?
+    let errorCode: String?
+}
+
+struct HomeCongestionDTO: Decodable {
+    let spotName: String
+    let baseDate: String        // "yyyy-MM-dd"
+    let congestionRate: Double
+}
+
+struct HomeAdvisoryDTO: Decodable {
+    let level: String           // "info" | "caution" | "warning"
+    let messages: [String]
+    let suggestion: AdvisorySuggestionDTO?
+}
+
+struct AdvisorySuggestionDTO: Decodable {
+    let spotName: String
+    let congestionRate: Double
 }
 
 // MARK: - Schedule
@@ -194,6 +223,68 @@ extension TravelerScheduleDTO {
     }
 }
 
+// MARK: - Personal Schedule (개인 일정)
+
+struct TravelerPersonalScheduleDTO: Decodable, Identifiable {
+    let id: Int
+    let dayNumber: Int
+    let scheduleDate: String        // "yyyy-MM-dd"
+    let title: String               // 최대 20자
+    let startTime: String           // "HH:mm:ss"
+    let endTime: String
+    let memo: String?               // 최대 100자
+    let isPersonal: Bool
+    /// 공용 일정과 시간이 겹치는지 — 서버가 판정합니다.
+    let overlapWarning: Bool
+    /// 겹치는 공용 일정의 id 목록
+    let overlapWithSharedScheduleIds: [Int]
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+/// 개인 일정 생성·수정 요청
+struct TravelerPersonalScheduleRequest {
+    let dayNumber: Int
+    let scheduleDate: String
+    let title: String
+    let startTime: String
+    let endTime: String
+    let memo: String?
+
+    func asDictionary() -> [String: Any] {
+        var body: [String: Any] = [
+            "day_number": dayNumber,
+            "schedule_date": scheduleDate,
+            "title": title,
+            "start_time": startTime,
+            "end_time": endTime,
+        ]
+        if let memo, !memo.isEmpty { body["memo"] = memo }
+        return body
+    }
+}
+
+// MARK: - Local Phrases (현지 언어)
+
+struct TravelerLocalPhrasesDTO: Decodable {
+    let destination: String
+    /// "ja", "en" 등 — 음성 합성 언어 선택에 사용
+    let languageCode: String
+    let languageName: String
+    let phrases: [LocalPhraseDTO]
+}
+
+struct LocalPhraseDTO: Decodable, Identifiable {
+    let id: Int
+    let koreanText: String
+    let translatedText: String
+    let pronunciation: String
+    let displayOrder: Int
+
+    // audio_url / audio_source / tts_text 는 서버가 주지만 쓰지 않습니다.
+    // 발음은 기기 음성 합성으로 출력합니다.
+}
+
 // MARK: - Calendar
 
 struct TravelerCalendarDTO: Decodable {
@@ -244,6 +335,8 @@ struct TravelerNoticeDTO: Decodable, Identifiable {
     let publishedAt: String?
     let createdAt: String?
     let updatedAt: String?
+    /// 읽음 여부 — 홈의 안 읽음 뱃지 계산에 사용
+    let isRead: Bool?
 }
 
 // MARK: - Messages (Thread 기반)
@@ -289,6 +382,8 @@ struct TravelerSpotDTO: Decodable, Identifiable, Hashable {
     let imageUrl: String
     let displayOrder: Int
     let place: TripSpotPlaceDTO
+    /// 광고 여부 — 카드 좌상단 "광고" 뱃지
+    let isSponsored: Bool?
     let createdAt: String?
     let updatedAt: String?
 }
@@ -429,7 +524,144 @@ extension TravelerMessageDTO {
             senderName: senderName,
             content: body,
             sentAt: sentAt,
-            isRead: true
+            sendStatus: .sent
+        )
+    }
+}
+
+// MARK: - Chat v1 DTOs
+
+struct ChatRoomV1DTO: Decodable {
+    let id: Int
+    let roomType: String?           // "direct", "group"
+    let trip: Int?
+    let tripTitle: String?
+    let touristId: Int?
+    let touristName: String?
+    let peerTourists: [[String: AnyCodable]]?
+    let assignedStaffId: Int?
+    let subject: String?
+    let latestMessage: [String: AnyCodable]?
+    let unreadCount: Int
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+struct ChatMessageV1DTO: Decodable {
+    let id: Int
+    let room: Int
+    let sender: Int?
+    let senderName: String?
+    let senderRole: String?         // "tourist", "staff"
+    let clientMessageId: String?
+    let messageType: String?
+    let body: String
+    let metadata: [String: AnyCodable]?
+    let replyTo: Int?
+    let attachments: [ChatAttachmentDTO]?
+    let isDeleted: Bool
+    let createdAt: String?
+}
+
+struct ChatAttachmentDTO: Decodable {
+    let id: Int
+    let downloadUrl: String?
+    let originalName: String?
+    let mimeType: String?
+}
+
+struct ChatMessagePageDTO: Decodable {
+    let results: [ChatMessageV1DTO]
+    let nextCursor: Int?
+}
+
+struct ChatMessageCreateRequest: Encodable {
+    let body: String
+    let messageType: String
+    let clientMessageId: String?
+}
+
+// AnyCodable helper for heterogeneous JSON values
+struct AnyCodable: Codable {
+    let value: Any
+    init(_ value: Any) { self.value = value }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let v = try? c.decode(Bool.self)   { value = v; return }
+        if let v = try? c.decode(Int.self)    { value = v; return }
+        if let v = try? c.decode(Double.self) { value = v; return }
+        if let v = try? c.decode(String.self) { value = v; return }
+        value = NSNull()
+    }
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch value {
+        case let v as Bool:   try c.encode(v)
+        case let v as Int:    try c.encode(v)
+        case let v as Double: try c.encode(v)
+        case let v as String: try c.encode(v)
+        default:              try c.encodeNil()
+        }
+    }
+}
+
+extension ChatRoomV1DTO {
+    func toChatRoom() -> ChatRoom {
+        let df = ISO8601DateFormatter()
+        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let lastMsg = latestMessage?["body"]?.value as? String ?? ""
+        let lastDateStr = latestMessage?["created_at"]?.value as? String ?? updatedAt ?? ""
+        let lastDate = df.date(from: lastDateStr) ?? Date()
+        let createdDate = df.date(from: createdAt ?? "") ?? Date()
+        // 서버 enum은 trip_group | direct
+        let isGroup = roomType == "trip_group"
+
+        let name: String
+        if let subject, !subject.isEmpty { name = subject }
+        else if let tn = touristName     { name = tn }
+        else                             { name = "채팅" }
+
+        return ChatRoom(
+            serverId: id,
+            threadSubject: subject,
+            status: nil,
+            participantName: name,
+            participantType: roomType ?? "direct",
+            isGroupChat: isGroup,
+            lastMessage: lastMsg,
+            lastMessageDate: lastDate,
+            unreadCount: unreadCount,
+            isOnline: false,
+            createdAt: createdDate
+        )
+    }
+}
+
+extension ChatMessageV1DTO {
+
+    /// - Parameters:
+    ///   - currentUserId: Keychain의 내 사용자 id
+    ///   - currentRole: 내 역할("tourist" | "staff") — 내 말풍선 판정 기준.
+    ///     여행객 앱과 관리자 앱이 같은 방을 보므로 역할을 고정하면 안 됩니다.
+    func toMessage(chatRoomId: UUID, currentUserId: String, currentRole: String) -> Message {
+        let df = ISO8601DateFormatter()
+        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let sentAt = df.date(from: createdAt ?? "") ?? Date()
+
+        let isMine = (senderRole == currentRole)
+        let senderId = isMine ? currentUserId : "\(senderRole ?? "peer")_\(sender ?? 0)"
+        let name = senderName ?? (isMine ? "나" : "상대방")
+
+        return Message(
+            serverId: id,
+            senderType: senderRole ?? currentRole,
+            chatRoomId: chatRoomId,
+            senderId: senderId,
+            senderName: name,
+            content: body,
+            sentAt: sentAt,
+            sendStatus: .sent
         )
     }
 }

@@ -17,9 +17,9 @@ final class TravelerRepository: TravelerRepositoryProtocol {
 
     // MARK: - Auth
 
-    func travelerLogin(phone: String, birthDate: String, inviteCode: String) -> Single<TravelerAuthResponseDTO> {
+    func travelerLogin(username: String, password: String, tripId: Int? = nil) -> Single<TravelerAuthResponseDTO> {
         networkService.request(
-            .travelerLogin(phone: phone, birthDate: birthDate, inviteCode: inviteCode),
+            .travelerLogin(username: username, password: password, tripId: tripId),
             type: TravelerAuthResponseDTO.self
         )
     }
@@ -74,6 +74,35 @@ final class TravelerRepository: TravelerRepositoryProtocol {
     }
 
     // MARK: - Schedules
+
+    // MARK: - 개인 일정
+
+    func fetchPersonalSchedules() -> Single<[TravelerPersonalScheduleDTO]> {
+        networkService.request(.travelerPersonalSchedules(), type: [TravelerPersonalScheduleDTO].self)
+    }
+
+    func createPersonalSchedule(_ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO> {
+        networkService.request(
+            .travelerPersonalScheduleCreate(body: request.asDictionary()),
+            type: TravelerPersonalScheduleDTO.self
+        )
+    }
+
+    func updatePersonalSchedule(id: Int, _ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO> {
+        networkService.request(
+            .travelerPersonalScheduleUpdate(id: id, body: request.asDictionary()),
+            type: TravelerPersonalScheduleDTO.self
+        )
+    }
+
+    func deletePersonalSchedule(id: Int) -> Single<Void> {
+        networkService.request(.travelerPersonalScheduleDelete(id: id), type: EmptyResponse.self)
+            .map { _ in () }
+    }
+
+    func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO> {
+        networkService.request(.travelerLocalPhrases(), type: TravelerLocalPhrasesDTO.self)
+    }
 
     func fetchSchedules() -> Single<[TravelerScheduleDTO]> {
         networkService.request(.travelerSchedules(), type: [TravelerScheduleDTO].self)

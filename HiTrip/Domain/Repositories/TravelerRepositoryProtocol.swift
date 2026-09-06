@@ -13,7 +13,7 @@ import RxSwift
 protocol TravelerRepositoryProtocol {
 
     // MARK: - Auth
-    func travelerLogin(phone: String, birthDate: String, inviteCode: String) -> Single<TravelerAuthResponseDTO>
+    func travelerLogin(username: String, password: String, tripId: Int?) -> Single<TravelerAuthResponseDTO>
     func logout() -> Single<TravelerLogoutResponseDTO>
 
     // MARK: - Profile
@@ -34,6 +34,23 @@ protocol TravelerRepositoryProtocol {
     func fetchCalendar() -> Single<TravelerCalendarDTO>
 
     // MARK: - Schedules
+    // MARK: - 개인 일정
+
+    /// 개인 일정 목록
+    func fetchPersonalSchedules() -> Single<[TravelerPersonalScheduleDTO]>
+
+    /// 개인 일정 생성 — 응답의 overlapWarning으로 공용 일정 겹침을 알 수 있습니다.
+    func createPersonalSchedule(_ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO>
+
+    /// 개인 일정 수정
+    func updatePersonalSchedule(id: Int, _ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO>
+
+    /// 개인 일정 삭제
+    func deletePersonalSchedule(id: Int) -> Single<Void>
+
+    /// 현지 표현 — 여행 목적지 언어의 회화 목록
+    func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO>
+
     func fetchSchedules() -> Single<[TravelerScheduleDTO]>
     func fetchSchedule(id: Int) -> Single<TravelerScheduleDTO>
 

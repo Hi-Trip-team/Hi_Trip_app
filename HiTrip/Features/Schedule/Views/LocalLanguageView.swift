@@ -1,141 +1,184 @@
 import SwiftUI
-import AVFoundation
-
-// MARK: - LocalLanguageView
-/// 현지 언어 쓰기 화면
-///
-/// 여행 목적지 언어로 된 필수 회화 문장과 발음 가이드를 제공.
-/// 데이터: 서버 연동 전 Mock 데이터 사용
 
 struct LocalLanguageView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var speechSynthesizer = SpeechSynthesizerService()
-
-    // Mock 데이터 — 서버 연동 시 ViewModel + Repository로 교체
-    private let phrases: [LocalPhrase] = LocalPhrase.mockData
+    @StateObject private var viewModel = LocalLanguageViewModel()
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(phrases) { phrase in
-                    phraseRow(phrase)
-                    Divider()
+        VStack(spacing: 0) {
+            headerSection
+
+            switch viewModel.state {
+            case .idle, .loading:
+                loadingView
+            case .failed(let message):
+                errorView(message)
+            case .loaded:
+                if viewModel.hasPhrases {
+                    languageChip
+                    phraseList
+                } else {
+                    emptyView
                 }
             }
-            .background(Color.white)
         }
         .background(Color.white)
-        .navigationTitle("현지 언어 쓰기")
-        .navigationBarTitleDisplayMode(.large)
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: {
+        .navigationBarHidden(true)
+        .task { viewModel.load() }
+        .onDisappear { viewModel.stop() }
+    }
+
+    // MARK: - Header
+
+    private var headerSection: some View {
+        ZStack {
+            Text("현지 언어 쓰기")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(.black)
+            HStack {
+                Button {
+                    viewModel.stop()
+                    dismiss()
+                } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(HiTripColor.textBlack)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.black)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+        }
+        .frame(height: 44)
+        .padding(.top, 8)
+    }
+
+    // MARK: - 언어 칩
+
+    private var languageChip: some View {
+        HStack {
+            Spacer()
+            Text(viewModel.languageChipText)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(hex: "#333840"))
+                .padding(.horizontal, 12)
+                .frame(height: 32)
+                .background(Color(hex: "#F3F4F6"))
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 7)
+        .padding(.bottom, 13)
+    }
+
+    // MARK: - 목록
+
+    private var phraseList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                // 구분선은 각 행 위에만 둡니다 (마지막 행 아래에는 없음)
+                ForEach(viewModel.phrases) { phrase in
+                    Divider()
+                        .padding(.leading, 17)
+                        .padding(.trailing, 20)
+                    phraseRow(phrase)
                 }
             }
         }
     }
 
-    // MARK: - 문장 행
+    private func phraseRow(_ phrase: LocalPhraseDTO) -> some View {
+        let isSpeaking = viewModel.speakingId == phrase.id
 
-    private func phraseRow(_ phrase: LocalPhrase) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(phrase.korean)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(HiTripColor.textBlack)
+        return HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(phrase.koreanText)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Color(hex: "#313131"))
+                    .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 4) {
-                    Text("발음:")
-                        .font(.system(size: 14))
-                        .foregroundColor(HiTripColor.gray500)
-                    Text(phrase.pronunciation)
-                        .font(.system(size: 14))
-                        .foregroundColor(HiTripColor.gray500)
-                }
+                Text(phrase.translatedText)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color(hex: "#2563EB"))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("발음: \(phrase.pronunciation)")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color(hex: "#6B7280"))
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            // 스피커 버튼
-            Button {
-                speechSynthesizer.speak(phrase.local, language: phrase.languageCode)
-            } label: {
-                Image(systemName: "speaker.wave.2.fill")
-                    .font(.system(size: 16))
+            Button { viewModel.toggleSpeak(phrase) } label: {
+                ZStack {
+                    Circle()
+                        .fill(isSpeaking ? Color(hex: "#EF4444") : Color(hex: "#2563EB"))
+                        .frame(width: 44, height: 44)
+                    Text(isSpeaking ? "■" : "▶")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isSpeaking ? "재생 중지" : "발음 듣기")
+        }
+        .padding(.leading, 32)
+        .padding(.trailing, 30)
+        .padding(.top, 13)
+        .padding(.bottom, 14)
+    }
+
+    // MARK: - 로딩 / 빈 상태 / 에러
+
+    private var loadingView: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("현지 표현을 불러오는 중이에요")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "text.bubble")
+                .font(.system(size: 40))
+                .foregroundColor(Color(hex: "#D1D5DB"))
+            Text("등록된 표현이 없습니다")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
+            Text("안내사가 현지 표현을 등록하면\n여기에 표시됩니다")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: "exclamationmark.bubble")
+                .font(.system(size: 34))
+                .foregroundColor(Color(hex: "#D1D5DB"))
+            Text(message)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
+                .multilineTextAlignment(.center)
+            Button { viewModel.load() } label: {
+                Text("다시 시도")
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(HiTripColor.primary800)
-                    .clipShape(Circle())
+                    .padding(.horizontal, 24)
+                    .frame(height: 44)
+                    .background(Color(hex: "#2563EB"))
+                    .cornerRadius(10)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
-    }
-}
-
-// MARK: - LocalPhrase Model
-
-struct LocalPhrase: Identifiable {
-    let id = UUID()
-    let korean: String        // 한국어 표시 문장
-    let local: String         // 현지 언어 문장 (TTS용)
-    let pronunciation: String // 한글 발음 표기
-    let languageCode: String  // BCP-47 언어 코드
-
-    static let mockData: [LocalPhrase] = [
-        LocalPhrase(korean: "안녕하세요. 커피 하나 부탁드려요.",
-                    local: "こんにちは、コーヒーを一つお願いします。",
-                    pronunciation: "곤니찌와, 코히 히토츠 오네가이시마스",
-                    languageCode: "ja-JP"),
-        LocalPhrase(korean: "안녕하세요. 메뉴판 부탁드립니다.",
-                    local: "こんにちは、メニューをお願いします。",
-                    pronunciation: "곤니찌와, 메-뉴오 오네가이시마스",
-                    languageCode: "ja-JP"),
-        LocalPhrase(korean: "계산 부탁드립니다.",
-                    local: "お会計をお願いします。",
-                    pronunciation: "오칸조오 오네가이시마스",
-                    languageCode: "ja-JP"),
-        LocalPhrase(korean: "이것은 얼마인가요?",
-                    local: "これはいくらですか？",
-                    pronunciation: "코레와 이쿠라데스카",
-                    languageCode: "ja-JP"),
-        LocalPhrase(korean: "화장실이 어디에 있나요?",
-                    local: "トイレはどこですか？",
-                    pronunciation: "토이레와 도코데스카",
-                    languageCode: "ja-JP"),
-        LocalPhrase(korean: "사진 찍어도 될까요?",
-                    local: "写真を撮ってもいいですか？",
-                    pronunciation: "샤신오 톳테모 이이데스카",
-                    languageCode: "ja-JP"),
-        LocalPhrase(korean: "영어를 할 수 있으신가요?",
-                    local: "英語を話せますか？",
-                    pronunciation: "에-고오 하나세마스카",
-                    languageCode: "ja-JP"),
-    ]
-}
-
-// MARK: - SpeechSynthesizerService
-
-final class SpeechSynthesizerService: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
-
-    private let synthesizer = AVSpeechSynthesizer()
-
-    override init() {
-        super.init()
-        synthesizer.delegate = self
-    }
-
-    func speak(_ text: String, language: String) {
-        synthesizer.stopSpeaking(at: .immediate)
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
-        utterance.rate = 0.45
-        synthesizer.speak(utterance)
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

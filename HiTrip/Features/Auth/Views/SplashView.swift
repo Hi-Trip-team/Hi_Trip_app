@@ -34,13 +34,13 @@ struct SplashView: View {
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                let kc = KeychainManager.shared
+                // Mock 모드: 이전 Mock 토큰 제거 후 로그인 화면으로 이동
                 if APIEnvironment.current.useMock {
-                    injectMockSession()
-                    TripDataStore.shared.reload()
-                    router.handleAutoLogin(isLoggedIn: true)
+                    kc.clearAll()
+                    router.handleAutoLogin(isLoggedIn: false)
                 } else {
                     // Remote 모드: 이전에 Mock 토큰이 남아 있으면 제거
-                    let kc = KeychainManager.shared
                     if kc.getToken() == mockToken {
                         kc.clearAll()
                     }

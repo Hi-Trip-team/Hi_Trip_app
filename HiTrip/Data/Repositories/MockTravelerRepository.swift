@@ -9,15 +9,16 @@ import RxSwift
 ///   TripDataStore / ProfileViewModel / AgreementViewModel 모두 이 Mock을 사용.
 ///
 /// 데이터 기준:
-///   - 오늘(2026-06-22) 기준 3박 4일 제주 여행 (6/21~6/24)
-///   - 여행 2일차 상태로 설정
+///   - 현재 날짜 기준 3박 4일 제주 여행 (어제 출발 → 오늘이 2일차)
+///   - 날짜를 고정하지 않고 매번 오늘 기준으로 만들어, 시간이 지나도
+///     "오늘의 일정"이 사라지지 않습니다.
 ///   - API 응답 구조(DTO)를 실제 서버와 동일하게 맞춤
 
 final class MockTravelerRepository: TravelerRepositoryProtocol {
 
     // MARK: - Auth
 
-    func travelerLogin(phone: String, birthDate: String, inviteCode: String) -> Single<TravelerAuthResponseDTO> {
+    func travelerLogin(username: String, password: String, tripId: Int?) -> Single<TravelerAuthResponseDTO> {
         .just(TravelerAuthResponseDTO(
             token: "mock-token-abc123",
             expiresAt: nil,
@@ -71,10 +72,141 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
             trip: mockTravelerTrip,
             agreementStatus: mockAgreement,
             requiresAgreement: false,
-            todayDayNumber: 2,
-            todaySchedules: Array(mockSchedules.filter { $0.dayNumber == 2 }.prefix(3)),
-            nextSchedule: mockSchedules.filter { $0.dayNumber == 2 }.dropFirst(3).first,
-            managerContact: ["phone": "010-1234-5678", "name": "김담당"]
+            todayDayNumber: 2,   // 어제 출발이므로 오늘이 2일차
+            todaySchedules: todayMockSchedules,
+            nextSchedule: nextMockSchedule,
+            managerContact: ["phone": "010-1234-5678", "name": "김담당"],
+            todayCongestion: nil,
+            congestionStatus: nil,
+            advisory: nil
+        ))
+    }
+
+    /// 오늘(2일차) 일정 전체 — 실제 서버도 오늘 것을 전부 내려줍니다.
+    private var todayMockSchedules: [TravelerScheduleDTO] {
+        mockSchedules.filter { $0.dayNumber == 2 }.sorted { $0.startTime < $1.startTime }
+    }
+
+    /// 아직 시작하지 않은 가장 이른 일정.
+    /// 서버가 현재 시각 기준으로 계산해 주는 값이라 목에서도 같은 방식으로 만듭니다.
+    private var nextMockSchedule: TravelerScheduleDTO? {
+        let now = Self.minutesNow()
+        return todayMockSchedules.first { (Self.minutesOf($0.startTime) ?? 0) > now }
+    }
+
+    private static func minutesOf(_ time: String) -> Int? {
+        let p = time.split(separator: ":").compactMap { Int($0) }
+        guard p.count >= 2 else { return nil }
+        return p[0] * 60 + p[1]
+    }
+
+    private static func minutesNow() -> Int {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        return (c.hour ?? 0) * 60 + (c.minute ?? 0)
+    }
+
+    // MARK: - 개인 일정
+
+    /// 메모리 보관 — 앱을 다시 켜면 초기화됩니다.
+    private static var personalSchedules: [TravelerPersonalScheduleDTO] = [
+        TravelerPersonalScheduleDTO(
+            id: 9001, dayNumber: 2, scheduleDate: MockTravelerRepository.ymd(Date()),
+            title: "기념품 쇼핑", startTime: "20:00:00", endTime: "21:00:00",
+            memo: nil, isPersonal: true,
+            overlapWarning: false, overlapWithSharedScheduleIds: [],
+            createdAt: nil, updatedAt: nil
+        )
+    ]
+    private static var nextPersonalId = 9002
+
+    func fetchPersonalSchedules() -> Single<[TravelerPersonalScheduleDTO]> {
+        .just(Self.personalSchedules)
+    }
+
+    func createPersonalSchedule(_ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO> {
+        // 서버처럼 공용 일정과 겹치는지 판정
+        let overlaps = Self.overlappingSharedIds(
+            dayNumber: request.dayNumber,
+            start: request.startTime,
+            end: request.endTime,
+            schedules: mockSchedules
+        )
+        let dto = TravelerPersonalScheduleDTO(
+            id: Self.nextPersonalId, dayNumber: request.dayNumber,
+            scheduleDate: request.scheduleDate, title: request.title,
+            startTime: request.startTime, endTime: request.endTime,
+            memo: request.memo, isPersonal: true,
+            overlapWarning: !overlaps.isEmpty,
+            overlapWithSharedScheduleIds: overlaps,
+            createdAt: nil, updatedAt: nil
+        )
+        Self.nextPersonalId += 1
+        Self.personalSchedules.append(dto)
+        return .just(dto)
+    }
+
+    func updatePersonalSchedule(id: Int, _ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO> {
+        let overlaps = Self.overlappingSharedIds(
+            dayNumber: request.dayNumber,
+            start: request.startTime,
+            end: request.endTime,
+            schedules: mockSchedules
+        )
+        let dto = TravelerPersonalScheduleDTO(
+            id: id, dayNumber: request.dayNumber,
+            scheduleDate: request.scheduleDate, title: request.title,
+            startTime: request.startTime, endTime: request.endTime,
+            memo: request.memo, isPersonal: true,
+            overlapWarning: !overlaps.isEmpty,
+            overlapWithSharedScheduleIds: overlaps,
+            createdAt: nil, updatedAt: nil
+        )
+        if let idx = Self.personalSchedules.firstIndex(where: { $0.id == id }) {
+            Self.personalSchedules[idx] = dto
+        }
+        return .just(dto)
+    }
+
+    func deletePersonalSchedule(id: Int) -> Single<Void> {
+        Self.personalSchedules.removeAll { $0.id == id }
+        return .just(())
+    }
+
+    private static func overlappingSharedIds(
+        dayNumber: Int, start: String, end: String, schedules: [TravelerScheduleDTO]
+    ) -> [Int] {
+        func mins(_ t: String) -> Int {
+            let p = t.split(separator: ":").compactMap { Int($0) }
+            return p.count >= 2 ? p[0] * 60 + p[1] : 0
+        }
+        let s = mins(start), e = mins(end)
+        return schedules
+            .filter { $0.dayNumber == dayNumber }
+            .filter { mins($0.startTime) < e && s < mins($0.endTime) }
+            .map(\.id)
+    }
+
+    // MARK: - 현지 표현
+
+    func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO> {
+        .just(TravelerLocalPhrasesDTO(
+            destination: "일본 오사카",
+            languageCode: "ja",
+            languageName: "일본어",
+            phrases: [
+                LocalPhraseDTO(id: 1, koreanText: "안녕하세요. 커피 하나 부탁드려요.",
+                               translatedText: "こんにちは。コーヒーを一つお願いします。",
+                               pronunciation: "곤니찌와, 코히 히토츠 오네가이시마스", displayOrder: 1),
+                LocalPhraseDTO(id: 2, koreanText: "메뉴판 부탁드립니다.",
+                               translatedText: "メニューをお願いします。",
+                               pronunciation: "메뉴-오 오네가이시마스", displayOrder: 2),
+                LocalPhraseDTO(id: 3, koreanText: "계산 부탁드립니다.",
+                               translatedText: "お会計をお願いします。",
+                               pronunciation: "오카이케-오 오네가이시마스", displayOrder: 3),
+                LocalPhraseDTO(id: 4, koreanText: "화장실이 어디인가요?",
+                               translatedText: "トイレはどこですか？",
+                               pronunciation: "토이레와 도코데스카", displayOrder: 4),
+            ]
         ))
     }
 
@@ -206,12 +338,12 @@ private extension MockTravelerRepository {
             id: 1,
             title: "제주 힐링 여행 2026",
             destination: "제주",
-            startDate: "2026-07-19",
-            endDate: "2026-07-22",
+            startDate: Self.ymd(Self.tripStartDate),
+            endDate: Self.ymd(Self.tripStartDate.addingTimeInterval(3 * 86_400)),
             status: "ongoing",
             managerName: "김담당",
             managerContact: ["phone": "010-1234-5678"],
-            dDay: -1,   // 진행 중
+            dDay: -1,   // 어제 출발 → 오늘이 2일차
             durationDays: 4
         )
     }
@@ -291,17 +423,20 @@ private extension MockTravelerRepository {
             TravelerNoticeDTO(id: 1, title: "⚠️ 한라산 등반 안전 수칙",
                 content: "내일 한라산 등반 시 반드시 등산화를 착용해 주세요. 기상 변화가 심하므로 방수 재킷도 필수입니다. 오전 9시 30분 호텔 로비에서 집결합니다.",
                 priority: "important", publishedAt: "2026-07-19T18:00:00.000000Z",
-                createdAt: "2026-07-19T18:00:00.000000Z", updatedAt: "2026-07-19T18:00:00.000000Z"),
+                createdAt: "2026-07-19T18:00:00.000000Z", updatedAt: "2026-07-19T18:00:00.000000Z",
+                isRead: false),
 
             TravelerNoticeDTO(id: 2, title: "우도 스노클링 장비 신청 마감",
                 content: "내일 우도 스노클링 체험을 원하시는 분은 오늘 밤 10시까지 담당자에게 연락 주시기 바랍니다. 장비는 현장에서 제공됩니다.",
                 priority: "normal", publishedAt: "2026-07-19T20:00:00.000000Z",
-                createdAt: "2026-07-19T20:00:00.000000Z", updatedAt: "2026-07-19T20:00:00.000000Z"),
+                createdAt: "2026-07-19T20:00:00.000000Z", updatedAt: "2026-07-19T20:00:00.000000Z",
+                isRead: false),
 
             TravelerNoticeDTO(id: 3, title: "내일 조식 시간 변경 안내",
                 content: "7월 20일(일) 조식이 08:00으로 변경되었습니다. 한라산 등반 일정이 앞당겨진 관계로 시간을 엄수해 주시기 바랍니다.",
                 priority: "normal", publishedAt: "2026-07-19T21:00:00.000000Z",
-                createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z"),
+                createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z",
+                isRead: true),
         ]
     }
 
@@ -376,6 +511,8 @@ private extension MockTravelerRepository {
                 categoryName: category,
                 imageUrl: imageUrl
             ),
+            // 광고 뱃지 렌더링 확인용 — 인기 스팟 첫 항목만 광고
+            isSponsored: id == 201,
             createdAt: "2026-06-01T00:00:00.000000Z",
             updatedAt: "2026-06-01T00:00:00.000000Z"
         )
@@ -418,12 +555,21 @@ private extension MockTravelerRepository {
     // MARK: Helpers
 
     private func tripDayDate(_ day: Int) -> String {
-        // 여행 시작: 2026-07-19 (day 1) → 오늘 2026-07-20이 2일차
+        Self.ymd(Self.tripStartDate.addingTimeInterval(Double(day - 1) * 86_400))
+    }
+
+    /// 여행 시작일 = 어제. 오늘이 항상 2일차가 되도록 현재 날짜 기준으로 잡습니다.
+    ///
+    /// 날짜를 고정하면 시간이 지나면서 "오늘의 일정"이 사라져 목으로 화면을
+    /// 확인할 수 없게 됩니다.
+    static var tripStartDate: Date {
+        Calendar.current.startOfDay(for: Date()).addingTimeInterval(-86_400)
+    }
+
+    static func ymd(_ date: Date) -> String {
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
         df.locale = Locale(identifier: "en_US_POSIX")
-        let start = df.date(from: "2026-07-19") ?? Date()
-        let date = Calendar.current.date(byAdding: .day, value: day - 1, to: start) ?? start
         return df.string(from: date)
     }
 

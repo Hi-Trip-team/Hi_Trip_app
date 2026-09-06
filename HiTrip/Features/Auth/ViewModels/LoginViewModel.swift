@@ -41,23 +41,13 @@ final class LoginViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var loginSuccess: Bool = false
+    @Published var loggedInUserType: UserType = .guide
 
     // MARK: - Validation (회원가입 조건과 동일)
 
-    /// 아이디 유효성: 4자 이상
-    var isIdValid: Bool {
-        id.trimmed.count >= 4
-    }
-
-    /// 비밀번호 유효성: 8자 이상
-    var isPasswordValid: Bool {
-        password.count >= 8
-    }
-
-    /// 폼 전체 유효성: 아이디 4자+ & 비밀번호 8자+
-    var isFormValid: Bool {
-        isIdValid && isPasswordValid
-    }
+    var isIdValid: Bool { APIEnvironment.current.useMock || !id.trimmed.isEmpty }
+    var isPasswordValid: Bool { APIEnvironment.current.useMock || !password.isEmpty }
+    var isFormValid: Bool { isIdValid && isPasswordValid }
 
     // MARK: - Dependencies
 
@@ -138,8 +128,9 @@ final class LoginViewModel: ObservableObject {
         loginUseCase.execute(id: id, password: password)
             .observe(on: MainScheduler.instance) // UI 업데이트는 반드시 메인 스레드
             .subscribe(
-                onSuccess: { [weak self] _ in
+                onSuccess: { [weak self] userInfo in
                     self?.isLoading = false
+                    self?.loggedInUserType = userInfo.userType
                     self?.loginSuccess = true
                     // 로그인 성공 → 서버 데이터 로드 시작
                     TripDataStore.shared.reload()

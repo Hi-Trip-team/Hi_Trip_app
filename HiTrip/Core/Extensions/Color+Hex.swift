@@ -137,4 +137,50 @@ enum HiTripColor {
     static let dotInactive = gray300
     /// 도트 인디케이터 활성
     static let dotActive = primary800
+
+    // MARK: - Semantic Alert Colors (알림 센터)
+
+    /// 위험 — #E53E3E (심박수 이상, 긴급)
+    static let danger         = Color(hex: "E53E3E")
+    /// 위험 배경 — #FFF5F5
+    static let dangerBg       = Color(hex: "FFF5F5")
+    /// 이탈 (주황) — #DD6B20
+    static let caution        = Color(hex: "DD6B20")
+    /// 이탈 배경 — #FFFAF0
+    static let cautionBg      = Color(hex: "FFFAF0")
+    /// 경고 (노랑) — #D69E2E
+    static let warningYellow  = Color(hex: "D69E2E")
+    /// 경고 배경 — #FFFFF0
+    static let warningBg      = Color(hex: "FFFFF0")
+    /// 알반(일반) — Gray500과 동일
+    static let normalAlert    = gray500
+
+    // MARK: - Map / Zone
+
+    /// 안전 구역 경계선 — #E53E3E (빨간 점선 원)
+    static let safeZoneBorder = Color(hex: "E53E3E")
+    /// 안전 구역 내부 채움 — #FFF5F5 10% opacity
+    static let safeZoneFill   = Color(hex: "FFF5F5").opacity(0.35)
+    /// GPS 정확도 낮음 칩 — #DD6B20
+    static let gpsLowAccuracy = Color(hex: "DD6B20")
+
+    // MARK: - Advantage Card
+
+    /// 어드벤티지 카드 배경 — secondary100
+    static let advantageBg    = secondary100
+    /// 어드벤티지 카드 강조 텍스트 — primary800
+    static let advantageAccent = primary800
+
+    // MARK: - Chat
+
+    /// 내 말풍선 배경 — primary800
+    static let bubbleMine     = primary800
+    /// 상대 말풍선 배경 — #F2F2F2
+    static let bubbleOther    = Color(hex: "F2F2F2")
+    /// 전송 실패 — danger와 동일
+    static let sendFailed     = danger
+    /// 활동중 dot — #48BB78 (초록)
+    static let onlineGreen    = Color(hex: "48BB78")
+    /// 읽음 체크 — #48BB78
+    static let readCheckGreen = Color(hex: "48BB78")
 }
