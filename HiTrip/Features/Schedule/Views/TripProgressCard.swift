@@ -44,6 +44,8 @@ struct TripProgressCard: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 26, height: 20)
+                    // 원본 아이콘은 왼쪽을 봅니다. 진행 방향(오른쪽)으로 뒤집습니다.
+                    .scaleEffect(x: -1, y: 1)
                     .offset(x: busOffset(in: geo.size.width))
             }
             .frame(height: 24)
