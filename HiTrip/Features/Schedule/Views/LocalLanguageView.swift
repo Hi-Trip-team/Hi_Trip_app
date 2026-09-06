@@ -24,9 +24,32 @@ struct LocalLanguageView: View {
             }
         }
         .background(Color.white)
+        .overlay(alignment: .bottom) { toastView }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.toast)
         .navigationBarHidden(true)
         .task { viewModel.load() }
         .onDisappear { viewModel.stop() }
+    }
+
+    // MARK: - 토스트
+
+    @ViewBuilder
+    private var toastView: some View {
+        if let toast = viewModel.toast {
+            Text(toast)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 18)
+                .frame(height: 44)
+                .background(Color(hex: "#111827").opacity(0.92))
+                .clipShape(Capsule())
+                .padding(.bottom, 40)
+                .transition(.opacity)
+                .task(id: toast) {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    viewModel.toast = nil
+                }
+        }
     }
 
     // MARK: - Header
@@ -146,10 +169,10 @@ struct LocalLanguageView: View {
             Image(systemName: "text.bubble")
                 .font(.system(size: 40))
                 .foregroundColor(Color(hex: "#D1D5DB"))
-            Text("등록된 표현이 없습니다")
+            Text("등록된 문구가 없어요")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(Color(hex: "#111827"))
-            Text("안내사가 현지 표현을 등록하면\n여기에 표시됩니다")
+            Text("안내사가 현지 문구를 등록하면\n여기에 표시됩니다")
                 .font(.system(size: 13))
                 .foregroundColor(Color(hex: "#6B7280"))
                 .multilineTextAlignment(.center)

@@ -24,6 +24,9 @@ final class LocalLanguageViewModel: NSObject, ObservableObject {
     /// 지금 읽고 있는 표현 id — 버튼 모양(▶/■) 전환에 사용
     @Published private(set) var speakingId: Int?
 
+    /// 재생 실패 안내 — "재생할 수 없어요"
+    @Published var toast: String?
+
     private let repository: TravelerRepositoryProtocol
     private let disposeBag = DisposeBag()
     private let synthesizer = AVSpeechSynthesizer()
@@ -81,11 +84,20 @@ final class LocalLanguageViewModel: NSObject, ObservableObject {
     }
 
     private func speak(_ phrase: LocalPhraseDTO) {
+        // 읽을 문장이 없거나 해당 언어 음성이 기기에 없으면 소리 없이 끝나므로,
+        // 시도하기 전에 걸러서 안내합니다.
+        let text = phrase.translatedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, let voice = Self.voice(for: data?.languageCode) else {
+            speakingId = nil
+            toast = "재생할 수 없어요"
+            return
+        }
+
         configureAudioSession()
         synthesizer.stopSpeaking(at: .immediate)
 
-        let utterance = AVSpeechUtterance(string: phrase.translatedText)
-        utterance.voice = Self.voice(for: data?.languageCode)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = voice
         utterance.rate = 0.45
 
         speakingId = phrase.id
