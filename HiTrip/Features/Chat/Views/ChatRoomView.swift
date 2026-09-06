@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import AVFoundation
 
 // MARK: - ChatRoomView
 /// 채팅방 내부 화면
@@ -24,6 +26,15 @@ struct ChatRoomView: View {
     /// 상대 연락처 — 없으면 전화 버튼을 숨깁니다 (서버가 아직 주지 않습니다)
     var peerPhoneNumber: String?
 
+    /// 첨부
+    @State private var showAttachmentOptions = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var showPhotoPicker = false
+    @State private var showPermissionGuide = false
+
+    /// 음성 녹음
+    @StateObject private var recorder = VoiceRecorder()
+
     private var chatMessages: [ChatMessage] {
         viewModel.messages.map { $0.toChatMessage(currentUserId: viewModel.currentUserId) }
     }
@@ -39,6 +50,27 @@ struct ChatRoomView: View {
         .background(Color.white)
         .navigationBarHidden(true)
         .onTapGesture { isInputFocused = false }
+        .confirmationDialog("첨부", isPresented: $showAttachmentOptions, titleVisibility: .visible) {
+            Button("사진·동영상") { showPhotoPicker = true }
+            Button("취소", role: .cancel) { }
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .any(of: [.images, .videos]))
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task { await attach(item) }
+        }
+        .alert("권한이 필요해요", isPresented: $showPermissionGuide) {
+            Button("설정 이동") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("닫기", role: .cancel) { }
+        } message: {
+            Text("설정에서 사진·마이크 접근을 허용해주세요")
+        }
+        .overlay(alignment: .bottom) { toastView }
+        .overlay(alignment: .top) { offlineBanner }
         .confirmationDialog(
             "전송하지 못한 메시지",
             isPresented: Binding(
@@ -168,6 +200,81 @@ struct ChatRoomView: View {
         return f.string(from: current)
     }
 
+    // MARK: - 첨부 / 녹음
+
+    /// 고른 사진·동영상을 올립니다. 용량 초과는 ViewModel이 걸러 안내합니다.
+    private func attach(_ item: PhotosPickerItem) async {
+        defer { photoItem = nil }
+
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            viewModel.toast = "첨부하지 못했어요"
+            return
+        }
+
+        let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .movie) }
+        viewModel.sendAttachment(
+            chatRoomId: chatRoom.id,
+            data: data,
+            mediaType: isVideo ? "video" : "photo",
+            fileName: isVideo ? "video.mp4" : "photo.jpg",
+            mimeType: isVideo ? "video/mp4" : "image/jpeg"
+        )
+    }
+
+    private func beginRecording() async {
+        switch await recorder.start() {
+        case .started:          break
+        case .permissionDenied: showPermissionGuide = true
+        case .failed:           viewModel.toast = "녹음을 시작하지 못했어요"
+        }
+    }
+
+    private func finishRecording() {
+        guard recorder.isRecording else { return }
+        guard let result = recorder.stop() else { return }
+
+        viewModel.sendAttachment(
+            chatRoomId: chatRoom.id,
+            data: result.data,
+            mediaType: "audio",
+            fileName: "voice.m4a",
+            mimeType: "audio/mp4",
+            duration: result.duration
+        )
+    }
+
+    // MARK: - 배너 / 토스트
+
+    @ViewBuilder
+    private var offlineBanner: some View {
+        if viewModel.isOffline {
+            Text("연결이 끊겼어요. 다시 연결되면 보낼게요")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 32)
+                .background(Color(hex: "#6B7280"))
+        }
+    }
+
+    @ViewBuilder
+    private var toastView: some View {
+        if let toast = viewModel.toast {
+            Text(toast)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 18)
+                .frame(height: 44)
+                .background(Color(hex: "#111827").opacity(0.92))
+                .clipShape(Capsule())
+                .padding(.bottom, 90)
+                .task(id: toast) {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    viewModel.toast = nil
+                }
+        }
+    }
+
     /// OS 다이얼러로 넘깁니다 (인앱 통화가 아닙니다)
     private func dial(_ number: String) {
         let digits = number.filter { $0.isNumber || $0 == "+" }
@@ -181,11 +288,19 @@ struct ChatRoomView: View {
     private var inputBar: some View {
         HStack(spacing: 0) {
             // + 첨부 버튼
-            Button { } label: {
-                Text("＋")
-                    .font(.system(size: 22))
-                    .foregroundColor(Color(hex: "#6B7280"))
+            Button { showAttachmentOptions = true } label: {
+                Group {
+                    if viewModel.isUploading {
+                        ProgressView()
+                    } else {
+                        Text("＋")
+                            .font(.system(size: 22))
+                            .foregroundColor(Color(hex: "#6B7280"))
+                    }
+                }
+                .frame(width: 22, height: 22)
             }
+            .disabled(viewModel.isUploading)
             .padding(.leading, 18)
 
             // 텍스트 입력
@@ -221,15 +336,31 @@ struct ChatRoomView: View {
                     viewModel.sendMessage(chatRoomId: chatRoom.id)
                 }
             } label: {
-                Image(systemName: viewModel.messageText.isEmpty ? "mic.fill" : "arrow.up")
+                Image(systemName: recorder.isRecording
+                      ? "stop.fill"
+                      : (viewModel.messageText.isEmpty ? "mic.fill" : "arrow.up"))
                     .font(.system(size: viewModel.messageText.isEmpty ? 18 : 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 48, height: 48)
-                    .background(viewModel.isOverMessageLimit
-                                ? Color(hex: "#C3CDDA") : Color(hex: "#0C46C0"))
+                    .background(recorder.isRecording
+                                ? Color(hex: "#EF4444")
+                                : (viewModel.isOverMessageLimit
+                                   ? Color(hex: "#C3CDDA") : Color(hex: "#0C46C0")))
                     .clipShape(Circle())
             }
             .disabled(viewModel.isOverMessageLimit)
+            // 입력이 비어 있을 때만 꾹 눌러 녹음합니다 (떼면 전송)
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.3)
+                    .onEnded { _ in
+                        guard viewModel.messageText.isEmpty else { return }
+                        Task { await beginRecording() }
+                    }
+            )
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onEnded { _ in finishRecording() }
+            )
             .padding(.leading, 14)
             .padding(.trailing, 21)
         }

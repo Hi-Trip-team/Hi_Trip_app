@@ -57,12 +57,21 @@ struct ChatBubbleView: View {
     }
 
     private var bubble: some View {
-        Text(message.content)
-            .font(.system(size: 14))
-            .lineSpacing(6)
-            .foregroundColor(textColor)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(message.attachments) { attachment in
+                attachmentView(attachment)
+            }
+
+            if !message.content.isEmpty {
+                Text(message.content)
+                    .font(.system(size: 14))
+                    .lineSpacing(6)
+                    .foregroundColor(textColor)
+            }
+        }
+            // 사진만 보낸 메시지는 여백을 줄여 사진이 말풍선을 채우게 합니다
+            .padding(.horizontal, isPhotoOnly ? 4 : 12)
+            .padding(.vertical, isPhotoOnly ? 4 : 10)
             .background(bubbleColor)
             .clipShape(bubbleShape)
             .opacity(message.isSending ? 0.6 : 1)
@@ -78,6 +87,43 @@ struct ChatBubbleView: View {
             bottomTrailingRadius: 0,
             topTrailingRadius: 12
         )
+    }
+
+    /// 사진은 그대로, 동영상·음성은 아이콘 줄로 보여줍니다.
+    @ViewBuilder
+    private func attachmentView(_ attachment: MessageAttachment) -> some View {
+        if attachment.isPhoto {
+            AsyncImage(url: attachment.downloadUrl.flatMap(URL.init)) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Rectangle().fill(Color(hex: "#E5E7EB"))
+            }
+            .frame(width: 180, height: 180)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else {
+            HStack(spacing: 8) {
+                Image(systemName: attachment.isVideo ? "play.rectangle.fill" : "waveform")
+                    .font(.system(size: 16))
+                Text(attachmentLabel(attachment))
+                    .font(.system(size: 13))
+            }
+            .foregroundColor(textColor)
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func attachmentLabel(_ attachment: MessageAttachment) -> String {
+        if attachment.isAudio {
+            let seconds = attachment.duration ?? 0
+            return String(format: "음성 %d:%02d", seconds / 60, seconds % 60)
+        }
+        return attachment.originalName ?? "동영상"
+    }
+
+    /// 사진 한 장만 있고 본문이 없는 메시지
+    private var isPhotoOnly: Bool {
+        message.content.isEmpty && message.attachments.allSatisfy(\.isPhoto)
+            && !message.attachments.isEmpty
     }
 
     private var bubbleColor: Color {

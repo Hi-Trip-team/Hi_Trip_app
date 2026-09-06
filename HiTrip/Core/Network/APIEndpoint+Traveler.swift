@@ -327,6 +327,14 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/tourist/feedback/", method: .post, body: body)
     }
 
+    // MARK: - Chat 첨부 업로드
+
+    /// 업로드 사전 승인 — 여기서 받은 upload_url로 파일 본문을 PUT 합니다.
+    /// POST /api/v1/chat/uploads/presign/
+    static func chatUploadPresign(body: [String: Any]) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/chat/uploads/presign/", method: .post, body: body)
+    }
+
     // MARK: - Nearby Spots (상황별 검색)
 
     /// 주변 스팟 — 카테고리별

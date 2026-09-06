@@ -567,9 +567,40 @@ struct ChatMessageV1DTO: Decodable {
 
 struct ChatAttachmentDTO: Decodable {
     let id: Int
+    let mediaType: String?
     let downloadUrl: String?
     let originalName: String?
     let mimeType: String?
+    let duration: Int?
+
+    func toAttachment() -> MessageAttachment {
+        MessageAttachment(
+            id: id,
+            mediaType: mediaType ?? "photo",
+            downloadUrl: downloadUrl,
+            originalName: originalName,
+            duration: duration
+        )
+    }
+}
+
+// MARK: - 첨부 업로드
+
+/// POST /api/v1/chat/uploads/presign/
+struct ChatUploadIntentDTO: Decodable {
+    let attachmentId: Int
+    /// 항상 "PUT"
+    let method: String?
+    let uploadUrl: String
+    let expiresAt: String?
+    /// 업로드 PUT에 반드시 실어야 하는 헤더 (Content-Type 등)
+    let requiredHeaders: [String: String]?
+}
+
+struct ChatUploadCompleteDTO: Decodable {
+    let attachmentId: Int
+    let status: String?
+    let size: Int?
 }
 
 struct ChatMessagePageDTO: Decodable {
@@ -663,7 +694,8 @@ extension ChatMessageV1DTO {
             senderName: name,
             content: body,
             sentAt: sentAt,
-            sendStatus: .sent
+            sendStatus: .sent,
+            attachments: (attachments ?? []).map { $0.toAttachment() }
         )
     }
 }

@@ -43,4 +43,20 @@ protocol ChatRepositoryProtocol {
 
     /// 메시지 읽음 처리 — 특정 채팅방의 모든 메시지를 읽음으로
     func markAsRead(chatRoomId: UUID) -> Single<Void>
+
+    // MARK: - 첨부
+
+    /// 파일을 업로드하고 attachment_id를 돌려줍니다.
+    /// presign → PUT 업로드 두 단계를 저장소가 감춥니다.
+    func uploadAttachment(
+        chatRoomId: UUID,
+        data: Data,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        duration: Int?
+    ) -> Single<Int>
+
+    /// 첨부가 붙은 메시지 전송
+    func sendMessage(message: Message, attachmentIds: [Int]) -> Single<Message>
 }

@@ -139,6 +139,30 @@ final class MockChatRepository: ChatRepositoryProtocol {
         return .just(saved)
     }
 
+    // MARK: - 첨부
+
+    private static var nextAttachmentId = 500
+
+    func uploadAttachment(
+        chatRoomId: UUID,
+        data: Data,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        duration: Int?
+    ) -> Single<Int> {
+        Self.nextAttachmentId += 1
+        return .just(Self.nextAttachmentId)
+    }
+
+    func sendMessage(message: Message, attachmentIds: [Int]) -> Single<Message> {
+        var withAttachments = message
+        withAttachments.attachments = attachmentIds.map {
+            MessageAttachment(id: $0, mediaType: "photo", downloadUrl: nil, originalName: nil, duration: nil)
+        }
+        return sendMessage(message: withAttachments)
+    }
+
     func markAsRead(chatRoomId: UUID) -> Single<Void> {
         if let idx = Self.rooms.firstIndex(where: { $0.id == chatRoomId }) {
             Self.rooms[idx].unreadCount = 0
