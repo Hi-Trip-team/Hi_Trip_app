@@ -28,6 +28,18 @@ final class ChatViewModel: ObservableObject {
     /// 메시지 입력 — TextField와 바인딩
     @Published var messageText: String = ""
 
+    /// 입력 상한 (자)
+    let messageLimit = 1_000
+
+    /// 상한을 넘겼는지 — 넘기면 전송을 막습니다.
+    /// 입력 중에 잘라내면 한국어·일본어·중국어 조합이 깨지므로 자르지 않습니다.
+    var isOverMessageLimit: Bool { messageText.count > messageLimit }
+
+    /// 과거 메시지 커서 — nil이면 더 불러올 게 없습니다
+    @Published private(set) var olderCursor: Int?
+    @Published private(set) var isLoadingOlder = false
+    var hasOlderMessages: Bool { olderCursor != nil }
+
     // MARK: - 채팅방 생성 폼
 
     /// 상대방 이름 입력
@@ -146,6 +158,8 @@ final class ChatViewModel: ObservableObject {
                 onSuccess: { [weak self] messages in
                     self?.isLoading = false
                     self?.messages = messages
+                    // 가장 오래된 메시지를 다음 페이지 커서로 잡아둡니다
+                    self?.olderCursor = messages.first?.serverId
                 },
                 onFailure: { [weak self] error in
                     self?.isLoading = false
@@ -157,13 +171,36 @@ final class ChatViewModel: ObservableObject {
 
     /// 메시지 전송
     /// - 입력창의 텍스트로 Message 생성 후 전송
+    /// 위로 스크롤했을 때 과거 메시지 30개를 앞에 붙입니다.
+    func loadOlderMessages(chatRoomId: UUID) {
+        guard !isLoadingOlder, let cursor = olderCursor else { return }
+        isLoadingOlder = true
+
+        chatUseCase.fetchOlderMessages(chatRoomId: chatRoomId, before: cursor)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] page in
+                    guard let self else { return }
+                    self.isLoadingOlder = false
+                    guard !page.messages.isEmpty else {
+                        self.olderCursor = nil
+                        return
+                    }
+                    self.messages.insert(contentsOf: page.messages, at: 0)
+                    self.olderCursor = page.nextCursor
+                },
+                onFailure: { [weak self] _ in self?.isLoadingOlder = false }
+            )
+            .disposed(by: disposeBag)
+    }
+
     /// 메시지 전송
     ///
     /// 화면에 먼저 붙이고(.sending) 결과에 따라 .sent / .failed 로 바꿉니다.
     /// 실패한 메시지를 목록에서 지우지 않아야 사용자가 재전송할 수 있습니다.
     func sendMessage(chatRoomId: UUID) {
         let text = messageText.trimmed
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty, !isOverMessageLimit else { return }
 
         let pending = Message(
             chatRoomId: chatRoomId,

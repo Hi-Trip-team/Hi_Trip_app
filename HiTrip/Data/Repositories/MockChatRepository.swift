@@ -109,6 +109,16 @@ final class MockChatRepository: ChatRepositoryProtocol {
         .just((Self.messages[chatRoomId] ?? []).sorted { $0.sentAt < $1.sentAt })
     }
 
+    /// 목에는 과거 메시지가 없어 항상 "더 없음"으로 답합니다.
+    func fetchMessages(
+        chatRoomId: UUID,
+        before: Int?,
+        limit: Int
+    ) -> Single<(messages: [Message], nextCursor: Int?)> {
+        guard before == nil else { return .just(([], nil)) }
+        return fetchMessages(chatRoomId: chatRoomId).map { ($0, nil) }
+    }
+
     func sendMessage(message: Message) -> Single<Message> {
         // 전송 실패 화면을 확인할 수 있게 남겨둔 통로
         if message.content.hasPrefix("실패") || message.content.lowercased().hasPrefix("fail") {

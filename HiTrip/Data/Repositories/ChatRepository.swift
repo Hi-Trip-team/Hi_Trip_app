@@ -77,6 +77,17 @@ final class ChatRepository: ChatRepositoryProtocol {
         fetchMessages(chatRoomId: chatRoomId, before: nil).map(\.messages)
     }
 
+    func fetchMessages(
+        chatRoomId: UUID,
+        before: Int?,
+        limit: Int
+    ) -> Single<(messages: [Message], nextCursor: Int?)> {
+        // 서버는 페이지 크기를 인자로 받지 않고 고정 크기로 돌려줍니다.
+        // limit은 앱이 한 번에 붙이는 양의 상한으로만 씁니다.
+        fetchMessages(chatRoomId: chatRoomId, before: before)
+            .map { page in (Array(page.messages.suffix(limit)), page.nextCursor) }
+    }
+
     /// 커서 페이징 — `before`보다 id가 작은(= 더 오래된) 메시지를 불러옵니다.
     /// - Returns: 메시지와 다음 페이지 커서. `nextCursor`가 nil이면 더 없음.
     func fetchMessages(

@@ -68,6 +68,15 @@ final class ChatUseCase {
 
     /// 메시지 읽음 처리
     /// - 검증 불필요 → 바로 Repository 호출
+    /// 과거 메시지 페이지 — 상단 스크롤 시 30개씩 불러옵니다.
+    func fetchOlderMessages(
+        chatRoomId: UUID,
+        before: Int?,
+        limit: Int = 30
+    ) -> Single<(messages: [Message], nextCursor: Int?)> {
+        return repository.fetchMessages(chatRoomId: chatRoomId, before: before, limit: limit)
+    }
+
     func markAsRead(chatRoomId: UUID) -> Single<Void> {
         return repository.markAsRead(chatRoomId: chatRoomId)
     }

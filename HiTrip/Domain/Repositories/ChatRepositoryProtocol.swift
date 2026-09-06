@@ -33,6 +33,14 @@ protocol ChatRepositoryProtocol {
     /// 메시지 조회 — 특정 채팅방의 모든 메시지 (시간순)
     func fetchMessages(chatRoomId: UUID) -> Single<[Message]>
 
+    /// 과거 메시지 페이지 — `before`보다 오래된 것부터 최대 limit개.
+    /// nextCursor가 nil이면 더 불러올 게 없습니다.
+    func fetchMessages(
+        chatRoomId: UUID,
+        before: Int?,
+        limit: Int
+    ) -> Single<(messages: [Message], nextCursor: Int?)>
+
     /// 메시지 읽음 처리 — 특정 채팅방의 모든 메시지를 읽음으로
     func markAsRead(chatRoomId: UUID) -> Single<Void>
 }
