@@ -15,6 +15,7 @@ struct NotificationCenterView: View {
 
     @State private var showLocation = false
     @State private var locationTargetName: String?
+    @State private var locationTargetId: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,7 +40,10 @@ struct NotificationCenterView: View {
         .navigationBarHidden(true)
         .task { viewModel.load() }
         .navigationDestination(isPresented: $showLocation) {
-            TouristLocationView(touristName: locationTargetName ?? "")
+            TouristLocationView(
+                participantId: locationTargetId ?? 0,
+                touristName: locationTargetName ?? ""
+            )
         }
     }
 
@@ -182,6 +186,7 @@ struct NotificationCenterView: View {
 
         if alert.alertType == "location" {
             locationTargetName = alert.travelerName
+            locationTargetId = viewModel.participantId(for: alert)
             showLocation = true
         } else {
             // 건강·일정 알림은 앞 화면(안전 관리·전체일정)으로 돌아가 확인합니다

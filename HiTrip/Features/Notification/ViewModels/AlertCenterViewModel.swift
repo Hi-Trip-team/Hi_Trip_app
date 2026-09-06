@@ -48,6 +48,8 @@ final class AlertCenterViewModel: ObservableObject {
     private let repository: StaffRepositoryProtocol
     private let disposeBag = DisposeBag()
     private var tripId: Int?
+    /// 이름 → participant id — 알림에 participant_id가 없어 명단으로 맞춥니다
+    @Published private(set) var participantIdsByName: [String: Int] = [:]
 
     init(repository: StaffRepositoryProtocol = AppDIContainer.shared.staffRepositoryForGuide) {
         self.repository = repository
@@ -69,6 +71,7 @@ final class AlertCenterViewModel: ObservableObject {
                         return
                     }
                     self.tripId = trip.id
+                    self.loadParticipantIds(tripId: trip.id)
                     self.refresh()
                 },
                 onFailure: { [weak self] error in
@@ -76,6 +79,23 @@ final class AlertCenterViewModel: ObservableObject {
                 }
             )
             .disposed(by: disposeBag)
+    }
+
+    /// 이탈 알림에서 위치 확인으로 넘어가려면 participant id가 필요합니다
+    private func loadParticipantIds(tripId: Int) {
+        repository.fetchParticipantsLatest(tripId: tripId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] list in
+                self?.participantIdsByName = Dictionary(
+                    list.map { ($0.travelerName, $0.participantId) },
+                    uniquingKeysWith: { first, _ in first }
+                )
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    func participantId(for alert: MonitoringAlertDTO) -> Int? {
+        participantIdsByName[alert.travelerName]
     }
 
     func refresh() {

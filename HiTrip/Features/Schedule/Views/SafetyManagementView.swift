@@ -64,8 +64,10 @@ struct SafetyManagementView: View {
         .onAppear { viewModel.startPolling() }
         .onDisappear { viewModel.stopPolling() }
         .navigationDestination(isPresented: $showLocation) {
-            // 관광객 위치 확인 화면은 다음 단계에서 서버에 연결합니다
-            TouristLocationView(touristName: locationTarget?.travelerName ?? "")
+            TouristLocationView(
+                participantId: locationTarget?.participantId ?? 0,
+                touristName: locationTarget?.travelerName ?? ""
+            )
         }
     }
 
