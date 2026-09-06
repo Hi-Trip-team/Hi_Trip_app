@@ -21,7 +21,7 @@ enum APIEnvironment {
 
     // MARK: - 현재 환경 (여기서 전환)
 
-    static let current: APIEnvironment = .mock
+    static let current: APIEnvironment = .remote
 
     // MARK: - Base URL
 
