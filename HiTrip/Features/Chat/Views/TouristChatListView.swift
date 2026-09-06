@@ -19,9 +19,17 @@ struct TouristChatListView: View {
     /// 검색창 포커스 — 목록을 누르면 키보드를 내립니다
     @FocusState private var isSearchFocused: Bool
 
+    /// 단체톡방을 맨 위에 고정하고, 나머지는 마지막 메시지 최신순입니다.
+    private var sortedRooms: [ChatRoom] {
+        viewModel.chatRooms.sorted { a, b in
+            if a.isGroupChat != b.isGroupChat { return a.isGroupChat }
+            return a.lastMessageDate > b.lastMessageDate
+        }
+    }
+
     private var filteredRooms: [ChatRoom] {
-        guard !searchText.isEmpty else { return viewModel.chatRooms }
-        return viewModel.chatRooms.filter {
+        guard !searchText.isEmpty else { return sortedRooms }
+        return sortedRooms.filter {
             $0.participantName.localizedCaseInsensitiveContains(searchText) ||
             $0.lastMessage.localizedCaseInsensitiveContains(searchText)
         }
@@ -148,9 +156,10 @@ struct TouristChatListView: View {
                     .foregroundColor(Color(hex: "#6B7280"))
 
                 if room.unreadCount > 0 {
-                    Text("\(room.unreadCount)")
+                    Text(room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
+                        .padding(.horizontal, 6)
                         .frame(minWidth: 22, minHeight: 22)
                         .background(Color(hex: "#EF4444"))
                         .clipShape(Capsule())
@@ -173,7 +182,7 @@ struct TouristChatListView: View {
             Image(systemName: isSearching ? "magnifyingglass" : "bubble.left.and.bubble.right")
                 .font(.system(size: 40))
                 .foregroundColor(Color(hex: "#D1D5DB"))
-            Text(isSearching ? "검색 결과가 없습니다" : "메시지가 없습니다")
+            Text(isSearching ? "검색 결과가 없어요" : "메시지가 없어요")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(Color(hex: "#111827"))
             Text(isSearching
@@ -188,14 +197,14 @@ struct TouristChatListView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 오늘이면 시각, 어제면 "어제", 그 이전은 날짜
+    /// 오늘=HH:mm, 어제="어제", 그 이전=M.D
     private func formatTime(_ date: Date) -> String {
         let cal = Calendar.current
         if cal.isDateInYesterday(date) { return "어제" }
 
         let f = DateFormatter()
         f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = cal.isDateInToday(date) ? "a h:mm" : "M/d"
+        f.dateFormat = cal.isDateInToday(date) ? "HH:mm" : "M.d"
         return f.string(from: date)
     }
 }
