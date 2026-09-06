@@ -25,6 +25,9 @@ struct Message: Identifiable, Codable, Equatable {
     /// 전송 상태 — 서버에서 받은 메시지는 항상 .sent
     var sendStatus: MessageSendStatus
 
+    /// 첨부 파일 — 사진·동영상·음성
+    var attachments: [MessageAttachment]
+
     init(
         id: UUID = UUID(),
         serverId: Int? = nil,
@@ -34,7 +37,8 @@ struct Message: Identifiable, Codable, Equatable {
         senderName: String,
         content: String,
         sentAt: Date = Date(),
-        sendStatus: MessageSendStatus = .sent
+        sendStatus: MessageSendStatus = .sent,
+        attachments: [MessageAttachment] = []
     ) {
         self.id = id
         self.serverId = serverId
@@ -45,6 +49,7 @@ struct Message: Identifiable, Codable, Equatable {
         self.content = content
         self.sentAt = sentAt
         self.sendStatus = sendStatus
+        self.attachments = attachments
     }
 
     /// 내가 보낸 메시지인지
@@ -63,9 +68,27 @@ struct Message: Identifiable, Codable, Equatable {
             content: content,
             isMine: isMyMessage(currentUserId: currentUserId),
             sendStatus: sendStatus,
-            sentAt: sentAt
+            sentAt: sentAt,
+            attachments: attachments
         )
     }
+}
+
+// MARK: - 첨부
+
+/// 서버 ChatAttachment — 사진·동영상·음성
+struct MessageAttachment: Identifiable, Codable, Equatable {
+    let id: Int
+    /// "photo" | "video" | "audio"
+    let mediaType: String
+    let downloadUrl: String?
+    let originalName: String?
+    /// 음성 길이(초)
+    let duration: Int?
+
+    var isPhoto: Bool { mediaType == "photo" }
+    var isVideo: Bool { mediaType == "video" }
+    var isAudio: Bool { mediaType == "audio" }
 }
 
 // MARK: - 전송 상태
@@ -89,6 +112,7 @@ struct ChatMessage: Identifiable {
     let isMine: Bool
     var sendStatus: MessageSendStatus
     let sentAt: Date
+    var attachments: [MessageAttachment] = []
 
     var sendFailed: Bool { sendStatus == .failed }
     var isSending: Bool { sendStatus == .sending }

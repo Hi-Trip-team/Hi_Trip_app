@@ -1,5 +1,12 @@
 import SwiftUI
 import MapKit
+import UIKit
+
+// MARK: - NearbySpotDetailView
+/// 스팟 상세
+///
+/// 서버가 주지 않는 값(별점·영업시간·거리)은 nil이면 해당 UI를 숨깁니다.
+/// 어드벤티지(혜택)는 API 자체가 없어 아직 표시하지 못합니다.
 
 struct NearbySpotDetailView: View {
 
@@ -14,6 +21,10 @@ struct NearbySpotDetailView: View {
     var rating: Double?
     var reviewCount: Int?
     var imageUrl: String?
+    /// 사진 여러 장 — 서버는 아직 image_url 한 장만 줍니다
+    var imageUrls: [String] = []
+    /// 광고 뱃지 — 전 지면 공통으로 is_sponsored 하나만 봅니다
+    var isSponsored: Bool = false
     var latitude: Double?
     var longitude: Double?
     var tags: [String] = []
@@ -24,6 +35,17 @@ struct NearbySpotDetailView: View {
     private var coordinate: CLLocationCoordinate2D? {
         guard let latitude, let longitude else { return nil }
         return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    @State private var photoIndex = 0
+    @State private var toast: String?
+    @State private var showRouteOptions = false
+
+    /// 표시할 사진들 — 없으면 대체 썸네일 1장
+    private var photos: [String] {
+        if !imageUrls.isEmpty { return imageUrls }
+        if let imageUrl, !imageUrl.isEmpty { return [imageUrl] }
+        return []
     }
 
     @State private var region = MKCoordinateRegion(
@@ -59,7 +81,14 @@ struct NearbySpotDetailView: View {
             bottomButton
         }
         .background(Color.white)
+        .overlay(alignment: .bottom) { toastView }
+        .animation(.easeInOut(duration: 0.2), value: toast)
         .navigationBarHidden(true)
+        .confirmationDialog("길찾기", isPresented: $showRouteOptions, titleVisibility: .visible) {
+            Button("카카오맵") { openRoute(.kakao) }
+            Button("구글 지도") { openRoute(.google) }
+            Button("취소", role: .cancel) { }
+        }
     }
 
     // MARK: - 헤더
@@ -77,11 +106,6 @@ struct NearbySpotDetailView: View {
                         .foregroundColor(.black)
                 }
                 Spacer()
-                Button { } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "#6B7280"))
-                }
             }
             .padding(.horizontal, 16)
         }
@@ -92,8 +116,34 @@ struct NearbySpotDetailView: View {
     // MARK: - 썸네일
 
     private var thumbnailSection: some View {
-        SpotImageView(imageUrl: imageUrl, categoryName: categoryName, iconSize: 52)
-            .frame(height: 200)
+        ZStack(alignment: .topLeading) {
+            if photos.count > 1 {
+                TabView(selection: $photoIndex) {
+                    ForEach(Array(photos.enumerated()), id: \.offset) { index, url in
+                        SpotImageView(imageUrl: url, categoryName: categoryName, iconSize: 52)
+                            .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .always))
+                .indexViewStyle(.page(backgroundDisplayMode: .always))
+                .frame(height: 200)
+            } else {
+                // 사진이 없으면 카테고리 기본 썸네일 한 장
+                SpotImageView(imageUrl: photos.first, categoryName: categoryName, iconSize: 52)
+                    .frame(height: 200)
+            }
+
+            if isSponsored {
+                Text("광고")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .frame(height: 20)
+                    .background(Color(hex: "#1A1A1A"))
+                    .cornerRadius(4)
+                    .padding(12)
+            }
+        }
     }
 
     // MARK: - 기본 정보
@@ -128,6 +178,20 @@ struct NearbySpotDetailView: View {
                     Text(address)
                         .font(.system(size: 12))
                         .foregroundColor(Color(hex: "#6B7280"))
+
+                    Button {
+                        UIPasteboard.general.string = address
+                        toast = "주소가 복사되었어요"
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 10))
+                            Text("복사")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(Color(hex: "#2563EB"))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -238,31 +302,72 @@ struct NearbySpotDetailView: View {
     // MARK: - 하단 버튼
 
     private var bottomButton: some View {
-        HStack(spacing: 12) {
-            Button { } label: {
-                Image(systemName: "heart")
-                    .font(.system(size: 18))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                    .frame(width: 52, height: 52)
-                    .background(Color(hex: "#F3F4F6"))
-                    .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
-
-            Button { } label: {
-                Text("길찾기")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
+        Button { showRouteOptions = true } label: {
+            Text("길찾기")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(coordinate == nil ? Color(hex: "#C3CDDA") : Color(hex: "#2563EB"))
+                .cornerRadius(12)
         }
+        .buttonStyle(.plain)
+        .disabled(coordinate == nil)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .background(Color.white)
+    }
+
+    // MARK: - 길찾기
+
+    /// 카카오맵 → 구글맵 순으로 설치된 앱을 띄우고, 없으면 웹 지도로 넘깁니다.
+    private func openRoute(_ app: MapApp) {
+        guard let coordinate else { return }
+        let lat = coordinate.latitude
+        let lng = coordinate.longitude
+        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        let appURL: URL?
+        let webURL: URL?
+        switch app {
+        case .kakao:
+            appURL = URL(string: "kakaomap://route?ep=\(lat),\(lng)&by=CAR")
+            webURL = URL(string: "https://map.kakao.com/link/to/\(encodedName),\(lat),\(lng)")
+        case .google:
+            appURL = URL(string: "comgooglemaps://?daddr=\(lat),\(lng)&directionsmode=driving")
+            webURL = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(lat),\(lng)")
+        }
+
+        if let appURL, UIApplication.shared.canOpenURL(appURL) {
+            UIApplication.shared.open(appURL)
+        } else if let webURL {
+            UIApplication.shared.open(webURL)
+        } else {
+            toast = "길찾기를 열 수 없어요"
+        }
+    }
+
+    private enum MapApp { case kakao, google }
+
+    // MARK: - 토스트
+
+    @ViewBuilder
+    private var toastView: some View {
+        if let toast {
+            Text(toast)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 18)
+                .frame(height: 44)
+                .background(Color(hex: "#111827").opacity(0.92))
+                .clipShape(Capsule())
+                .padding(.bottom, 90)
+                .transition(.opacity)
+                .task(id: toast) {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    self.toast = nil
+                }
+        }
     }
 }
 

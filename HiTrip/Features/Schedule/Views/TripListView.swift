@@ -40,17 +40,23 @@ struct TripListView: View {
                                 .padding(.bottom, 32)
                         }
                     }
+                    .refreshable { viewModel.refresh() }
                 }
 
-                if showNotice {
-                    NoticePopupView(isPresented: $showNotice)
+                if showNotice, let notice = viewModel.representativeNotice {
+                    NoticePopupView(
+                        isPresented: $showNotice,
+                        notice: notice,
+                        previousNotices: viewModel.previousNotices
+                    )
                 }
 
                 // 긴급 즉시 연락 — 별도 화면이 아니라 홈 위에 겹칩니다
                 if showEmergency {
                     EmergencyCallDialog(
                         isPresented: $showEmergency,
-                        phoneNumber: viewModel.managerPhone
+                        phoneNumber: viewModel.managerPhone,
+                        onMessageGuide: { showChat = true }
                     )
                 }
             }
@@ -72,6 +78,7 @@ struct TripListView: View {
                     address: spot.place.address,
                     description: spot.description,
                     imageUrl: spot.imageUrl,
+                    isSponsored: spot.isSponsored == true,
                     latitude: spot.place.latitude.flatMap(Double.init),
                     longitude: spot.place.longitude.flatMap(Double.init),
                     categoryName: spot.place.categoryName
@@ -149,15 +156,16 @@ struct TripListView: View {
 
     private var todayScheduleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("오늘의 일정")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
-
-            if viewModel.isBeforeTrip {
+            // 여행 중에는 진행률 카드가 먼저 오고 그 아래에 제목이 붙습니다.
+            // 시작 전·종료 후에는 카드가 없어 제목이 맨 위입니다.
+            switch viewModel.phase {
+            case .before:
+                sectionTitle
                 beforeTripCard
-            } else {
+            case .finished:
+                sectionTitle
+                finishedTripCard
+            case .during:
                 inTripSchedule
             }
 
@@ -172,6 +180,14 @@ struct TripListView: View {
             .padding(.top, 14)
             .padding(.bottom, 22)
         }
+    }
+
+    private var sectionTitle: some View {
+        Text("오늘의 일정")
+            .font(.system(size: 16, weight: .bold))
+            .foregroundColor(Color(hex: "#111827"))
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
     }
 
     // MARK: - 여행 시작 전
@@ -192,17 +208,38 @@ struct TripListView: View {
         .padding(.horizontal, 24)
     }
 
+    // MARK: - 여행 종료 후
+
+    private var finishedTripCard: some View {
+        VStack(spacing: 6) {
+            Text("여행이 종료되었습니다")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(Color(hex: "#111827"))
+            Text("여행 정보와 계정은 \(viewModel.dataPurgeDateText)에 파기됩니다")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 92)
+        .background(Color(hex: "#F3F4F6"))
+        .cornerRadius(12)
+        .padding(.horizontal, 24)
+    }
+
     // MARK: - 여행 중
 
     private var inTripSchedule: some View {
         VStack(alignment: .leading, spacing: 0) {
             // 여행 진행률 카드
             TripProgressCard(
-                dayNumber: viewModel.todayDayNumber,
-                totalDays: viewModel.tripTotalDays,
+                progress: viewModel.todayProgress,
+                remainingDays: viewModel.tripTotalDays - viewModel.todayDayNumber,
                 destination: viewModel.destinationText
             )            .padding(.horizontal, 21)
-            .padding(.bottom, 16)
+            .padding(.bottom, 20)
+
+            sectionTitle
 
             // 현재 일정
             if let current = viewModel.currentSchedule {
@@ -220,10 +257,12 @@ struct TripListView: View {
                 .background(Color(hex: "#F3F4F6"))
                 .cornerRadius(12)
                 .padding(.horizontal, 24)
+                .contentShape(Rectangle())
+                .onTapGesture { showTripDetail = true }
             } else {
                 Text(viewModel.todayState == .finished
                      ? "오늘 일정이 모두 끝났어요"
-                     : "오늘은 예정된 일정이 없어요")
+                     : "오늘은 등록된 일정이 없어요")
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: "#6B7280"))
                     .frame(maxWidth: .infinity)
@@ -255,6 +294,8 @@ struct TripListView: View {
                 .frame(height: 48)
                 .background(Color(hex: "#F3F4F6"))
                 .cornerRadius(12)
+                .contentShape(Rectangle())
+                .onTapGesture { showTripDetail = true }
                 .padding(.horizontal, 24)
             }
         }
@@ -262,7 +303,10 @@ struct TripListView: View {
 
     // MARK: - 주변 인기 스팟
 
+    @ViewBuilder
     private var nearbySpotSection: some View {
+        // 스팟이 없으면 섹션째 숨깁니다
+        if !viewModel.popularSpots.isEmpty {
         VStack(alignment: .leading, spacing: 12) {
             Text("주변 인기 스팟")
                 .font(.system(size: 16, weight: .bold))
@@ -288,6 +332,7 @@ struct TripListView: View {
             .padding(.horizontal, 24)
             .padding(.top, 2)
             .padding(.bottom, 20)
+        }
         }
     }
 
@@ -355,9 +400,23 @@ struct TripListView: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { showNotice = true }
+        .onTapGesture {
+            viewModel.markNoticeRead(notice)
+            showNotice = true
+        }
         .padding(.horizontal, 24)
         .padding(.bottom, 10)
+        } else {
+            Text("등록된 공지가 없어요")
+                .font(.system(size: 12))
+                .foregroundColor(Color(hex: "#6B7280"))
+                .padding(.horizontal, 14)
+                .frame(minHeight: 58)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "#F3F4F6"))
+                .cornerRadius(12)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
         }
     }
 
@@ -413,15 +472,14 @@ struct TripListView: View {
                 .buttonStyle(.plain)
 
                 if viewModel.hasUnreadMessage {
-                    ZStack {
-                        Circle()
-                            .fill(Color(hex: "#EF4444"))
-                            .frame(width: 20, height: 20)
-                        Text("\(viewModel.unreadMessageCount)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    .offset(x: -4, y: -4)
+                    Text(viewModel.unreadMessageBadgeText)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .frame(minWidth: 20, minHeight: 20)
+                        .background(Color(hex: "#EF4444"))
+                        .clipShape(Capsule())
+                        .offset(x: -4, y: -4)
                 }
             }
         }

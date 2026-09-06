@@ -234,6 +234,11 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         .just(mockNotices)
     }
 
+    func markNoticeRead(id: Int) -> Single<Void> {
+        Self.readNoticeIds.insert(id)
+        return .just(())
+    }
+
     func fetchNotice(id: Int) -> Single<TravelerNoticeDTO> {
         if let found = mockNotices.first(where: { $0.id == id }) {
             return .just(found)
@@ -286,6 +291,67 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
 
     func fetchManagerContact() -> Single<TravelerManagerContactDTO> {
         .just(TravelerManagerContactDTO(manager: ["phone": "010-1234-5678", "name": "김담당 매니저"]))
+    }
+
+    // MARK: - 주변 스팟 / 안전
+
+    func fetchNearbySpots(
+        category: String,
+        lat: Double,
+        lng: Double,
+        radius: Int?
+    ) -> Single<[TravelerNearbySpotDTO]> {
+        .just(Self.mockNearbySpots(category: category, lat: lat, lng: lng))
+    }
+
+    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO> {
+        // 목에서는 현재 위치를 모르므로 제주 시내를 중심으로 잡습니다
+        .just(TravelerSafetySummaryDTO(
+            tripId: 1,
+            dayNumber: 2,
+            geofence: TravelerGeofenceDTO(
+                centerLat: "33.499621",
+                centerLng: "126.531188",
+                radiusKm: "3.0"
+            )
+        ))
+    }
+
+    func sendLocationSnapshot(latitude: Double, longitude: Double, accuracyM: Double?) -> Single<Void> {
+        .just(())
+    }
+
+    /// 카테고리별로 좌표를 조금씩 흩어 놓아 지도 마커를 확인할 수 있게 합니다.
+    private static func mockNearbySpots(category: String, lat: Double, lng: Double) -> [TravelerNearbySpotDTO] {
+        let names: [String]
+        switch category {
+        case "restaurant":    names = ["흑돼지 명가", "해녀의 집", "올레 국수"]
+        case "accessibility": names = ["제주도립미술관", "한라수목원"]
+        case "pet":           names = ["반려동물 동반 카페", "애월 펫파크"]
+        case "convenience":   names = ["GS25 동문점", "CU 칠성로점", "세븐일레븐 관덕정"]
+        case "mart":          names = ["이마트 제주점", "하나로마트"]
+        default:              names = []
+        }
+
+        return names.enumerated().map { index, name in
+            TravelerNearbySpotDTO(
+                providerObjectId: "\(category)_\(index)",
+                name: name,
+                categoryName: category,
+                categoryGroupCode: nil,
+                categoryGroupName: nil,
+                phone: nil,
+                address: "제주특별자치도 제주시",
+                roadAddress: nil,
+                placeUrl: nil,
+                distanceM: 300 + index * 250,
+                lat: String(lat + Double(index + 1) * 0.004),
+                lng: String(lng + Double(index % 2 == 0 ? 1 : -1) * 0.005),
+                isSponsored: index == 0,
+                imageUrl: nil,
+                description: "목 데이터"
+            )
+        }
     }
 
     func sendEmergencyRequest(message: String, latitude: String?, longitude: String?, accuracyM: String?) -> Single<TravelerEmergencyRequestDTO> {
@@ -418,25 +484,45 @@ private extension MockTravelerRepository {
 
     // MARK: Notices
 
+    /// 읽음 처리한 공지 id — 목 환경에서도 빨간 점이 사라지는 걸 확인할 수 있게 유지합니다
+    private static var readNoticeIds: Set<Int> = []
+
     var mockNotices: [TravelerNoticeDTO] {
+        raw.map { n in
+            Self.readNoticeIds.contains(n.id)
+                ? TravelerNoticeDTO(id: n.id, title: n.title, content: n.content,
+                                    priority: n.priority, publishedAt: n.publishedAt,
+                                    createdAt: n.createdAt, updatedAt: n.updatedAt,
+                                    isRead: true, isActive: n.isActive)
+                : n
+        }
+    }
+
+    private var raw: [TravelerNoticeDTO] {
         [
             TravelerNoticeDTO(id: 1, title: "⚠️ 한라산 등반 안전 수칙",
                 content: "내일 한라산 등반 시 반드시 등산화를 착용해 주세요. 기상 변화가 심하므로 방수 재킷도 필수입니다. 오전 9시 30분 호텔 로비에서 집결합니다.",
                 priority: "important", publishedAt: "2026-07-19T18:00:00.000000Z",
                 createdAt: "2026-07-19T18:00:00.000000Z", updatedAt: "2026-07-19T18:00:00.000000Z",
-                isRead: false),
+                isRead: false, isActive: true),
 
             TravelerNoticeDTO(id: 2, title: "우도 스노클링 장비 신청 마감",
                 content: "내일 우도 스노클링 체험을 원하시는 분은 오늘 밤 10시까지 담당자에게 연락 주시기 바랍니다. 장비는 현장에서 제공됩니다.",
                 priority: "normal", publishedAt: "2026-07-19T20:00:00.000000Z",
                 createdAt: "2026-07-19T20:00:00.000000Z", updatedAt: "2026-07-19T20:00:00.000000Z",
-                isRead: false),
+                isRead: false, isActive: true),
 
             TravelerNoticeDTO(id: 3, title: "내일 조식 시간 변경 안내",
                 content: "7월 20일(일) 조식이 08:00으로 변경되었습니다. 한라산 등반 일정이 앞당겨진 관계로 시간을 엄수해 주시기 바랍니다.",
                 priority: "normal", publishedAt: "2026-07-19T21:00:00.000000Z",
                 createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z",
-                isRead: true),
+                isRead: true, isActive: true),
+
+            TravelerNoticeDTO(id: 4, title: "1일차 집합 안내",
+                content: "공항 3번 게이트 앞에서 09:00에 집합합니다. 늦으시는 분은 담당자에게 연락 주세요.",
+                priority: "normal", publishedAt: "2026-07-18T09:00:00.000000Z",
+                createdAt: "2026-07-18T09:00:00.000000Z", updatedAt: "2026-07-18T09:00:00.000000Z",
+                isRead: true, isActive: false),
         ]
     }
 

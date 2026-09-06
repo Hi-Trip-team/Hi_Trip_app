@@ -77,6 +77,17 @@ final class ChatRepository: ChatRepositoryProtocol {
         fetchMessages(chatRoomId: chatRoomId, before: nil).map(\.messages)
     }
 
+    func fetchMessages(
+        chatRoomId: UUID,
+        before: Int?,
+        limit: Int
+    ) -> Single<(messages: [Message], nextCursor: Int?)> {
+        // 서버는 페이지 크기를 인자로 받지 않고 고정 크기로 돌려줍니다.
+        // limit은 앱이 한 번에 붙이는 양의 상한으로만 씁니다.
+        fetchMessages(chatRoomId: chatRoomId, before: before)
+            .map { page in (Array(page.messages.suffix(limit)), page.nextCursor) }
+    }
+
     /// 커서 페이징 — `before`보다 id가 작은(= 더 오래된) 메시지를 불러옵니다.
     /// - Returns: 메시지와 다음 페이지 커서. `nextCursor`가 nil이면 더 없음.
     func fetchMessages(
@@ -109,6 +120,10 @@ final class ChatRepository: ChatRepositoryProtocol {
     }
 
     func sendMessage(message: Message) -> Single<Message> {
+        sendMessage(message: message, attachmentIds: [])
+    }
+
+    func sendMessage(message: Message, attachmentIds: [Int]) -> Single<Message> {
         guard let serverId = resolveServerId(for: message.chatRoomId) else {
             return .error(ChatError.roomNotFound)
         }
@@ -118,11 +133,12 @@ final class ChatRepository: ChatRepositoryProtocol {
         // client_message_id는 서버 필수값이자 멱등키입니다.
         // 재전송 시 같은 값을 유지해야 메시지가 중복 생성되지 않으므로
         // Message.id(로컬 UUID)를 그대로 씁니다.
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "client_message_id": message.id.uuidString,
-            "message_type": "text",
+            "message_type": attachmentIds.isEmpty ? "text" : "attachment",
             "body": message.content,
         ]
+        if !attachmentIds.isEmpty { body["attachment_ids"] = attachmentIds }
 
         return networkService.request(
             .chatMessageSend(roomId: String(serverId), body: body),
@@ -130,6 +146,64 @@ final class ChatRepository: ChatRepositoryProtocol {
         )
         .map { dto in
             dto.toMessage(chatRoomId: message.chatRoomId, currentUserId: userId, currentRole: role)
+        }
+    }
+
+    // MARK: - 첨부 업로드
+
+    /// 1) presign으로 업로드 주소를 받고 2) 그 주소에 파일 본문을 PUT 합니다.
+    /// 서버가 요구하는 헤더(required_headers)를 그대로 실어야 업로드가 통과합니다.
+    func uploadAttachment(
+        chatRoomId: UUID,
+        data: Data,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        duration: Int?
+    ) -> Single<Int> {
+        guard let roomId = resolveServerId(for: chatRoomId) else {
+            return .error(ChatError.roomNotFound)
+        }
+
+        var body: [String: Any] = [
+            "room_id": roomId,
+            "media_type": mediaType,
+            "original_name": fileName,
+            "mime_type": mimeType,
+            "size": data.count,
+        ]
+        if let duration { body["duration"] = duration }
+
+        return networkService.request(.chatUploadPresign(body: body), type: ChatUploadIntentDTO.self)
+            .flatMap { intent in Self.put(data: data, to: intent).map { _ in intent.attachmentId } }
+    }
+
+    /// presign이 알려준 주소로 파일 본문을 올립니다.
+    private static func put(data: Data, to intent: ChatUploadIntentDTO) -> Single<Void> {
+        guard let url = URL(string: intent.uploadUrl)
+            ?? URL(string: APIEnvironment.current.baseURL + intent.uploadUrl) else {
+            return .error(HiTripError.networkFailure("업로드 주소가 올바르지 않습니다"))
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = intent.method ?? "PUT"
+        intent.requiredHeaders?.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+        if let token = KeychainManager.shared.getToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        return Single.create { single in
+            let task = URLSession.shared.uploadTask(with: request, from: data) { _, response, error in
+                if let error { single(.failure(error)); return }
+                let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                if (200..<300).contains(code) {
+                    single(.success(()))
+                } else {
+                    single(.failure(HiTripError.networkFailure("업로드에 실패했습니다 (\(code))")))
+                }
+            }
+            task.resume()
+            return Disposables.create { task.cancel() }
         }
     }
 

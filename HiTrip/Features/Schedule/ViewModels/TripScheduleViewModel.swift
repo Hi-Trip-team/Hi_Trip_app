@@ -65,6 +65,9 @@ final class TripScheduleViewModel: ObservableObject {
     /// 방금 저장한 일정이 공용 일정과 겹쳤을 때 안내
     @Published var overlapNotice: String?
 
+    /// 저장 성공 토스트 문구
+    @Published var toast: String?
+
     private let repository: TravelerRepositoryProtocol
     private let disposeBag = DisposeBag()
 
@@ -137,7 +140,14 @@ final class TripScheduleViewModel: ObservableObject {
 
     /// - Parameters:
     ///   - start/end: "HH:mm" 형식
-    func addPersonalSchedule(dayNumber: Int, title: String, start: String, end: String, memo: String?) {
+    func addPersonalSchedule(
+        dayNumber: Int,
+        title: String,
+        start: String,
+        end: String,
+        memo: String?,
+        onSuccess: @escaping () -> Void
+    ) {
         guard let date = days.first(where: { $0.dayNumber == dayNumber })?.date, !date.isEmpty else {
             saveError = "일정을 추가할 날짜를 찾지 못했습니다"
             return
@@ -161,9 +171,56 @@ final class TripScheduleViewModel: ObservableObject {
                     self.isSaving = false
                     self.personal.append(created)
                     self.rebuild()
-                    if created.overlapWarning {
-                        self.overlapNotice = Self.overlapMessage(for: created, shared: self.shared)
+                    self.expandedDay = dayNumber
+                    self.toast = "일정이 추가되었어요"
+                    onSuccess()
+                },
+                onFailure: { [weak self] error in
+                    // 실패하면 시트를 닫지 않습니다. 입력값을 그대로 두고 재시도할 수 있어야 합니다.
+                    self?.isSaving = false
+                    self?.saveError = Self.message(for: error)
+                }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    /// 개인 일정 수정 — 스와이프 > 수정
+    func updatePersonalSchedule(
+        id: Int,
+        dayNumber: Int,
+        title: String,
+        start: String,
+        end: String,
+        memo: String?,
+        onSuccess: @escaping () -> Void
+    ) {
+        guard let date = days.first(where: { $0.dayNumber == dayNumber })?.date, !date.isEmpty else {
+            saveError = "일정을 수정할 날짜를 찾지 못했습니다"
+            return
+        }
+        isSaving = true
+
+        let request = TravelerPersonalScheduleRequest(
+            dayNumber: dayNumber,
+            scheduleDate: date,
+            title: title,
+            startTime: Self.withSeconds(start),
+            endTime: Self.withSeconds(end),
+            memo: memo
+        )
+
+        repository.updatePersonalSchedule(id: id, request)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] updated in
+                    guard let self else { return }
+                    self.isSaving = false
+                    if let idx = self.personal.firstIndex(where: { $0.id == id }) {
+                        self.personal[idx] = updated
                     }
+                    self.rebuild()
+                    self.toast = "일정이 수정되었어요"
+                    onSuccess()
                 },
                 onFailure: { [weak self] error in
                     self?.isSaving = false
@@ -171,6 +228,18 @@ final class TripScheduleViewModel: ObservableObject {
                 }
             )
             .disposed(by: disposeBag)
+    }
+
+    /// 입력 중 겹침 경고 — 저장 전에 공용 일정과 시간이 겹치는지 미리 봅니다.
+    /// 서버도 저장 시 overlap_warning을 돌려주지만, 기획상 경고는 입력 중에 떠야 합니다.
+    func overlapsSharedSchedule(dayNumber: Int, start: String, end: String) -> Bool {
+        guard let s = Self.minutes(start), let e = Self.minutes(end), s < e else { return false }
+        return shared
+            .filter { $0.dayNumber == dayNumber }
+            .contains { item in
+                guard let ss = Self.minutes(item.startTime), let se = Self.minutes(item.endTime) else { return false }
+                return s < se && ss < e
+            }
     }
 
     func deletePersonalSchedule(id: Int) {

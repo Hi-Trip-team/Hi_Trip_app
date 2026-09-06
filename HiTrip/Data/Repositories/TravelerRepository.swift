@@ -122,6 +122,11 @@ final class TravelerRepository: TravelerRepositoryProtocol {
         networkService.request(.travelerNotice(id: id), type: TravelerNoticeDTO.self)
     }
 
+    func markNoticeRead(id: Int) -> Single<Void> {
+        networkService.request(.travelerNoticeRead(id: id), type: EmptyResponse.self)
+            .map { _ in () }
+    }
+
     // MARK: - Checklist
 
     func fetchChecklists() -> Single<[TravelerChecklistItemDTO]> {
@@ -157,6 +162,42 @@ final class TravelerRepository: TravelerRepositoryProtocol {
 
     func fetchManagerContact() -> Single<TravelerManagerContactDTO> {
         networkService.request(.travelerManagerContact(), type: TravelerManagerContactDTO.self)
+    }
+
+    // MARK: - 주변 스팟 / 안전
+
+    func fetchNearbySpots(
+        category: String,
+        lat: Double,
+        lng: Double,
+        radius: Int?
+    ) -> Single<[TravelerNearbySpotDTO]> {
+        networkService.request(
+            .travelerNearbySpots(category: category, lat: lat, lng: lng, radius: radius),
+            type: TravelerNearbySpotsResponseDTO.self
+        )
+        .map(\.results)
+    }
+
+    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO> {
+        networkService.request(.travelerSafetySummary(), type: TravelerSafetySummaryDTO.self)
+    }
+
+    func sendLocationSnapshot(
+        latitude: Double,
+        longitude: Double,
+        accuracyM: Double?
+    ) -> Single<Void> {
+        let iso = ISO8601DateFormatter()
+        var body: [String: Any] = [
+            "latitude": String(format: "%.6f", latitude),
+            "longitude": String(format: "%.6f", longitude),
+            "measured_at": iso.string(from: Date()),
+        ]
+        if let accuracyM { body["accuracy_m"] = String(format: "%.2f", accuracyM) }
+
+        return networkService.request(.travelerSafetyLocation(body: body), type: EmptyResponse.self)
+            .map { _ in () }
     }
 
     func sendEmergencyRequest(

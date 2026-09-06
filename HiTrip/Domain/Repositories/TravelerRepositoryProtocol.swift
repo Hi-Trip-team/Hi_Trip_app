@@ -58,6 +58,9 @@ protocol TravelerRepositoryProtocol {
     func fetchNotices() -> Single<[TravelerNoticeDTO]>
     func fetchNotice(id: Int) -> Single<TravelerNoticeDTO>
 
+    /// 공지 읽음 처리 — 홈의 빨간 점을 없애는 기준
+    func markNoticeRead(id: Int) -> Single<Void>
+
     // MARK: - Checklist
     func fetchChecklists() -> Single<[TravelerChecklistItemDTO]>
     func toggleChecklist(itemId: Int, isChecked: Bool) -> Single<TravelerChecklistItemDTO>
@@ -70,6 +73,26 @@ protocol TravelerRepositoryProtocol {
     // MARK: - Map & Manager
     func fetchMapPlaces() -> Single<[TravelerMapPlaceDTO]>
     func fetchManagerContact() -> Single<TravelerManagerContactDTO>
+    // MARK: - 주변 스팟 / 안전
+
+    /// 상황별 검색 — 카테고리는 서버 enum (restaurant/accessibility/pet/convenience/mart)
+    func fetchNearbySpots(
+        category: String,
+        lat: Double,
+        lng: Double,
+        radius: Int?
+    ) -> Single<[TravelerNearbySpotDTO]>
+
+    /// 안전 요약 — 지도에 그릴 지오펜스(허용 반경)를 포함합니다
+    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO>
+
+    /// 위치 스냅샷 전송 — 이탈 판정은 서버가 합니다
+    func sendLocationSnapshot(
+        latitude: Double,
+        longitude: Double,
+        accuracyM: Double?
+    ) -> Single<Void>
+
     func sendEmergencyRequest(
         message: String,
         latitude: String?,

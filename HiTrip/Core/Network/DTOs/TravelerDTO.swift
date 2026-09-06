@@ -337,6 +337,8 @@ struct TravelerNoticeDTO: Decodable, Identifiable {
     let updatedAt: String?
     /// 읽음 여부 — 홈의 안 읽음 뱃지 계산에 사용
     let isRead: Bool?
+    /// 활성 여부 — 홈에는 활성 공지만 노출합니다
+    let isActive: Bool?
 }
 
 // MARK: - Messages (Thread 기반)
@@ -565,9 +567,40 @@ struct ChatMessageV1DTO: Decodable {
 
 struct ChatAttachmentDTO: Decodable {
     let id: Int
+    let mediaType: String?
     let downloadUrl: String?
     let originalName: String?
     let mimeType: String?
+    let duration: Int?
+
+    func toAttachment() -> MessageAttachment {
+        MessageAttachment(
+            id: id,
+            mediaType: mediaType ?? "photo",
+            downloadUrl: downloadUrl,
+            originalName: originalName,
+            duration: duration
+        )
+    }
+}
+
+// MARK: - 첨부 업로드
+
+/// POST /api/v1/chat/uploads/presign/
+struct ChatUploadIntentDTO: Decodable {
+    let attachmentId: Int
+    /// 항상 "PUT"
+    let method: String?
+    let uploadUrl: String
+    let expiresAt: String?
+    /// 업로드 PUT에 반드시 실어야 하는 헤더 (Content-Type 등)
+    let requiredHeaders: [String: String]?
+}
+
+struct ChatUploadCompleteDTO: Decodable {
+    let attachmentId: Int
+    let status: String?
+    let size: Int?
 }
 
 struct ChatMessagePageDTO: Decodable {
@@ -661,7 +694,71 @@ extension ChatMessageV1DTO {
             senderName: name,
             content: body,
             sentAt: sentAt,
-            sendStatus: .sent
+            sendStatus: .sent,
+            attachments: (attachments ?? []).map { $0.toAttachment() }
         )
     }
+}
+
+
+// MARK: - 주변 스팟 (상황별 검색)
+
+/// GET /api/v1/tourist/nearby-spots/
+struct TravelerNearbySpotsResponseDTO: Decodable {
+    let category: String?
+    let categoryLabel: String?
+    let totalCount: Int?
+    let count: Int?
+    let results: [TravelerNearbySpotDTO]
+}
+
+struct TravelerNearbySpotDTO: Decodable, Identifiable, Hashable {
+    /// 외부 제공자(카카오) 장소 id — 목록 식별자로 씁니다
+    let providerObjectId: String
+    let name: String
+    let categoryName: String?
+    let categoryGroupCode: String?
+    let categoryGroupName: String?
+    let phone: String?
+    let address: String?
+    let roadAddress: String?
+    let placeUrl: String?
+    let distanceM: Int?
+    let lat: String?
+    let lng: String?
+    let isSponsored: Bool?
+    let imageUrl: String?
+    let description: String?
+
+    var id: String { providerObjectId }
+
+    var latitude: Double? { lat.flatMap(Double.init) }
+    var longitude: Double? { lng.flatMap(Double.init) }
+
+    /// "0.4km" — 1km 미만은 m로 보여줍니다
+    var distanceText: String? {
+        guard let distanceM else { return nil }
+        if distanceM < 1000 { return "\(distanceM)m" }
+        return String(format: "%.1fkm", Double(distanceM) / 1000)
+    }
+}
+
+// MARK: - 안전(지오펜스)
+
+/// GET /api/v1/tourist/safety/summary/ — 필요한 부분만 받습니다
+struct TravelerSafetySummaryDTO: Decodable {
+    let tripId: Int?
+    let dayNumber: Int?
+    let geofence: TravelerGeofenceDTO?
+}
+
+struct TravelerGeofenceDTO: Decodable {
+    let centerLat: String?
+    let centerLng: String?
+    let radiusKm: String?
+
+    var latitude: Double? { centerLat.flatMap(Double.init) }
+    var longitude: Double? { centerLng.flatMap(Double.init) }
+    /// 미터
+    var radiusM: Double? { radiusKm.flatMap(Double.init).map { $0 * 1000 } }
 }
