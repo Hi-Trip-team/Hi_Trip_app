@@ -7,20 +7,21 @@ import SwiftUI
 /// - "여행 진행률 · N일 남음" 13 Medium, 자간 -0.26
 /// - 진행 바: 트랙 #A0BCF8 6pt 라운드캡, 지나온 구간 #4F7BFF,
 ///   현재 위치에 12pt 점과 그 위를 따라가는 버스 아이콘 (Figma 12151:4014)
-/// - "65% 완료" 19 Bold, 자간 -0.38
+/// - "65% 완료" 자간 -0.38
 /// - 오른쪽에 목적지
+///
+/// 서버가 주는 값은 오늘 일차와 전체 일수 두 개뿐입니다.
+/// 진행률·남은 일수·퍼센트 문구는 모두 여기서 그 두 값으로 만듭니다.
 ///
 /// 날씨(디자인의 "맑음 22°C")는 API에 없어 표시하지 않습니다.
 /// 스키마 전체에 weather/temperature 필드가 0건입니다.
 
 struct TripProgressCard: View {
 
-    /// 0...1
-    let progress: Double
-    /// "여행 진행률 · 3일 남음"
-    let headline: String
-    /// "65% 완료"
-    let percentText: String
+    /// 오늘이 며칠째인지 — 서버 today_day_number
+    let dayNumber: Int
+    /// 여행 전체 일수 — 서버 duration_days
+    let totalDays: Int
     /// 목적지 — 없으면 숨김
     let destination: String?
 
@@ -28,6 +29,29 @@ struct TripProgressCard: View {
     private let trackInset: CGFloat = 26
     private let trackHeight: CGFloat = 6
     private let dotSize: CGFloat = 12
+
+    // MARK: - 계산값
+
+    /// 0...1
+    private var progress: Double {
+        guard totalDays > 0 else { return 0 }
+        return min(max(Double(dayNumber) / Double(totalDays), 0), 1)
+    }
+
+    private var remainingDays: Int { totalDays - dayNumber }
+
+    /// "여행 진행률 · 3일 남음"
+    private var headline: String {
+        guard totalDays > 0 else { return "여행 진행률" }
+        if remainingDays > 0  { return "여행 진행률 · \(remainingDays)일 남음" }
+        if remainingDays == 0 { return "여행 진행률 · 오늘이 마지막 날" }
+        return "여행 진행률 · 일정 종료"
+    }
+
+    /// "65% 완료"
+    private var percentText: String {
+        "\(Int((progress * 100).rounded()))% 완료"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -56,7 +80,7 @@ struct TripProgressCard: View {
 
             HStack(alignment: .firstTextBaseline) {
                 Text(percentText)
-                    .font(.system(size: 19, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                     .tracking(-0.38)
                     .foregroundColor(.white)
 
@@ -70,7 +94,7 @@ struct TripProgressCard: View {
                         .padding(.trailing, 2)
                 }
             }
-            .padding(.top, 8)
+            .padding(.vertical, 6)
 
             Spacer(minLength: 0)
         }
@@ -81,13 +105,11 @@ struct TripProgressCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    /// 버스를 점 중앙에 맞춥니다 (이모지 폭의 절반만큼 왼쪽으로)
+    /// 버스를 점 중앙에 맞춥니다 (아이콘 폭의 절반만큼 왼쪽으로)
     private func busOffset(in width: CGFloat) -> CGFloat {
         let travel = max(width - dotSize, 0)
-        return travel * clamped + dotSize / 2 - 13
+        return travel * progress + dotSize / 2 - 13
     }
-
-    private var clamped: Double { min(max(progress, 0), 1) }
 
     // MARK: - 진행 바
 
@@ -95,7 +117,7 @@ struct TripProgressCard: View {
         GeometryReader { geo in
             // 점이 트랙 밖으로 나가지 않도록 지름만큼 안쪽에서 움직입니다.
             let travel = max(geo.size.width - dotSize, 0)
-            let dotCenter = travel * clamped + dotSize / 2
+            let dotCenter = travel * progress + dotSize / 2
 
             ZStack(alignment: .leading) {
                 Capsule()
@@ -110,9 +132,18 @@ struct TripProgressCard: View {
                 Circle()
                     .fill(Color(hex: "#4F7BFF"))
                     .frame(width: dotSize, height: dotSize)
-                    .offset(x: travel * clamped)
+                    .offset(x: travel * progress)
             }
             .frame(height: geo.size.height, alignment: .center)
         }
     }
+}
+
+#Preview {
+    VStack(spacing: 12) {
+        TripProgressCard(dayNumber: 1, totalDays: 7, destination: "제주")
+        TripProgressCard(dayNumber: 5, totalDays: 7, destination: "제주")
+        TripProgressCard(dayNumber: 7, totalDays: 7, destination: "제주")
+    }
+    .padding(21)
 }

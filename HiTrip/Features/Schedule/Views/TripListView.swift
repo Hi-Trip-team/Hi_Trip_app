@@ -198,12 +198,10 @@ struct TripListView: View {
         VStack(alignment: .leading, spacing: 0) {
             // 여행 진행률 카드
             TripProgressCard(
-                progress: viewModel.tripProgress,
-                headline: viewModel.tripProgressHeadline,
-                percentText: viewModel.tripProgressText,
+                dayNumber: viewModel.todayDayNumber,
+                totalDays: viewModel.tripTotalDays,
                 destination: viewModel.destinationText
-            )
-            .padding(.horizontal, 21)
+            )            .padding(.horizontal, 21)
             .padding(.bottom, 16)
 
             // 현재 일정

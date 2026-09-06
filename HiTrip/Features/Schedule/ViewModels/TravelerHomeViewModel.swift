@@ -184,31 +184,14 @@ final class TravelerHomeViewModel: ObservableObject {
     }
 
     // MARK: - 여행 진행률 카드
+    //
+    // 서버가 준 값만 그대로 넘기고, 진행률·남은 일수·퍼센트 문구는 카드가 만듭니다.
 
-    /// 여행 전체 진행률 (0...1)
-    ///
-    /// 서버가 준 오늘 일차(today_day_number)와 전체 일수(duration_days)로 계산합니다.
-    var tripProgress: Double {
-        guard let total = home?.trip.durationDays, total > 0,
-              let today = home?.todayDayNumber else { return 0 }
-        return min(max(Double(today) / Double(total), 0), 1)
-    }
+    /// 오늘이 며칠째인지 — 서버 today_day_number
+    var todayDayNumber: Int { home?.todayDayNumber ?? 0 }
 
-    /// "65% 완료"
-    var tripProgressText: String {
-        "\(Int((tripProgress * 100).rounded()))% 완료"
-    }
-
-    /// "여행 진행률 · 3일 남음"
-    var tripProgressHeadline: String {
-        guard let total = home?.trip.durationDays, let today = home?.todayDayNumber else {
-            return "여행 진행률"
-        }
-        let remaining = total - today
-        if remaining > 0  { return "여행 진행률 · \(remaining)일 남음" }
-        if remaining == 0 { return "여행 진행률 · 오늘이 마지막 날" }
-        return "여행 진행률 · 일정 종료"
-    }
+    /// 여행 전체 일수 — 서버 duration_days
+    var tripTotalDays: Int { home?.trip.durationDays ?? 0 }
 
     /// 카드 오른쪽 목적지
     ///
