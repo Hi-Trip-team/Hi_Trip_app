@@ -77,6 +77,7 @@ struct TripListView: View {
                     address: spot.place.address,
                     description: spot.description,
                     imageUrl: spot.imageUrl,
+                    isSponsored: spot.isSponsored == true,
                     latitude: spot.place.latitude.flatMap(Double.init),
                     longitude: spot.place.longitude.flatMap(Double.init),
                     categoryName: spot.place.categoryName
