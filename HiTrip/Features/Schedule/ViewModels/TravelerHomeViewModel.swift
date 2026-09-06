@@ -44,6 +44,18 @@ final class TravelerHomeViewModel: ObservableObject {
 
     // MARK: - Load
 
+    /// 당겨서 새로고침 — 로딩 화면으로 되돌아가지 않고 값만 갱신합니다
+    func refresh() {
+        repository.fetchHome()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] dto in
+                self?.home = dto
+                self?.state = .loaded
+                self?.loadSecondary()
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
     func load() {
         guard state != .loading else { return }
         state = .loading
@@ -88,11 +100,16 @@ final class TravelerHomeViewModel: ObservableObject {
 
     var hasUnreadMessage: Bool { unreadMessageCount > 0 }
 
+    /// 뱃지 표기 — 세 자리부터는 99+로 줄입니다
+    var unreadMessageBadgeText: String {
+        unreadMessageCount > 99 ? "99+" : "\(unreadMessageCount)"
+    }
+
     private static func message(for error: Error) -> String {
         if let e = error as? HiTripError {
             switch e {
             case .unauthorized, .forbidden:  return "로그인이 필요합니다"
-            case .noConnection:              return "네트워크에 연결되어 있지 않습니다"
+            case .noConnection:              return "연결을 확인해주세요"
             case .timeout:                   return "서버 응답이 없습니다"
             case .notFound:                  return "배정된 여행이 없습니다"
             default:                         break
@@ -106,19 +123,56 @@ final class TravelerHomeViewModel: ObservableObject {
     var tripTitle: String { home?.trip.title ?? "" }
 
     /// 안 읽은 공지 수 — 0이면 뱃지를 숨깁니다.
-    var unreadNoticeCount: Int { notices.filter { $0.isRead != true }.count }
+    var unreadNoticeCount: Int { activeNotices.filter { $0.isRead != true }.count }
 
-    // MARK: - 여행 시작 전 / 진행 중
+    // MARK: - 여행 단계
 
-    /// 출발까지 남은 일수. 0 이하면 여행 중.
+    /// 홈이 어떤 형태로 보일지 결정합니다.
+    enum TripPhase: Equatable {
+        /// 출발 전 — D-day 카드만, 진행바·일정 카드 비노출
+        case before
+        /// 여행 중
+        case during
+        /// 종료 후 — 종료 안내와 계정 파기 예정일
+        case finished
+    }
+
+    /// 출발까지 남은 일수. 0 이하면 여행이 시작된 상태.
     var dDay: Int { home?.trip.dDay ?? 0 }
 
-    var isBeforeTrip: Bool { dDay > 0 }
+    var phase: TripPhase {
+        if dDay > 0 { return .before }
+        if let end = Self.date(from: home?.trip.endDate),
+           Calendar.current.startOfDay(for: Date()) > end {
+            return .finished
+        }
+        return .during
+    }
+
+    var isBeforeTrip: Bool { phase == .before }
 
     /// "D-3 · 2025.04.24 출발"
     var departureText: String {
         guard let trip = home?.trip else { return "" }
         return "D-\(trip.dDay) · \(Self.displayDate(trip.startDate)) 출발"
+    }
+
+    /// 여행 종료 후 계정이 파기되는 날 (종료일 + 3일)
+    var dataPurgeDateText: String {
+        guard let end = Self.date(from: home?.trip.endDate),
+              let purge = Calendar.current.date(byAdding: .day, value: 3, to: end) else { return "" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "yyyy.MM.dd"
+        return f.string(from: purge)
+    }
+
+    private static func date(from string: String?) -> Date? {
+        guard let string else { return nil }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: string)
     }
 
     // MARK: - 오늘의 일정
@@ -199,19 +253,53 @@ final class TravelerHomeViewModel: ObservableObject {
     /// 기상청 API는 개인 키가 필요해 배포용으로 쓸 수 없어, 서버가 내려줄 때까지 목적지만 표시합니다.
     var destinationText: String { home?.trip.destination ?? "" }
 
-    /// 오늘 일정의 진행률 (0...1) — 진행률 바
-    var progress: Double {
-        let times = todaySchedules.compactMap { Self.minutes($0.startTime) }
-        let ends  = todaySchedules.compactMap { Self.minutes($0.endTime) }
-        guard let first = times.min(), let last = ends.max(), last > first else { return 0 }
+    /// 오늘 일정의 진행률 (0...1) — 진행 인디케이터
+    ///
+    /// 기획: 당일 첫 일정 시작 ~ 마지막 일정 종료 시각 대비 현재 시각 비율.
+    /// 시작 전 0%, 종료 후 100%로 고정합니다.
+    ///
+    /// 여행지 현지 시각이 기준이어야 하지만 API가 여행의 시간대를 주지 않아
+    /// 기기 시각으로 계산합니다 (국내 여행은 동일).
+    var todayProgress: Double {
+        let starts = todaySchedules.compactMap { Self.minutes($0.startTime) }
+        let ends   = todaySchedules.compactMap { Self.minutes($0.endTime) }
+        guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
         let now = Self.minutesNow()
         return min(max(Double(now - first) / Double(last - first), 0), 1)
     }
 
     // MARK: - 공지
 
-    /// 홈에 표시할 대표 공지 — 가장 최근 게시분
-    var representativeNotice: TravelerNoticeDTO? { notices.first }
+    /// 홈에 표시할 대표 공지 — 활성 공지 중 가장 최근 게시분
+    var representativeNotice: TravelerNoticeDTO? {
+        activeNotices.first
+    }
+
+    /// 대표 공지를 뺀 나머지 활성 공지 — 팝업의 "이전 공지 보기"
+    var previousNotices: [TravelerNoticeDTO] { Array(activeNotices.dropFirst()) }
+
+    /// 활성 공지만 — 홈 미리보기와 안 읽음 뱃지의 기준
+    private var activeNotices: [TravelerNoticeDTO] {
+        notices.filter { $0.isActive != false }
+    }
+
+    /// 공지를 열어봤을 때 — 서버에 읽음을 보내고 빨간 점을 지웁니다
+    func markNoticeRead(_ notice: TravelerNoticeDTO) {
+        guard notice.isRead != true else { return }
+        repository.markNoticeRead(id: notice.id)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] in self?.reloadNotices() },
+                       onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    private func reloadNotices() {
+        repository.fetchNotices()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] in self?.notices = $0 },
+                       onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
 
     var hasUnreadNotice: Bool { unreadNoticeCount > 0 }
 

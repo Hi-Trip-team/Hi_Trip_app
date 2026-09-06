@@ -122,6 +122,11 @@ final class TravelerRepository: TravelerRepositoryProtocol {
         networkService.request(.travelerNotice(id: id), type: TravelerNoticeDTO.self)
     }
 
+    func markNoticeRead(id: Int) -> Single<Void> {
+        networkService.request(.travelerNoticeRead(id: id), type: EmptyResponse.self)
+            .map { _ in () }
+    }
+
     // MARK: - Checklist
 
     func fetchChecklists() -> Single<[TravelerChecklistItemDTO]> {

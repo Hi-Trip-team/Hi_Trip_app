@@ -10,15 +10,32 @@ struct NoticePopupView: View {
 
     @Binding var isPresented: Bool
 
-    var date: String = "2025.04.24 10:20"
-    var author: String = "김안내 가이드"
-    var paragraphs: [String] = [
-        "오늘 자유 일정은 우천이 예상됩니다. 우산을 꼭 챙겨주세요.",
-        "집합 시간은 18:00, 집합 장소는 호텔 1층 로비입니다.\n늦으시는 분은 단체톡방에 꼭 남겨주세요.",
-        "안전한 여행 되세요!",
-    ]
+    let notice: TravelerNoticeDTO
+    /// 접어둔 이전 공지들 — 없으면 "이전 공지 보기" 버튼을 숨깁니다
+    var previousNotices: [TravelerNoticeDTO] = []
 
     @State private var showPrevious = false
+
+    /// "2025.04.24 10:20"
+    private var dateText: String {
+        guard let raw = notice.publishedAt ?? notice.createdAt else { return "" }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = iso.date(from: raw) ?? ISO8601DateFormatter().date(from: raw) else { return "" }
+
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "yyyy.MM.dd HH:mm"
+        return f.string(from: date)
+    }
+
+    /// 본문을 빈 줄 기준으로 문단으로 나눕니다
+    private var paragraphs: [String] {
+        notice.content
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
 
     var body: some View {
         ZStack {
@@ -35,10 +52,11 @@ struct NoticePopupView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("공지사항")
+                    Text(notice.title.isEmpty ? "공지사항" : notice.title)
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(Color(hex: "#111827"))
-                    Text("\(date) · \(author)")
+                    // 작성자명은 여행객 공지 API에 없어 날짜만 표시합니다 (백엔드 요청 중)
+                    Text(dateText)
                         .font(.system(size: 11))
                         .foregroundColor(Color(hex: "#6B7280"))
                 }
@@ -66,8 +84,28 @@ struct NoticePopupView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
 
+            if !previousNotices.isEmpty {
             Divider()
                 .padding(.horizontal, 20)
+
+            if showPrevious {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(previousNotices) { prev in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(prev.title)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(Color(hex: "#111827"))
+                            Text(prev.content)
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "#6B7280"))
+                                .lineLimit(2)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+            }
 
             Button { showPrevious.toggle() } label: {
                 HStack(spacing: 4) {
@@ -81,6 +119,7 @@ struct NoticePopupView: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+            }
         }
         .background(Color.white)
         .cornerRadius(16)

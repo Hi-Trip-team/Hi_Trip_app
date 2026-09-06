@@ -234,6 +234,11 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         .just(mockNotices)
     }
 
+    func markNoticeRead(id: Int) -> Single<Void> {
+        Self.readNoticeIds.insert(id)
+        return .just(())
+    }
+
     func fetchNotice(id: Int) -> Single<TravelerNoticeDTO> {
         if let found = mockNotices.first(where: { $0.id == id }) {
             return .just(found)
@@ -418,25 +423,39 @@ private extension MockTravelerRepository {
 
     // MARK: Notices
 
+    /// 읽음 처리한 공지 id — 목 환경에서도 빨간 점이 사라지는 걸 확인할 수 있게 유지합니다
+    private static var readNoticeIds: Set<Int> = []
+
     var mockNotices: [TravelerNoticeDTO] {
+        raw.map { n in
+            Self.readNoticeIds.contains(n.id)
+                ? TravelerNoticeDTO(id: n.id, title: n.title, content: n.content,
+                                    priority: n.priority, publishedAt: n.publishedAt,
+                                    createdAt: n.createdAt, updatedAt: n.updatedAt,
+                                    isRead: true, isActive: n.isActive)
+                : n
+        }
+    }
+
+    private var raw: [TravelerNoticeDTO] {
         [
             TravelerNoticeDTO(id: 1, title: "⚠️ 한라산 등반 안전 수칙",
                 content: "내일 한라산 등반 시 반드시 등산화를 착용해 주세요. 기상 변화가 심하므로 방수 재킷도 필수입니다. 오전 9시 30분 호텔 로비에서 집결합니다.",
                 priority: "important", publishedAt: "2026-07-19T18:00:00.000000Z",
                 createdAt: "2026-07-19T18:00:00.000000Z", updatedAt: "2026-07-19T18:00:00.000000Z",
-                isRead: false),
+                isRead: false, isActive: true),
 
             TravelerNoticeDTO(id: 2, title: "우도 스노클링 장비 신청 마감",
                 content: "내일 우도 스노클링 체험을 원하시는 분은 오늘 밤 10시까지 담당자에게 연락 주시기 바랍니다. 장비는 현장에서 제공됩니다.",
                 priority: "normal", publishedAt: "2026-07-19T20:00:00.000000Z",
                 createdAt: "2026-07-19T20:00:00.000000Z", updatedAt: "2026-07-19T20:00:00.000000Z",
-                isRead: false),
+                isRead: false, isActive: true),
 
             TravelerNoticeDTO(id: 3, title: "내일 조식 시간 변경 안내",
                 content: "7월 20일(일) 조식이 08:00으로 변경되었습니다. 한라산 등반 일정이 앞당겨진 관계로 시간을 엄수해 주시기 바랍니다.",
                 priority: "normal", publishedAt: "2026-07-19T21:00:00.000000Z",
                 createdAt: "2026-07-19T21:00:00.000000Z", updatedAt: "2026-07-19T21:00:00.000000Z",
-                isRead: true),
+                isRead: true, isActive: true),
         ]
     }
 

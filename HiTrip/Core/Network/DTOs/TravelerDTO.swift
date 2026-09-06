@@ -337,6 +337,8 @@ struct TravelerNoticeDTO: Decodable, Identifiable {
     let updatedAt: String?
     /// 읽음 여부 — 홈의 안 읽음 뱃지 계산에 사용
     let isRead: Bool?
+    /// 활성 여부 — 홈에는 활성 공지만 노출합니다
+    let isActive: Bool?
 }
 
 // MARK: - Messages (Thread 기반)

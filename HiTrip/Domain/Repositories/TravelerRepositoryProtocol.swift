@@ -58,6 +58,9 @@ protocol TravelerRepositoryProtocol {
     func fetchNotices() -> Single<[TravelerNoticeDTO]>
     func fetchNotice(id: Int) -> Single<TravelerNoticeDTO>
 
+    /// 공지 읽음 처리 — 홈의 빨간 점을 없애는 기준
+    func markNoticeRead(id: Int) -> Single<Void>
+
     // MARK: - Checklist
     func fetchChecklists() -> Single<[TravelerChecklistItemDTO]>
     func toggleChecklist(itemId: Int, isChecked: Bool) -> Single<TravelerChecklistItemDTO>
