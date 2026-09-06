@@ -5,7 +5,8 @@ import SwiftUI
 ///
 /// 피그마 12152:4224 — #0C46C0, 349×103, 모서리 16
 /// - "여행 진행률 · N일 남음" 13 Medium, 자간 -0.26
-/// - 진행 바: 트랙 #A0BCF8 6pt 라운드캡, 현재 위치에 #4F7BFF 12pt 점
+/// - 진행 바: 트랙 #A0BCF8 6pt 라운드캡, 지나온 구간 #4F7BFF,
+///   현재 위치에 12pt 점과 그 위를 따라가는 🚌
 /// - "65% 완료" 19 Bold, 자간 -0.38
 /// - 오른쪽에 목적지
 ///
@@ -34,11 +35,20 @@ struct TripProgressCard: View {
                 .font(.system(size: 13, weight: .medium))
                 .tracking(-0.26)
                 .foregroundColor(.white)
-                .padding(.top, 15)
+                .padding(.top, 12)
+
+            // 버스는 진행 위치(점) 바로 위를 따라갑니다.
+            // 제목과 같은 줄에 두면 진행률이 낮을 때 글자를 가려서 한 줄 아래에 둡니다.
+            GeometryReader { geo in
+                Text("🚌")
+                    .font(.system(size: 20))
+                    .offset(x: busOffset(in: geo.size.width))
+            }
+            .frame(height: 24)
+            .padding(.top, 2)
 
             progressBar
                 .frame(height: dotSize)
-                .padding(.top, 21)
 
             HStack(alignment: .firstTextBaseline) {
                 Text(percentText)
@@ -56,7 +66,7 @@ struct TripProgressCard: View {
                         .padding(.trailing, 2)
                 }
             }
-            .padding(.top, 12)
+            .padding(.top, 8)
 
             Spacer(minLength: 0)
         }
@@ -67,18 +77,31 @@ struct TripProgressCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
+    /// 버스를 점 중앙에 맞춥니다 (이모지 폭의 절반만큼 왼쪽으로)
+    private func busOffset(in width: CGFloat) -> CGFloat {
+        let travel = max(width - dotSize, 0)
+        return travel * clamped + dotSize / 2 - 11
+    }
+
+    private var clamped: Double { min(max(progress, 0), 1) }
+
     // MARK: - 진행 바
 
     private var progressBar: some View {
         GeometryReader { geo in
-            let clamped = min(max(progress, 0), 1)
-            // 점이 트랙 밖으로 나가지 않도록 반지름만큼 안쪽으로 좁힙니다.
+            // 점이 트랙 밖으로 나가지 않도록 지름만큼 안쪽에서 움직입니다.
             let travel = max(geo.size.width - dotSize, 0)
+            let dotCenter = travel * clamped + dotSize / 2
 
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color(hex: "#A0BCF8"))
                     .frame(height: trackHeight)
+
+                // 지나온 구간
+                Capsule()
+                    .fill(Color(hex: "#4F7BFF"))
+                    .frame(width: dotCenter, height: trackHeight)
 
                 Circle()
                     .fill(Color(hex: "#4F7BFF"))
