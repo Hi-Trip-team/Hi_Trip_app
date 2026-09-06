@@ -42,9 +42,9 @@ struct ChatRoomView: View {
     var body: some View {
         VStack(spacing: 0) {
             navigationBar
-            Divider()
+            separator
             messageList
-            Divider()
+            separator
             inputBar
         }
         .background(Color.white)
@@ -93,6 +93,14 @@ struct ChatRoomView: View {
             viewModel.fetchMessages(chatRoomId: chatRoom.id)
             viewModel.markAsRead(chatRoomId: chatRoom.id)
         }
+    }
+
+    /// 구분선 — Figma는 #F7F7F9 1.5pt입니다.
+    /// SwiftUI 기본 Divider는 시스템 separator라 훨씬 진하게 보입니다.
+    private var separator: some View {
+        Rectangle()
+            .fill(Color(hex: "#F7F7F9"))
+            .frame(height: 1.5)
     }
 
     // MARK: - Navigation Bar

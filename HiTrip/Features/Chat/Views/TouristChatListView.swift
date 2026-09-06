@@ -118,7 +118,10 @@ struct TouristChatListView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Divider()
+                    // Figma 구분선 #E5E7EB 1pt — 기본 Divider는 시스템 색이라 더 진합니다
+                    Rectangle()
+                        .fill(Color(hex: "#E5E7EB"))
+                        .frame(height: 1)
                         .padding(.horizontal, 24)
                 }
             }
