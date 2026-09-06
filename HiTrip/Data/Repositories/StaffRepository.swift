@@ -14,6 +14,9 @@ protocol StaffRepositoryProtocol {
     func fetchTrips() -> Single<[StaffTripDTO]>
     func fetchTrip(id: Int) -> Single<StaffTripDTO>
 
+    /// 참가자 명부 — 연락처·국가·여권번호
+    func fetchParticipants(tripId: Int) -> Single<[TripParticipantDTO]>
+
     // 일정
     func fetchSchedules(tripId: Int) -> Single<[StaffScheduleDTO]>
 
@@ -89,6 +92,10 @@ final class StaffRepository: StaffRepositoryProtocol {
     }
 
     // MARK: - 일정
+
+    func fetchParticipants(tripId: Int) -> Single<[TripParticipantDTO]> {
+        networkService.request(.staffTripParticipants(tripId: tripId), type: [TripParticipantDTO].self)
+    }
 
     func fetchSchedules(tripId: Int) -> Single<[StaffScheduleDTO]> {
         networkService.request(.staffSchedules(tripId: tripId), type: [StaffScheduleDTO].self)

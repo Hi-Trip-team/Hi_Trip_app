@@ -64,6 +64,29 @@ final class MockStaffRepository: StaffRepositoryProtocol {
         )
     }
 
+    func fetchParticipants(tripId: Int) -> Single<[TripParticipantDTO]> {
+        .just([
+            participantProfile(1, "김여행", "010-1111-2222", "대한민국", "M12345678"),
+            participantProfile(2, "이관광", "010-3333-4444", "대한민국", "M23456789"),
+            participantProfile(3, "박구경", nil, "일본", "TK9988776"),
+            participantProfile(4, "최유람", "010-5555-6666", "대한민국", "M34567890"),
+            participantProfile(5, "정나들", "010-7777-8888", "미국", "US4455667"),
+        ])
+    }
+
+    private func participantProfile(
+        _ id: Int, _ name: String, _ phone: String?, _ country: String, _ passport: String
+    ) -> TripParticipantDTO {
+        TripParticipantDTO(
+            id: id, trip: 1,
+            traveler: TravelerDetailDTO(
+                id: id, fullNameKr: name, phone: phone,
+                country: country, passportNumber: passport
+            ),
+            joinedDate: Self.isoNow(minutesAgo: 3000)
+        )
+    }
+
     // MARK: - 일정
 
     func fetchSchedules(tripId: Int) -> Single<[StaffScheduleDTO]> {
