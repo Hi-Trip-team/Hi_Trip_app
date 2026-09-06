@@ -156,16 +156,17 @@ struct TripListView: View {
 
     private var todayScheduleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("오늘의 일정")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
-
+            // 여행 중에는 진행률 카드가 먼저 오고 그 아래에 제목이 붙습니다.
+            // 시작 전·종료 후에는 카드가 없어 제목이 맨 위입니다.
             switch viewModel.phase {
-            case .before:   beforeTripCard
-            case .finished: finishedTripCard
-            case .during:   inTripSchedule
+            case .before:
+                sectionTitle
+                beforeTripCard
+            case .finished:
+                sectionTitle
+                finishedTripCard
+            case .during:
+                inTripSchedule
             }
 
             // 전체일정 링크
@@ -179,6 +180,14 @@ struct TripListView: View {
             .padding(.top, 14)
             .padding(.bottom, 22)
         }
+    }
+
+    private var sectionTitle: some View {
+        Text("오늘의 일정")
+            .font(.system(size: 16, weight: .bold))
+            .foregroundColor(Color(hex: "#111827"))
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
     }
 
     // MARK: - 여행 시작 전
@@ -228,7 +237,9 @@ struct TripListView: View {
                 remainingDays: viewModel.tripTotalDays - viewModel.todayDayNumber,
                 destination: viewModel.destinationText
             )            .padding(.horizontal, 21)
-            .padding(.bottom, 16)
+            .padding(.bottom, 20)
+
+            sectionTitle
 
             // 현재 일정
             if let current = viewModel.currentSchedule {
