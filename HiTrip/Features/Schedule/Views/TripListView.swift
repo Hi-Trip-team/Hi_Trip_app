@@ -196,26 +196,15 @@ struct TripListView: View {
 
     private var inTripSchedule: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 진행률 바 + 버스 이모지 — 오늘 일정의 경과 비율
-            GeometryReader { geo in
-                let filled = geo.size.width * viewModel.progress
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("🚌")
-                        .font(.system(size: 16))
-                        .offset(x: max(filled - 8, 0))
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color(hex: "#E5E7EB"))
-                            .frame(height: 4)
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color(hex: "#2563EB"))
-                            .frame(width: filled, height: 4)
-                    }
-                }
-            }
-            .frame(height: 44)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 10)
+            // 여행 진행률 카드
+            TripProgressCard(
+                progress: viewModel.tripProgress,
+                headline: viewModel.tripProgressHeadline,
+                percentText: viewModel.tripProgressText,
+                destination: viewModel.destinationText
+            )
+            .padding(.horizontal, 21)
+            .padding(.bottom, 16)
 
             // 현재 일정
             if let current = viewModel.currentSchedule {
