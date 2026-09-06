@@ -55,7 +55,8 @@ struct TripListView: View {
                 if showEmergency {
                     EmergencyCallDialog(
                         isPresented: $showEmergency,
-                        phoneNumber: viewModel.managerPhone
+                        phoneNumber: viewModel.managerPhone,
+                        onMessageGuide: { showChat = true }
                     )
                 }
             }
