@@ -327,6 +327,28 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/tourist/feedback/", method: .post, body: body)
     }
 
+    // MARK: - Nearby Spots (상황별 검색)
+
+    /// 주변 스팟 — 카테고리별
+    /// GET /api/v1/tourist/nearby-spots/
+    /// - Parameter category: restaurant | accessibility | pet | convenience | mart (필수)
+    static func travelerNearbySpots(
+        category: String,
+        lat: Double,
+        lng: Double,
+        radius: Int? = nil,
+        size: Int? = nil
+    ) -> APIEndpoint {
+        var items = [
+            URLQueryItem(name: "category", value: category),
+            URLQueryItem(name: "lat", value: String(lat)),
+            URLQueryItem(name: "lng", value: String(lng)),
+        ]
+        if let radius { items.append(URLQueryItem(name: "radius", value: String(radius))) }
+        if let size   { items.append(URLQueryItem(name: "size", value: String(size))) }
+        return APIEndpoint(path: "/api/v1/tourist/nearby-spots/", queryItems: items)
+    }
+
     // MARK: - Nearby Tours
 
     /// 주변 관광지

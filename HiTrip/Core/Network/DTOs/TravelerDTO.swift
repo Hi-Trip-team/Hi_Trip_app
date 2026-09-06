@@ -667,3 +667,66 @@ extension ChatMessageV1DTO {
         )
     }
 }
+
+
+// MARK: - 주변 스팟 (상황별 검색)
+
+/// GET /api/v1/tourist/nearby-spots/
+struct TravelerNearbySpotsResponseDTO: Decodable {
+    let category: String?
+    let categoryLabel: String?
+    let totalCount: Int?
+    let count: Int?
+    let results: [TravelerNearbySpotDTO]
+}
+
+struct TravelerNearbySpotDTO: Decodable, Identifiable, Hashable {
+    /// 외부 제공자(카카오) 장소 id — 목록 식별자로 씁니다
+    let providerObjectId: String
+    let name: String
+    let categoryName: String?
+    let categoryGroupCode: String?
+    let categoryGroupName: String?
+    let phone: String?
+    let address: String?
+    let roadAddress: String?
+    let placeUrl: String?
+    let distanceM: Int?
+    let lat: String?
+    let lng: String?
+    let isSponsored: Bool?
+    let imageUrl: String?
+    let description: String?
+
+    var id: String { providerObjectId }
+
+    var latitude: Double? { lat.flatMap(Double.init) }
+    var longitude: Double? { lng.flatMap(Double.init) }
+
+    /// "0.4km" — 1km 미만은 m로 보여줍니다
+    var distanceText: String? {
+        guard let distanceM else { return nil }
+        if distanceM < 1000 { return "\(distanceM)m" }
+        return String(format: "%.1fkm", Double(distanceM) / 1000)
+    }
+}
+
+// MARK: - 안전(지오펜스)
+
+/// GET /api/v1/tourist/safety/summary/ — 필요한 부분만 받습니다
+struct TravelerSafetySummaryDTO: Decodable {
+    let tripId: Int?
+    let dayNumber: Int?
+    let geofence: TravelerGeofenceDTO?
+}
+
+struct TravelerGeofenceDTO: Decodable {
+    let centerLat: String?
+    let centerLng: String?
+    let radiusKm: String?
+
+    var latitude: Double? { centerLat.flatMap(Double.init) }
+    var longitude: Double? { centerLng.flatMap(Double.init) }
+    /// 미터
+    var radiusM: Double? { radiusKm.flatMap(Double.init).map { $0 * 1000 } }
+}

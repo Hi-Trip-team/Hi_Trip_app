@@ -293,6 +293,67 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         .just(TravelerManagerContactDTO(manager: ["phone": "010-1234-5678", "name": "김담당 매니저"]))
     }
 
+    // MARK: - 주변 스팟 / 안전
+
+    func fetchNearbySpots(
+        category: String,
+        lat: Double,
+        lng: Double,
+        radius: Int?
+    ) -> Single<[TravelerNearbySpotDTO]> {
+        .just(Self.mockNearbySpots(category: category, lat: lat, lng: lng))
+    }
+
+    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO> {
+        // 목에서는 현재 위치를 모르므로 제주 시내를 중심으로 잡습니다
+        .just(TravelerSafetySummaryDTO(
+            tripId: 1,
+            dayNumber: 2,
+            geofence: TravelerGeofenceDTO(
+                centerLat: "33.499621",
+                centerLng: "126.531188",
+                radiusKm: "3.0"
+            )
+        ))
+    }
+
+    func sendLocationSnapshot(latitude: Double, longitude: Double, accuracyM: Double?) -> Single<Void> {
+        .just(())
+    }
+
+    /// 카테고리별로 좌표를 조금씩 흩어 놓아 지도 마커를 확인할 수 있게 합니다.
+    private static func mockNearbySpots(category: String, lat: Double, lng: Double) -> [TravelerNearbySpotDTO] {
+        let names: [String]
+        switch category {
+        case "restaurant":    names = ["흑돼지 명가", "해녀의 집", "올레 국수"]
+        case "accessibility": names = ["제주도립미술관", "한라수목원"]
+        case "pet":           names = ["반려동물 동반 카페", "애월 펫파크"]
+        case "convenience":   names = ["GS25 동문점", "CU 칠성로점", "세븐일레븐 관덕정"]
+        case "mart":          names = ["이마트 제주점", "하나로마트"]
+        default:              names = []
+        }
+
+        return names.enumerated().map { index, name in
+            TravelerNearbySpotDTO(
+                providerObjectId: "\(category)_\(index)",
+                name: name,
+                categoryName: category,
+                categoryGroupCode: nil,
+                categoryGroupName: nil,
+                phone: nil,
+                address: "제주특별자치도 제주시",
+                roadAddress: nil,
+                placeUrl: nil,
+                distanceM: 300 + index * 250,
+                lat: String(lat + Double(index + 1) * 0.004),
+                lng: String(lng + Double(index % 2 == 0 ? 1 : -1) * 0.005),
+                isSponsored: index == 0,
+                imageUrl: nil,
+                description: "목 데이터"
+            )
+        }
+    }
+
     func sendEmergencyRequest(message: String, latitude: String?, longitude: String?, accuracyM: String?) -> Single<TravelerEmergencyRequestDTO> {
         .just(TravelerEmergencyRequestDTO(
             id: 1,
