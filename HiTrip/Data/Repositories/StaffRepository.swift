@@ -20,6 +20,20 @@ protocol StaffRepositoryProtocol {
     // 일정
     func fetchSchedules(tripId: Int) -> Single<[StaffScheduleDTO]>
 
+    /// 일정 추가 — 장소는 place_id로만 지정할 수 있어 제목은 main_content에 넣습니다
+    func createSchedule(
+        tripId: Int, dayNumber: Int,
+        startTime: String, endTime: String, content: String
+    ) -> Single<StaffScheduleDTO>
+
+    /// 시간 변경·메모 수정 — 바뀐 값만 보냅니다
+    func updateSchedule(
+        tripId: Int, id: Int,
+        startTime: String?, endTime: String?, content: String?
+    ) -> Single<StaffScheduleDTO>
+
+    func deleteSchedule(tripId: Int, id: Int) -> Single<Void>
+
     // 안전 관리
     func fetchSafetySummary(tripId: Int) -> Single<MonitoringSummaryDTO>
     func fetchParticipantsLatest(tripId: Int) -> Single<[ParticipantLatestDTO]>
@@ -103,6 +117,42 @@ final class StaffRepository: StaffRepositoryProtocol {
     }
 
     // MARK: - 안전 관리
+
+    func createSchedule(
+        tripId: Int, dayNumber: Int,
+        startTime: String, endTime: String, content: String
+    ) -> Single<StaffScheduleDTO> {
+        let body: [String: Any] = [
+            "day_number": dayNumber,
+            "start_time": startTime,
+            "end_time": endTime,
+            "main_content": content,
+        ]
+        return networkService.request(
+            .staffScheduleCreate(tripId: tripId, body: body),
+            type: StaffScheduleDTO.self
+        )
+    }
+
+    func updateSchedule(
+        tripId: Int, id: Int,
+        startTime: String?, endTime: String?, content: String?
+    ) -> Single<StaffScheduleDTO> {
+        var body: [String: Any] = [:]
+        if let startTime { body["start_time"] = startTime }
+        if let endTime   { body["end_time"] = endTime }
+        if let content   { body["main_content"] = content }
+
+        return networkService.request(
+            .staffScheduleUpdate(tripId: tripId, id: id, body: body),
+            type: StaffScheduleDTO.self
+        )
+    }
+
+    func deleteSchedule(tripId: Int, id: Int) -> Single<Void> {
+        networkService.request(.staffScheduleDelete(tripId: tripId, id: id), type: EmptyResponse.self)
+            .map { _ in () }
+    }
 
     func fetchSafetySummary(tripId: Int) -> Single<MonitoringSummaryDTO> {
         networkService.request(.monitoringSummary(tripId: tripId), type: MonitoringSummaryDTO.self)

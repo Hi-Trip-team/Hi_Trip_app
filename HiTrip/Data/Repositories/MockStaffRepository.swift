@@ -89,15 +89,67 @@ final class MockStaffRepository: StaffRepositoryProtocol {
 
     // MARK: - 일정
 
+    private static var extraSchedules: [StaffScheduleDTO] = []
+    private static var removedScheduleIds: Set<Int> = []
+    private static var edited: [Int: StaffScheduleDTO] = [:]
+
     func fetchSchedules(tripId: Int) -> Single<[StaffScheduleDTO]> {
-        .just([
-            schedule(id: 1, day: 1, "09:00", "10:30", "공항 집결", "미팅 및 이동"),
-            schedule(id: 2, day: 1, "12:00", "13:30", "흑돼지 명가", "점심 식사"),
-            schedule(id: 3, day: 2, "08:00", "09:00", "호텔 식당", "조식"),
-            schedule(id: 4, day: 2, "15:00", "16:00", "숙소로 이동", "버스 이동"),
-            schedule(id: 5, day: 2, "16:00", "23:00", "자유시간", nil),
-            schedule(id: 6, day: 3, "10:00", "12:00", "성산일출봉", "트래킹"),
-        ])
+        let base = Self.baseSchedules(self)
+        let merged = (base + Self.extraSchedules)
+            .filter { !Self.removedScheduleIds.contains($0.id) }
+            .map { Self.edited[$0.id] ?? $0 }
+        return .just(merged.sorted { ($0.dayNumber, $0.startTime) < ($1.dayNumber, $1.startTime) })
+    }
+
+    func createSchedule(
+        tripId: Int, dayNumber: Int,
+        startTime: String, endTime: String, content: String
+    ) -> Single<StaffScheduleDTO> {
+        let created = StaffScheduleDTO(
+            id: (Self.extraSchedules.map(\.id).max() ?? 900) + 1,
+            trip: tripId, dayNumber: dayNumber,
+            startTime: startTime, endTime: endTime,
+            durationMinutes: 60, placeName: content, durationDisplay: "1시간",
+            transport: nil, mainContent: content, meetingPoint: nil, order: 99
+        )
+        Self.extraSchedules.append(created)
+        return .just(created)
+    }
+
+    func updateSchedule(
+        tripId: Int, id: Int,
+        startTime: String?, endTime: String?, content: String?
+    ) -> Single<StaffScheduleDTO> {
+        let all = Self.baseSchedules(self) + Self.extraSchedules
+        guard let old = (Self.edited[id] ?? all.first { $0.id == id }) else {
+            return .error(HiTripError.notFound(.empty(statusCode: 404)))
+        }
+        let updated = StaffScheduleDTO(
+            id: old.id, trip: old.trip, dayNumber: old.dayNumber,
+            startTime: startTime ?? old.startTime, endTime: endTime ?? old.endTime,
+            durationMinutes: old.durationMinutes,
+            placeName: old.placeName, durationDisplay: old.durationDisplay,
+            transport: old.transport, mainContent: content ?? old.mainContent,
+            meetingPoint: old.meetingPoint, order: old.order
+        )
+        Self.edited[id] = updated
+        return .just(updated)
+    }
+
+    func deleteSchedule(tripId: Int, id: Int) -> Single<Void> {
+        Self.removedScheduleIds.insert(id)
+        return .just(())
+    }
+
+    private static func baseSchedules(_ repo: MockStaffRepository) -> [StaffScheduleDTO] {
+        [
+            repo.schedule(id: 1, day: 1, "09:00", "10:30", "공항 집결", "미팅 및 이동"),
+            repo.schedule(id: 2, day: 1, "12:00", "13:30", "흑돼지 명가", "점심 식사"),
+            repo.schedule(id: 3, day: 2, "08:00", "09:00", "호텔 식당", "조식"),
+            repo.schedule(id: 4, day: 2, "15:00", "16:00", "숙소로 이동", "버스 이동"),
+            repo.schedule(id: 5, day: 2, "16:00", "23:00", "자유시간", nil),
+            repo.schedule(id: 6, day: 3, "10:00", "12:00", "성산일출봉", "트래킹"),
+        ]
     }
 
     private func schedule(
