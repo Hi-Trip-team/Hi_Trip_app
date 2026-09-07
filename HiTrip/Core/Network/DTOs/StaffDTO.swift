@@ -298,3 +298,45 @@ struct GeofenceDTO: Decodable {
         case updatedAt = "updated_at"
     }
 }
+
+
+// MARK: - 참가자 명부
+
+/// GET /api/v1/trips/{trip_pk}/participants/
+///
+/// 관광객 정보 팝업의 국가·여권번호·전화번호는 여기서 옵니다.
+/// 모니터링 응답(ParticipantLatest)에는 이름만 있어 participant id로 이어 붙입니다.
+struct TripParticipantDTO: Decodable {
+    let id: Int
+    let trip: Int?
+    let traveler: TravelerDetailDTO?
+    let joinedDate: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, trip, traveler
+        case joinedDate = "joined_date"
+    }
+}
+
+struct TravelerDetailDTO: Decodable {
+    let id: Int
+    let fullNameKr: String?
+    let phone: String?
+    let country: String?
+    let passportNumber: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, phone, country
+        case fullNameKr = "full_name_kr"
+        case passportNumber = "passport_number"
+    }
+
+    /// "DND***000" — 중간 3자리를 가립니다
+    var maskedPassport: String? {
+        guard let raw = passportNumber, raw.count >= 6 else { return passportNumber }
+        let chars = Array(raw)
+        let head = String(chars[0..<3])
+        let tail = String(chars[(chars.count - 3)...])
+        return head + "***" + tail
+    }
+}

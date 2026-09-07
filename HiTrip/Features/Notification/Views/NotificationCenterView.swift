@@ -1,175 +1,234 @@
 import SwiftUI
 
+// MARK: - NotificationCenterView
+/// 알림 센터 (안내사 전용) — Figma 12381:4544
+///
+/// 안전 경고·위험·이탈 알림의 단일 수신 창구입니다.
+/// 위험 알림은 [확인]을 누를 때까지 서버가 5분 주기로 다시 알립니다.
+///
+/// 여행객에게는 노출하지 않습니다 (다른 관광객의 건강 정보가 보입니다).
+
 struct NotificationCenterView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedFilter = "전체"
+    @StateObject private var viewModel = AlertCenterViewModel()
 
-    private let filters = ["전체", "위험", "경고", "이탈", "일반"]
-
-    private let notifications: [NCItem] = [
-        NCItem(type: "위험", title: "에디님의 심박수가 위험 수치입니다! 바로 확인하세요!",
-               detail: "10:24 · 심박 187bpm", time: "10:24", requiresAction: true),
-        NCItem(type: "이탈", title: "둘리님이 안전 구역을 벗어났습니다 (1.2km)",
-               detail: "10:18 · 탭하여 위치 확인", time: "10:18", requiresAction: false),
-        NCItem(type: "경고", title: "펭수님의 심박수가 경고 수치입니다. 확인이 필요합니다.",
-               detail: "09:52 · 심박 135bpm", time: "09:52", requiresAction: false),
-        NCItem(type: "일반", title: "일정이 변경되었습니다 — 2일차 13:00 점심 장소 변경",
-               detail: "09:30", time: "09:30", requiresAction: false),
-    ]
-
-    private var filtered: [NCItem] {
-        selectedFilter == "전체" ? notifications : notifications.filter { $0.type == selectedFilter }
-    }
+    @State private var showLocation = false
+    @State private var locationTargetName: String?
+    @State private var locationTargetId: Int?
 
     var body: some View {
         VStack(spacing: 0) {
             headerSection
+            filterChips
+                .padding(.top, 33)
 
-            filterRow
-                .padding(.top, 8)
-
-            ScrollView {
-                LazyVStack(spacing: 10) {
-                    ForEach(filtered) { item in
-                        notificationCard(item)
-                    }
+            switch viewModel.state {
+            case .idle, .loading:
+                loadingView
+            case .failed(let message):
+                errorView(message)
+            case .loaded:
+                if viewModel.isEmpty {
+                    emptyView
+                } else {
+                    alertList
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 32)
             }
         }
         .background(Color.white)
         .navigationBarHidden(true)
+        .task { viewModel.load() }
+        .navigationDestination(isPresented: $showLocation) {
+            TouristLocationView(
+                participantId: locationTargetId ?? 0,
+                touristName: locationTargetName ?? ""
+            )
+        }
     }
 
-    // MARK: - Header
+    // MARK: - 헤더
 
     private var headerSection: some View {
         ZStack {
             Text("알림")
                 .font(.system(size: 17, weight: .bold))
                 .foregroundColor(Color(hex: "#111827"))
+
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.black)
+                        .frame(width: 24, height: 24)
                 }
                 Spacer()
             }
-            .padding(.horizontal, 12)
+            .padding(.leading, 12)
         }
-        .frame(height: 44)
+        .frame(height: 24)
         .padding(.top, 8)
     }
 
     // MARK: - 필터 칩
 
-    private var filterRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(filters, id: \.self) { f in
-                    Button { selectedFilter = f } label: {
-                        Text(f)
-                            .font(.system(size: 12, weight: selectedFilter == f ? .bold : .medium))
-                            .foregroundColor(selectedFilter == f ? .white : Color(hex: "#6B7280"))
-                            .padding(.horizontal, 16)
-                            .frame(height: 34)
-                            .background(selectedFilter == f ? Color(hex: "#2563EB") : Color(hex: "#F3F4F6"))
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
+    private var filterChips: some View {
+        HStack(spacing: 8) {
+            ForEach(AlertCenterViewModel.Kind.allCases) { kind in
+                let isOn = viewModel.kind == kind
+                Button { viewModel.kind = kind } label: {
+                    Text(kind.label)
+                        .font(.system(size: 12, weight: isOn ? .bold : .medium))
+                        .foregroundColor(isOn ? .white : Color(hex: "#6B7280"))
+                        .frame(width: kind == .all ? 64 : 56, height: 32)
+                        .background(isOn ? Color(hex: "#2563EB") : Color(hex: "#F3F4F6"))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 20)
+            Spacer(minLength: 0)
         }
-        .padding(.bottom, 4)
+        .padding(.horizontal, 24)
     }
 
-    // MARK: - 알림 카드
+    // MARK: - 목록
 
-    private func notificationCard(_ item: NCItem) -> some View {
-        let colors = badgeColors(item.type)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 10) {
-                Text(item.type)
+    private var alertList: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.filtered, id: \.id) { alert in
+                    alertCard(alert)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 28)
+            .padding(.bottom, 32)
+        }
+        .refreshable { viewModel.refresh() }
+    }
+
+    private func alertCard(_ alert: MonitoringAlertDTO) -> some View {
+        let needsAck = viewModel.needsAcknowledge(alert)
+
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(viewModel.badgeText(alert))
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(colors.text)
-                    .padding(.horizontal, 10)
-                    .frame(height: 22)
-                    .background(colors.bg)
-                    .cornerRadius(6)
+                    .foregroundColor(badgeForeground(alert))
+                    .frame(width: 44, height: 22)
+                    .background(badgeBackground(alert))
+                    .cornerRadius(4)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.title)
-                        .font(.system(size: 13, weight: .medium))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(viewModel.messageText(alert))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(Color(hex: "#111827"))
                         .fixedSize(horizontal: false, vertical: true)
-                    if !item.detail.isEmpty {
-                        Text(item.detail)
-                            .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "#6B7280"))
+
+                    Text(viewModel.metaText(alert))
+                        .font(.system(size: 10))
+                        .foregroundColor(Color(hex: "#6B7280"))
+                        .padding(.top, 8)
+
+                    if needsAck {
+                        Text("[확인] 전까지 5분 주기 재알림")
+                            .font(.system(size: 9))
+                            .foregroundColor(Color(hex: "#EF4444"))
+                            .padding(.top, 6)
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
             }
 
-            if item.requiresAction {
+            if needsAck {
                 HStack {
                     Spacer()
-                    Button { } label: {
+                    Button { viewModel.acknowledge(alert) } label: {
                         Text("확인")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(hex: "#EF4444"))
-                            .frame(width: 60, height: 32)
-                            .background(Color.white)
+                            .foregroundColor(.white)
+                            .frame(width: 80, height: 28)
+                            .background(Color(hex: "#EF4444"))
                             .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(hex: "#EF4444"), lineWidth: 1)
-                            )
                     }
                     .buttonStyle(.plain)
                 }
-
-                Text("[확인] 전까지 5분 주기 재알림")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(Color(hex: "#EF4444"))
+                .padding(.top, 8)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .background(colors.cardBg)
-        .cornerRadius(12)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // 읽은 알림은 배경을 회색으로
+        .background(viewModel.isRead(alert) ? Color(hex: "#F9FAFB") : Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(colors.border, lineWidth: 1)
+                .stroke(Color(hex: "#E5E7EB"), lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture { open(alert) }
     }
 
-    private func badgeColors(_ type: String) -> (bg: Color, text: Color, cardBg: Color, border: Color) {
-        switch type {
-        case "위험", "이탈":
-            return (Color(hex: "#FCE5E5"), Color(hex: "#EF4444"),
-                    Color(hex: "#FFF5F5"), Color(hex: "#FECACA"))
-        case "경고":
-            return (Color(hex: "#FFF2D9"), Color(hex: "#EB8C0D"),
-                    Color(hex: "#FFFBF0"), Color(hex: "#FDE68A"))
-        default:
-            return (Color(hex: "#E8F0FF"), Color(hex: "#2563EB"),
-                    Color(hex: "#F8FAFF"), Color(hex: "#BFDBFE"))
+    private func badgeBackground(_ alert: MonitoringAlertDTO) -> Color {
+        if viewModel.isGeneral(alert) { return Color(hex: "#E8F0FF") }
+        return viewModel.isDangerous(alert) ? Color(hex: "#FCE5E5") : Color(hex: "#FFF2D9")
+    }
+
+    private func badgeForeground(_ alert: MonitoringAlertDTO) -> Color {
+        if viewModel.isGeneral(alert) { return Color(hex: "#2563EB") }
+        return viewModel.isDangerous(alert) ? Color(hex: "#EF4444") : Color(hex: "#EB8C0D")
+    }
+
+    /// 유형별 딥링크 — 이탈은 위치 확인, 건강은 안전 관리로 돌아갑니다
+    private func open(_ alert: MonitoringAlertDTO) {
+        viewModel.markRead(alert)
+
+        if alert.alertType == "location" {
+            locationTargetName = alert.travelerName
+            locationTargetId = viewModel.participantId(for: alert)
+            showLocation = true
+        } else {
+            // 건강·일정 알림은 앞 화면(안전 관리·전체일정)으로 돌아가 확인합니다
+            dismiss()
         }
     }
-}
 
-private struct NCItem: Identifiable {
-    let id = UUID()
-    let type: String
-    let title: String
-    let detail: String
-    let time: String
-    let requiresAction: Bool
+    // MARK: - 상태 화면
+
+    private var loadingView: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("알림을 불러오는 중이에요")
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#6B7280"))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyView: some View {
+        Text("알림이 없어요")
+            .font(.system(size: 14))
+            .foregroundColor(Color(hex: "#6B7280"))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            Text(message)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
+            Button { viewModel.load() } label: {
+                Text("재시도")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .frame(height: 44)
+                    .background(Color(hex: "#2563EB"))
+                    .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 }

@@ -57,6 +57,17 @@ final class AppDIContainer {
         return ChatRepository(networkService: networkService)
     }()
 
+    /// 안내사(관리자) API — 세션 쿠키 + CSRF 인증
+    private lazy var staffRepository: StaffRepositoryProtocol = {
+        if APIEnvironment.current.useMock {
+            return MockStaffRepository()
+        }
+        return StaffRepository(networkService: networkService)
+    }()
+
+    /// 안내사 화면들이 주입받는 저장소 (기본 인자용)
+    var staffRepositoryForGuide: StaffRepositoryProtocol { staffRepository }
+
     /// 로컬 긴급 연락처 (프리셋 + 개인 저장)
     private lazy var emergencyRepository: EmergencyRepositoryProtocol = {
         EmergencyRepository()
