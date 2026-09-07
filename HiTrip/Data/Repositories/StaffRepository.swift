@@ -46,6 +46,7 @@ protocol StaffRepositoryProtocol {
     func updateNotice(id: Int, title: String, content: String) -> Single<StaffNoticeDTO>
     func publishNotice(id: Int) -> Single<StaffNoticeDTO>
     func archiveNotice(id: Int) -> Single<StaffNoticeDTO>
+    func deleteNotice(id: Int) -> Single<Void>
 
     // 안전 구역
     func fetchGeofences(tripId: Int) -> Single<[GeofenceDTO]>
@@ -204,6 +205,11 @@ final class StaffRepository: StaffRepositoryProtocol {
             .staffNoticeUpdate(id: id, body: ["title": title, "content": content]),
             type: StaffNoticeDTO.self
         )
+    }
+
+    func deleteNotice(id: Int) -> Single<Void> {
+        networkService.request(.staffNoticeDelete(id: id), type: EmptyResponse.self)
+            .map { _ in () }
     }
 
     func publishNotice(id: Int) -> Single<StaffNoticeDTO> {

@@ -20,6 +20,8 @@ struct NoticeSettingView: View {
     @State private var pendingActivationId: Int?
     /// ⋮ 메뉴 대상
     @State private var menuTarget: StaffNoticeDTO?
+    /// 삭제 확인 대상
+    @State private var deleteTarget: StaffNoticeDTO?
     /// 전문 보기
     @State private var detailTarget: StaffNoticeDTO?
 
@@ -113,9 +115,31 @@ struct NoticeSettingView: View {
                 }
                 menuTarget = nil
             }
+            Button("삭제", role: .destructive) {
+                deleteTarget = menuTarget
+                menuTarget = nil
+            }
             Button("취소", role: .cancel) { menuTarget = nil }
         }
-        .alert("저장하지 못했어요", isPresented: Binding(
+        .confirmationDialog(
+            "이 공지를 삭제할까요?",
+            isPresented: Binding(
+                get: { deleteTarget != nil },
+                set: { if !$0 { deleteTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("삭제", role: .destructive) {
+                if let target = deleteTarget { viewModel.delete(target) }
+                deleteTarget = nil
+            }
+            Button("취소", role: .cancel) { deleteTarget = nil }
+        } message: {
+            Text(deleteTarget?.isActive == true
+                 ? "활성 공지입니다. 삭제하면 관광객 홈에 공지가 표시되지 않습니다"
+                 : "삭제한 공지는 되돌릴 수 없습니다")
+        }
+        .alert("처리하지 못했어요", isPresented: Binding(
             get: { viewModel.saveError != nil },
             set: { if !$0 { viewModel.saveError = nil } }
         )) {

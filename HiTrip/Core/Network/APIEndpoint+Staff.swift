@@ -149,6 +149,12 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/notices/\(id)/", method: .patch, body: body)
     }
 
+    /// 공지 삭제
+    /// DELETE /api/v1/notices/{id}/
+    static func staffNoticeDelete(id: Int) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/notices/\(id)/", method: .delete)
+    }
+
     /// 공지 게시 — 토글 ON
     /// POST /api/v1/notices/{id}/publish/
     static func staffNoticePublish(id: Int) -> APIEndpoint {

@@ -146,6 +146,30 @@ final class NoticeSettingViewModel: ObservableObject {
             .disposed(by: disposeBag)
     }
 
+    /// 공지 삭제 — 활성 공지를 지우면 자동으로 "공지 없음" 상태가 됩니다
+    func delete(_ notice: StaffNoticeDTO) {
+        repository.deleteNotice(id: notice.id)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in
+                    self?.refresh()
+                    self?.toast = "공지를 삭제했어요"
+                },
+                onFailure: { [weak self] error in
+                    self?.saveError = Self.deleteMessage(for: error)
+                }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    /// 서버가 아직 DELETE를 열어두지 않아 405가 오면 원인을 그대로 알려줍니다
+    private static func deleteMessage(for error: Error) -> String {
+        if let e = error as? HiTripError, case .httpError(let code, _) = e, code == 405 {
+            return "서버가 아직 공지 삭제를 지원하지 않아요"
+        }
+        return message(for: error)
+    }
+
     func activate(id: Int) {
         repository.publishNotice(id: id)
             .observe(on: MainScheduler.instance)

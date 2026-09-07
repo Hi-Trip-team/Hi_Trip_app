@@ -291,6 +291,11 @@ final class MockStaffRepository: StaffRepositoryProtocol {
         return .just(Self.notices.first { $0.id == id } ?? Self.notices[0])
     }
 
+    func deleteNotice(id: Int) -> Single<Void> {
+        Self.notices.removeAll { $0.id == id }
+        return .just(())
+    }
+
     func archiveNotice(id: Int) -> Single<StaffNoticeDTO> {
         Self.notices = Self.notices.map { $0.id == id ? Self.setActive($0, false) : $0 }
         return .just(Self.notices.first { $0.id == id } ?? Self.notices[0])
