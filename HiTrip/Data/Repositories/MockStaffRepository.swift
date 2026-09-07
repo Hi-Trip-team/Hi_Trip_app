@@ -325,6 +325,32 @@ final class MockStaffRepository: StaffRepositoryProtocol {
 
     func fetchGeofences(tripId: Int) -> Single<[GeofenceDTO]> { .just(Self.geofences) }
 
+    func createGeofence(
+        tripId: Int, dayNumber: Int,
+        centerLat: String, centerLng: String, centerAddress: String, radiusKm: Int
+    ) -> Single<GeofenceDTO> {
+        let created = GeofenceDTO(
+            id: (Self.geofences.map(\.id).max() ?? 0) + 1,
+            trip: tripId, dayNumber: dayNumber, revision: 1, isActive: true,
+            centerLat: centerLat, centerLng: centerLng,
+            centerAddress: centerAddress, radiusKm: radiusKm,
+            updatedByName: "김안내", updatedAt: Self.isoNow()
+        )
+        Self.geofences.append(created)
+        return .just(created)
+    }
+
+    func copyPreviousGeofence(tripId: Int, dayNumber: Int, expectedRevision: Int) -> Single<GeofenceDTO> {
+        guard let previous = Self.geofences.last(where: { $0.dayNumber < dayNumber }) else {
+            return .error(HiTripError.notFound(.empty(statusCode: 404)))
+        }
+        return createGeofence(
+            tripId: tripId, dayNumber: dayNumber,
+            centerLat: previous.centerLat, centerLng: previous.centerLng,
+            centerAddress: previous.centerAddress ?? "", radiusKm: previous.radiusKm
+        )
+    }
+
     func updateGeofence(
         tripId: Int, id: Int,
         centerLat: String, centerLng: String, radiusKm: Int,
