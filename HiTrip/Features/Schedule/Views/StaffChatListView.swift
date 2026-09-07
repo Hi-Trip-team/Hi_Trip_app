@@ -1,28 +1,50 @@
 import SwiftUI
 
+// MARK: - StaffChatListView
+/// 고객 관리 (메시지) — Figma 12381:4655
+///
+/// - GET /api/v1/chat/rooms/   여행객과 같은 엔드포인트 (세션 쿠키로도 인증됩니다)
+///
+/// 채팅방 화면은 여행객 것과 동일한 ChatRoomView를 그대로 씁니다.
+/// 단체톡방은 여행 등록 시 자동 생성되고 나가기가 없어 항상 최상단에 고정합니다.
+
 struct StaffChatListView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedFilter = "전체"
+    @StateObject private var viewModel = AppDIContainer.shared.makeChatViewModel()
 
-    private let filters = ["전체", "미확인", "단체"]
+    @State private var tab: Tab = .all
+    @State private var selectedRoom: ChatRoom?
+    @State private var showMarkAllConfirm = false
 
-    private let chats: [StaffChatItem] = [
-        StaffChatItem(name: "여행 단체톡방", lastMessage: "오늘 저녁 집합 시간 안내드립니다",
-                      time: "일 12:40", unread: 9, isGroup: true),
-        StaffChatItem(name: "둘리", lastMessage: "가이드님 위치 확인 부탁드려요",
-                      time: "일 11:50", unread: 1, isGroup: false),
-        StaffChatItem(name: "이연세", lastMessage: "감사합니다!",
-                      time: "화 10:56", unread: 0, isGroup: false),
-        StaffChatItem(name: "펭수", lastMessage: "내일 일정 관련 문의드립니다",
-                      time: "화 10:56", unread: 0, isGroup: false),
-    ]
+    /// 기획 재정의 — 기존 "최근·이전·확인됨"은 기준이 모호했습니다
+    private enum Tab: String, CaseIterable, Identifiable {
+        /// 단체 고정 + 최신순
+        case all = "전체"
+        /// 안읽음이 있는 방만
+        case unread = "미확인"
+        /// 단체톡방만
+        case group = "단체"
 
-    private var filtered: [StaffChatItem] {
-        switch selectedFilter {
-        case "미확인": return chats.filter { $0.unread > 0 }
-        case "단체": return chats.filter { $0.isGroup }
-        default: return chats
+        var id: String { rawValue }
+        var width: CGFloat { self == .unread ? 76 : 60 }
+    }
+
+    // MARK: - 목록
+
+    /// 단체톡방 최상단 고정, 이하 마지막 메시지 최신순
+    private var sortedRooms: [ChatRoom] {
+        viewModel.chatRooms.sorted { a, b in
+            if a.isGroupChat != b.isGroupChat { return a.isGroupChat }
+            return a.lastMessageDate > b.lastMessageDate
+        }
+    }
+
+    private var rooms: [ChatRoom] {
+        switch tab {
+        case .all:    return sortedRooms
+        case .unread: return sortedRooms.filter { $0.unreadCount > 0 }
+        case .group:  return sortedRooms.filter { $0.isGroupChat }
         }
     }
 
@@ -30,118 +52,181 @@ struct StaffChatListView: View {
         VStack(spacing: 0) {
             headerSection
 
-            // 필터 칩
-            HStack(spacing: 8) {
-                ForEach(filters, id: \.self) { f in
-                    Button { selectedFilter = f } label: {
-                        Text(f)
-                            .font(.system(size: 12, weight: selectedFilter == f ? .bold : .medium))
-                            .foregroundColor(selectedFilter == f ? .white : Color(hex: "#6B7280"))
-                            .frame(width: f == "미확인" ? 76 : 60, height: 34)
-                            .background(selectedFilter == f ? Color(hex: "#2563EB") : Color(hex: "#F3F4F6"))
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
+            tabRow
+                .padding(.top, 36)
+                .padding(.bottom, 20)
 
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(filtered) { chat in
-                        chatRow(chat)
-                        Divider()
-                            .padding(.leading, 24)
-                    }
-                }
+            if rooms.isEmpty {
+                emptyView
+            } else {
+                roomList
             }
         }
         .background(Color.white)
         .navigationBarHidden(true)
+        .navigationDestination(item: $selectedRoom) { room in
+            ChatRoomView(viewModel: viewModel, chatRoom: room)
+        }
+        .onAppear { viewModel.fetchChatRooms() }
+        .confirmationDialog(
+            "모든 채팅을 읽음 처리할까요?",
+            isPresented: $showMarkAllConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("확인") { viewModel.markAllAsRead() }
+            Button("취소", role: .cancel) { }
+        }
     }
 
-    // MARK: - Header
+    // MARK: - 헤더
 
     private var headerSection: some View {
         ZStack {
             Text("메시지 및 문의")
                 .font(.system(size: 17, weight: .bold))
                 .foregroundColor(Color(hex: "#111827"))
+
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.black)
+                        .frame(width: 24, height: 24)
                 }
                 Spacer()
-                Button { } label: {
+                // 즉시 실행하지 않고 한 번 확인합니다
+                Button { showMarkAllConfirm = true } label: {
                     Text("모두 확인")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(Color(hex: "#2563EB"))
                 }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
         }
-        .frame(height: 44)
+        .frame(height: 24)
         .padding(.top, 8)
     }
 
-    // MARK: - 채팅 행
+    // MARK: - 탭 필터
 
-    private func chatRow(_ chat: StaffChatItem) -> some View {
+    private var tabRow: some View {
+        HStack(spacing: 12) {
+            ForEach(Tab.allCases) { item in
+                let isOn = tab == item
+                Button { tab = item } label: {
+                    Text(item.rawValue)
+                        .font(.system(size: 12, weight: isOn ? .bold : .medium))
+                        .foregroundColor(isOn ? .white : Color(hex: "#6B7280"))
+                        .frame(width: item.width, height: 34)
+                        .background(isOn ? Color(hex: "#2563EB") : Color(hex: "#F3F4F6"))
+                        .clipShape(RoundedRectangle(cornerRadius: 17))
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    // MARK: - 방 목록
+
+    private var roomList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(rooms) { room in
+                    Button { selectedRoom = room } label: { roomRow(room) }
+                        .buttonStyle(.plain)
+
+                    Rectangle()
+                        .fill(Color(hex: "#E5E7EB"))
+                        .frame(height: 1)
+                        .padding(.horizontal, 24)
+                }
+            }
+        }
+        .refreshable { viewModel.fetchChatRooms() }
+    }
+
+    private func roomRow(_ room: ChatRoom) -> some View {
         HStack(spacing: 14) {
-            // 아바타
             Circle()
-                .fill(Color(hex: "#E5E7EB"))
+                .fill(Color(hex: "#F3F4F6"))
                 .frame(width: 48, height: 48)
                 .overlay(
-                    Text(chat.isGroup ? "👥" : String(chat.name.prefix(1)))
-                        .font(.system(size: chat.isGroup ? 20 : 18, weight: .medium))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                    Image(systemName: room.isGroupChat ? "person.3.fill" : "person.fill")
+                        .font(.system(size: room.isGroupChat ? 17 : 19))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
                 )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(chat.name)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(room.isGroupChat ? "📌 \(room.participantName)" : room.participantName)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(Color(hex: "#111827"))
-                Text(chat.lastMessage)
+                    .lineLimit(1)
+
+                Text(room.lastMessage.isEmpty ? "새로운 채팅방" : room.lastMessage)
                     .font(.system(size: 12))
                     .foregroundColor(Color(hex: "#6B7280"))
                     .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             VStack(alignment: .trailing, spacing: 6) {
-                Text(chat.time)
+                Text(Self.timeText(room.lastMessageDate))
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: "#6B7280"))
 
-                if chat.unread > 0 {
-                    ZStack {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 22, height: 22)
-                        Text("\(chat.unread)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
+                if room.unreadCount > 0 {
+                    Text(room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .frame(minWidth: 22, minHeight: 22)
+                        .background(Color(hex: "#EF4444"))
+                        .clipShape(Capsule())
+                } else {
+                    Color.clear.frame(width: 0, height: 22)
                 }
             }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
-}
 
-private struct StaffChatItem: Identifiable {
-    let id = UUID()
-    let name: String
-    let lastMessage: String
-    let time: String
-    let unread: Int
-    let isGroup: Bool
+    // MARK: - 빈 상태
+
+    private var emptyView: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            Image(systemName: tab == .unread ? "checkmark.circle" : "bubble.left.and.bubble.right")
+                .font(.system(size: 40))
+                .foregroundColor(Color(hex: "#D1D5DB"))
+            Text(tab == .unread ? "미확인 메시지가 없어요" : "메시지가 없어요")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(Color(hex: "#111827"))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// 오늘=HH:mm, 어제="어제", 이번 주=요일+시각("일 12:40"), 그 이전=M.D
+    private static func timeText(_ date: Date) -> String {
+        let cal = Calendar.current
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+
+        if cal.isDateInToday(date) {
+            f.dateFormat = "HH:mm"
+        } else if cal.isDateInYesterday(date) {
+            return "어제"
+        } else if let days = cal.dateComponents([.day], from: date, to: Date()).day, days < 7 {
+            f.dateFormat = "E HH:mm"
+        } else {
+            f.dateFormat = "M.d"
+        }
+        return f.string(from: date)
+    }
 }
