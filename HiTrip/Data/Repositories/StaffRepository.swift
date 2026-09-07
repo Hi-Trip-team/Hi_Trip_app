@@ -29,6 +29,7 @@ protocol StaffRepositoryProtocol {
     // 공지
     func fetchNotices() -> Single<[StaffNoticeDTO]>
     func createNotice(title: String, content: String, tripId: Int?) -> Single<StaffNoticeDTO>
+    func updateNotice(id: Int, title: String, content: String) -> Single<StaffNoticeDTO>
     func publishNotice(id: Int) -> Single<StaffNoticeDTO>
     func archiveNotice(id: Int) -> Single<StaffNoticeDTO>
 
@@ -137,6 +138,13 @@ final class StaffRepository: StaffRepositoryProtocol {
             body["scope"] = "global"
         }
         return networkService.request(.staffNoticeCreate(body: body), type: StaffNoticeDTO.self)
+    }
+
+    func updateNotice(id: Int, title: String, content: String) -> Single<StaffNoticeDTO> {
+        networkService.request(
+            .staffNoticeUpdate(id: id, body: ["title": title, "content": content]),
+            type: StaffNoticeDTO.self
+        )
     }
 
     func publishNotice(id: Int) -> Single<StaffNoticeDTO> {

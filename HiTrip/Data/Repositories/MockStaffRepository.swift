@@ -217,6 +217,22 @@ final class MockStaffRepository: StaffRepositoryProtocol {
         return .just(created)
     }
 
+    func updateNotice(id: Int, title: String, content: String) -> Single<StaffNoticeDTO> {
+        guard let idx = Self.notices.firstIndex(where: { $0.id == id }) else {
+            return .error(HiTripError.notFound(.empty(statusCode: 404)))
+        }
+        let old = Self.notices[idx]
+        let updated = StaffNoticeDTO(
+            id: old.id, scope: old.scope, trip: old.trip, tripTitle: old.tripTitle,
+            authorName: old.authorName, title: title, content: content, priority: old.priority,
+            publishedAt: old.publishedAt, isActive: old.isActive,
+            readCount: old.readCount, audienceCount: old.audienceCount,
+            unreadCount: old.unreadCount, createdAt: old.createdAt
+        )
+        Self.notices[idx] = updated
+        return .just(updated)
+    }
+
     /// 활성 공지는 항상 1건 — 다른 공지를 활성화하면 기존 것은 자동으로 내려갑니다
     func publishNotice(id: Int) -> Single<StaffNoticeDTO> {
         Self.notices = Self.notices.map { Self.setActive($0, $0.id == id) }
