@@ -1,5 +1,10 @@
 import Foundation
 
+// NetworkService의 JSONDecoder가 keyDecodingStrategy = .convertFromSnakeCase 를 씁니다.
+// 그래서 snake_case 키는 이미 camelCase로 바뀐 뒤 매칭됩니다.
+// 여기에 CodingKeys로 "day_number" 같은 원본 키를 다시 적으면 오히려 매칭에 실패합니다.
+// (실제로 안내사 화면이 전부 디코딩 실패로 비어 있었습니다)
+
 // MARK: - Staff DTOs
 /// 관리자 API 응답 DTO — Hi Trip API v1.0.0 스키마 기준
 ///
@@ -26,15 +31,6 @@ struct StaffProfileDTO: Decodable {
     let isActive: Bool
     let isApproved: Bool
 
-    enum CodingKeys: String, CodingKey {
-        case id, username, email, phone
-        case travelAgencyName = "travel_agency_name"
-        case fullNameKr = "full_name_kr"
-        case fullNameEn = "full_name_en"
-        case roleDisplay = "role_display"
-        case isActive = "is_active"
-        case isApproved = "is_approved"
-    }
 }
 
 struct CSRFTokenDTO: Decodable {
@@ -61,19 +57,6 @@ struct StaffTripDTO: Decodable {
     let geofenceCenterLng: String?
     let geofenceRadiusKm: String?
 
-    enum CodingKeys: String, CodingKey {
-        case id, title, destination
-        case startDate = "start_date"
-        case endDate = "end_date"
-        case managerName = "manager_name"
-        case participantCount = "participant_count"
-        case heartRateMin = "heart_rate_min"
-        case heartRateMax = "heart_rate_max"
-        case spo2Min = "spo2_min"
-        case geofenceCenterLat = "geofence_center_lat"
-        case geofenceCenterLng = "geofence_center_lng"
-        case geofenceRadiusKm = "geofence_radius_km"
-    }
 }
 
 // MARK: - 일정
@@ -92,17 +75,6 @@ struct StaffScheduleDTO: Decodable {
     let meetingPoint: String?
     let order: Int?
 
-    enum CodingKeys: String, CodingKey {
-        case id, trip, transport, order
-        case dayNumber = "day_number"
-        case startTime = "start_time"
-        case endTime = "end_time"
-        case durationMinutes = "duration_minutes"
-        case placeName = "place_name"
-        case durationDisplay = "duration_display"
-        case mainContent = "main_content"
-        case meetingPoint = "meeting_point"
-    }
 }
 
 // MARK: - 모니터링 (안전 관리)
@@ -134,11 +106,6 @@ struct HealthSnapshotDTO: Decodable {
     let spo2: String?
     let measuredAt: String?
 
-    enum CodingKeys: String, CodingKey {
-        case heartRate = "heart_rate"
-        case spo2
-        case measuredAt = "measured_at"
-    }
 }
 
 struct LocationSnapshotDTO: Decodable {
@@ -147,11 +114,6 @@ struct LocationSnapshotDTO: Decodable {
     let accuracyM: String?
     let measuredAt: String?
 
-    enum CodingKeys: String, CodingKey {
-        case latitude, longitude
-        case accuracyM = "accuracy_m"
-        case measuredAt = "measured_at"
-    }
 }
 
 /// 사고 요약 — 이탈 거리/사유가 여기 담김
@@ -172,14 +134,6 @@ struct IncidentSummaryDTO: Decodable {
     var isGeofence: Bool { incidentType == "geofence" }
     var isOpen: Bool { status == "open" }
 
-    enum CodingKeys: String, CodingKey {
-        case id, severity, status, message
-        case travelerName = "traveler_name"
-        case incidentType = "incident_type"
-        case reasonCode = "reason_code"
-        case openedAt = "opened_at"
-        case acknowledgedAt = "acknowledged_at"
-    }
 }
 
 /// 참가자별 최신 상태 — 안전관리 테이블 한 행
@@ -199,16 +153,6 @@ struct ParticipantLatestDTO: Decodable {
         activeIncidents.first { $0.isGeofence && $0.isOpen }
     }
 
-    enum CodingKeys: String, CodingKey {
-        case health, location
-        case participantId = "participant_id"
-        case travelerName = "traveler_name"
-        case tripId = "trip_id"
-        case healthStatus = "health_status"
-        case locationStatus = "location_status"
-        case overallStatus = "overall_status"
-        case activeIncidents = "active_incidents"
-    }
 }
 
 /// 경보 — 알림 센터 한 행
@@ -226,15 +170,6 @@ struct MonitoringAlertDTO: Decodable {
     let snapshotTime: String
     let createdAt: String
 
-    enum CodingKeys: String, CodingKey {
-        case id, severity, message, incident
-        case travelerName = "traveler_name"
-        case tripId = "trip_id"
-        case alertType = "alert_type"
-        case reasonCode = "reason_code"
-        case snapshotTime = "snapshot_time"
-        case createdAt = "created_at"
-    }
 }
 
 // MARK: - 공지
@@ -257,17 +192,6 @@ struct StaffNoticeDTO: Decodable {
     let unreadCount: Int
     let createdAt: String
 
-    enum CodingKeys: String, CodingKey {
-        case id, scope, trip, title, content, priority
-        case tripTitle = "trip_title"
-        case authorName = "author_name"
-        case publishedAt = "published_at"
-        case isActive = "is_active"
-        case readCount = "read_count"
-        case audienceCount = "audience_count"
-        case unreadCount = "unread_count"
-        case createdAt = "created_at"
-    }
 }
 
 // MARK: - 안전 구역 (지도 범위 설정)
@@ -286,17 +210,6 @@ struct GeofenceDTO: Decodable {
     let updatedByName: String?
     let updatedAt: String
 
-    enum CodingKeys: String, CodingKey {
-        case id, trip, revision
-        case dayNumber = "day_number"
-        case isActive = "is_active"
-        case centerLat = "center_lat"
-        case centerLng = "center_lng"
-        case centerAddress = "center_address"
-        case radiusKm = "radius_km"
-        case updatedByName = "updated_by_name"
-        case updatedAt = "updated_at"
-    }
 }
 
 
@@ -312,10 +225,6 @@ struct TripParticipantDTO: Decodable {
     let traveler: TravelerDetailDTO?
     let joinedDate: String?
 
-    enum CodingKeys: String, CodingKey {
-        case id, trip, traveler
-        case joinedDate = "joined_date"
-    }
 }
 
 struct TravelerDetailDTO: Decodable {
@@ -325,11 +234,6 @@ struct TravelerDetailDTO: Decodable {
     let country: String?
     let passportNumber: String?
 
-    enum CodingKeys: String, CodingKey {
-        case id, phone, country
-        case fullNameKr = "full_name_kr"
-        case passportNumber = "passport_number"
-    }
 
     /// "DND***000" — 중간 3자리를 가립니다
     var maskedPassport: String? {

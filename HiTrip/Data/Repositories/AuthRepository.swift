@@ -47,6 +47,18 @@ final class AuthRepository: AuthRepositoryProtocol {
     /// 응답: AuthLoginResponse { token, key, sessionid }
     /// → 기존 LoginResponse로 변환하여 UseCase/ViewModel 코드 변경 최소화
     func login(request: LoginRequest) -> Single<LoginResponse> {
+        // 스태프 로그인은 세션 쿠키 + CSRF 방식이라 토큰을 먼저 받아야 합니다.
+        // 이 단계를 건너뛰면 서버가 403으로 막습니다.
+        return networkService.request(.staffCSRF(), type: CSRFTokenDTO.self)
+            .do(onSuccess: { NetworkService.csrfToken = $0.csrfToken })
+            .catch { _ in .just(CSRFTokenDTO(csrfToken: "")) }
+            .flatMap { [weak self] _ in
+                guard let self else { return .error(HiTripError.invalidResponse) }
+                return self.performLogin(request: request)
+            }
+    }
+
+    private func performLogin(request: LoginRequest) -> Single<LoginResponse> {
         let endpoint = APIEndpoint.login(
             username: request.id,
             password: request.password
@@ -77,7 +89,12 @@ final class AuthRepository: AuthRepositoryProtocol {
                 print("✅ [Auth] 유저 정보 저장: name=\(displayName), email=\(displayEmail), role=\(authResponse.role ?? "none")")
 
                 // 3) 기존 LoginResponse 형태로 변환 (UseCase/ViewModel 호환)
-                let userType: UserType = (authResponse.role == "super_admin" || authResponse.role == "coordinator") ? .guide : .tourist
+                // 서버 역할값: admin | manager | tourist (UserRoleEnum)
+                // 관광객이 아니면 모두 안내사(관리자) 화면으로 보냅니다.
+                // 기존에는 super_admin/coordinator만 확인해 manager가 여행객 홈으로 빠졌습니다.
+                let staffRoles: Set<String> = ["admin", "manager", "super_admin", "coordinator", "staff"]
+                let role = (authResponse.role ?? "").lowercased()
+                let userType: UserType = staffRoles.contains(role) ? .guide : .tourist
 
                 let userInfo = UserInfo(
                     id: authResponse.id.map(String.init) ?? "0",

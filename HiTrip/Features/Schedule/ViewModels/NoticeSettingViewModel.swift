@@ -58,12 +58,19 @@ final class NoticeSettingViewModel: ObservableObject {
             .observe(on: MainScheduler.instance)
             .subscribe(
                 onSuccess: { [weak self] list in
-                    // 활성 최상단 → 최신 작성순
-                    self?.notices = list.sorted { a, b in
+                    guard let self else { return }
+                    // 서버는 담당 여행 전체의 공지를 돌려줍니다.
+                    // 이 화면은 지금 보고 있는 여행의 공지만 다뤄야 활성 1건 규칙이 성립합니다.
+                    // (전사 공지 scope == "global"은 여행과 무관하므로 함께 보여줍니다)
+                    let mine = list.filter { notice in
+                        guard let tripId = self.tripId else { return true }
+                        return notice.trip == tripId || notice.scope == "global"
+                    }
+                    self.notices = mine.sorted { a, b in
                         if a.isActive != b.isActive { return a.isActive }
                         return a.createdAt > b.createdAt
                     }
-                    self?.state = .loaded
+                    self.state = .loaded
                 },
                 onFailure: { [weak self] error in
                     if self?.notices.isEmpty ?? true {
