@@ -207,6 +207,8 @@ final class NoticeSettingViewModel: ObservableObject {
     private static func message(for error: Error) -> String {
         if let e = error as? HiTripError {
             switch e {
+            // 서버가 아카이브된 공지의 재게시를 막습니다
+            case .conflict:                 return "한 번 내린 공지는 다시 활성화할 수 없어요. 새로 작성해주세요"
             case .unauthorized, .forbidden: return "로그인이 필요합니다"
             case .noConnection:             return "연결을 확인해주세요"
             default:                        break
