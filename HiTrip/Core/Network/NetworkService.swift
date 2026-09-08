@@ -260,7 +260,7 @@ final class NetworkService {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        if endpoint.method != .get, let csrf = NetworkService.csrfToken {
+        if endpoint.method != .get, let csrf = NetworkService.csrfToken ?? csrfCookieValue() {
             request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
             request.setValue(baseURL, forHTTPHeaderField: "Referer")
         }
@@ -271,6 +271,17 @@ final class NetworkService {
         }
 
         return request
+    }
+
+    /// 쿠키 저장소에 있는 csrftoken을 읽습니다.
+    ///
+    /// 정적 프로퍼티에만 담아두면 앱을 재시작했을 때 사라져서
+    /// 세션 쿠키는 살아 있는데 쓰기 요청만 "CSRF token missing"으로 막힙니다.
+    /// Django는 csrftoken 쿠키를 HttpOnly로 내리지 않으므로 여기서 읽을 수 있습니다.
+    private func csrfCookieValue() -> String? {
+        guard let url = URL(string: baseURL),
+              let cookies = HTTPCookieStorage.shared.cookies(for: url) else { return nil }
+        return cookies.first { $0.name == "csrftoken" }?.value
     }
 }
 
