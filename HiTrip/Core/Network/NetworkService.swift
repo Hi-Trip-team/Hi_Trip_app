@@ -99,7 +99,11 @@ final class NetworkService {
 
                 // 3) HTTP 상태코드 검증 — 서버 에러 body를 파싱하여 구체적인 에러 생성
                 guard (200...299).contains(httpResponse.statusCode) else {
-                    let hiTripError = HiTripError.from(statusCode: httpResponse.statusCode, data: data)
+                    let hiTripError = HiTripError.from(
+                        statusCode: httpResponse.statusCode,
+                        data: data,
+                        retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    )
                     print("❌ [Network] \(hiTripError.debugDescription) | URL: \(url)")
 
                     // 401 토큰 만료 시 자동 로그아웃 알림 (NotificationCenter)
@@ -185,7 +189,11 @@ final class NetworkService {
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            let hiTripError = HiTripError.from(statusCode: httpResponse.statusCode, data: data)
+            let hiTripError = HiTripError.from(
+                        statusCode: httpResponse.statusCode,
+                        data: data,
+                        retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    )
             if hiTripError.requiresReauth {
                 await MainActor.run {
                     NotificationCenter.default.post(name: .hiTripTokenExpired, object: nil)
@@ -289,6 +297,15 @@ final class NetworkService {
     /// 정적 프로퍼티에만 담아두면 앱을 재시작했을 때 사라져서
     /// 세션 쿠키는 살아 있는데 쓰기 요청만 "CSRF token missing"으로 막힙니다.
     /// Django는 csrftoken 쿠키를 HttpOnly로 내리지 않으므로 여기서 읽을 수 있습니다.
+    /// 안내사 세션 쿠키·CSRF를 지웁니다 (로그아웃, 자동 로그인 해제 시)
+    static func clearSession() {
+        csrfToken = nil
+        let storage = HTTPCookieStorage.shared
+        guard let url = URL(string: APIEnvironment.current.baseURL),
+              let cookies = storage.cookies(for: url) else { return }
+        cookies.forEach(storage.deleteCookie)
+    }
+
     private func csrfCookieValue() -> String? {
         guard let url = URL(string: baseURL),
               let cookies = HTTPCookieStorage.shared.cookies(for: url) else { return nil }

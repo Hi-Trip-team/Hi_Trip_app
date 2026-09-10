@@ -9,37 +9,19 @@ import RxSwift
 /// - 프로덕션: AuthRepository (URLSession + Keychain)
 /// - 테스트: MockAuthRepository (가짜 응답 반환)
 ///
-/// Clean Architecture에서의 위치:
-/// ```
-/// Domain (Protocol 정의)  ←  Data (구현체)
-///        ↑
-///   UseCase가 사용
-/// ```
-///
-/// 면접 포인트:
-/// "왜 Protocol을 따로 만드셨나요?"
-/// → "DIP를 적용하여 Domain이 Data에 의존하지 않도록 역전시켰습니다.
-///    테스트 시 Mock 교체로 네트워크 없이 비즈니스 로직만 검증 가능합니다."
+/// 회원가입은 없습니다. 계정은 SaaS(여행사 관리자)에서만 발급·변경합니다.
 
 protocol AuthRepositoryProtocol {
 
-    /// 로그인 API 호출
-    /// - Parameter request: ID + Password
-    /// - Returns: 토큰 + 유저 정보가 담긴 LoginResponse
+    /// 로그인 — 역할(관광객/안내사)은 서버 응답으로 정해집니다
     func login(request: LoginRequest) -> Single<LoginResponse>
 
-    /// Refresh Token으로 Access Token 갱신
-    func refreshToken() -> Single<LoginResponse>
+    /// 저장된 세션이 아직 유효한지 서버에 확인 (스플래시 자동 로그인)
+    func validateSession() -> Single<SessionState>
 
     /// Keychain에 저장된 토큰 조회 (자동 로그인 확인용)
     func getSavedToken() -> String?
 
-    /// 로그아웃 — Keychain의 모든 토큰 삭제
+    /// 로그아웃 — 서버 세션 종료 + 로컬 인증 정보 삭제
     func logout()
-
-    /// 닉네임 중복 확인 API
-    func checkNickname(_ nickname: String) -> Single<NicknameCheckResponse>
-
-    /// 회원가입 API 호출
-    func signUp(request: SignUpRequest) -> Single<SignUpResponse>
 }

@@ -13,9 +13,10 @@ extension APIEndpoint {
 
     /// 여행객 로그인 (발급 계정 username + password)
     /// POST /api/v1/tourist/auth/login/
-    static func travelerLogin(username: String, password: String, tripId: Int? = nil) -> APIEndpoint {
+    static func travelerLogin(username: String, password: String, tripId: Int? = nil, force: Bool = false) -> APIEndpoint {
         var body: [String: Any] = ["username": username, "password": password]
         if let id = tripId { body["trip_id"] = id }
+        if force { body[APIEndpoint.forceLoginKey] = true }
         return APIEndpoint(path: "/api/v1/tourist/auth/login/", method: .post, body: body)
     }
 

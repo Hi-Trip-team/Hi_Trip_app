@@ -48,8 +48,8 @@ enum HiTripError: Error, Equatable {
     /// 422 / 400 — Validation 실패 (필드별 에러 포함)
     case validationFailed(ServerErrorDetail)
 
-    /// 429 — Too Many Requests
-    case rateLimited
+    /// 429 — Too Many Requests (로그인 잠금 포함)
+    case rateLimited(ServerErrorDetail)
 
     /// 500+ — 서버 내부 오류
     case serverError(Int, ServerErrorDetail)
@@ -75,15 +75,15 @@ enum HiTripError: Error, Equatable {
         case (.invalidURL, .invalidURL),
              (.noConnection, .noConnection),
              (.timeout, .timeout),
-             (.rateLimited, .rateLimited),
-             (.noData, .noData),
+                          (.noData, .noData),
              (.invalidResponse, .invalidResponse):
             return true
         case (.networkFailure(let a), .networkFailure(let b)):
             return a == b
         case (.decodingFailed(let a), .decodingFailed(let b)):
             return a == b
-        case (.unauthorized(let a), .unauthorized(let b)),
+        case (.rateLimited(let a), .rateLimited(let b)),
+             (.unauthorized(let a), .unauthorized(let b)),
              (.forbidden(let a), .forbidden(let b)),
              (.notFound(let a), .notFound(let b)),
              (.conflict(let a), .conflict(let b)),
@@ -250,6 +250,15 @@ struct ServerErrorDetail: Equatable, CustomStringConvertible {
     /// HTTP 상태 코드
     let statusCode: Int
 
+    /// 서버 에러 코드 (예: "INVALID_CREDENTIALS")
+    var code: String? = nil
+
+    /// 429 응답의 Retry-After(초) — 로그인 잠금 남은 시간 계산에 사용
+    var retryAfter: Int? = nil
+
+    /// 본문에 포함된 숫자 필드 (예: remaining_attempts, failed_attempts)
+    var numbers: [String: Int] = [:]
+
     // MARK: - 사용자 표시용 메시지
 
     /// 사용자에게 보여줄 메시지 (우선순위: 필드에러 요약 → detail → nil)
@@ -337,10 +346,20 @@ extension ServerErrorDetail {
             message = detailArray.joined(separator: " ")
         }
 
+        // 안내사 로그인 401은 detail 대신 error 필드로 옵니다.
+        if message == nil, let error = json["error"] as? String {
+            message = error
+        }
+        let code = json["code"] as? String
+        var numbers: [String: Int] = [:]
+        for (key, value) in json {
+            if let n = value as? Int { numbers[key] = n }
+        }
+
         // 필드별 에러 추출
         var fieldErrors: [String: [String]] = [:]
         for (key, value) in json {
-            if key == "detail" { continue }
+            if key == "detail" || key == "code" || key == "error" { continue }
             if let messages = value as? [String] {
                 fieldErrors[key] = messages
             } else if let singleMessage = value as? String {
@@ -360,7 +379,9 @@ extension ServerErrorDetail {
             message: message,
             fieldErrors: fieldErrors,
             rawBody: rawBody,
-            statusCode: statusCode
+            statusCode: statusCode,
+            code: code,
+            numbers: numbers
         )
     }
 
@@ -375,8 +396,9 @@ extension ServerErrorDetail {
 extension HiTripError {
 
     /// HTTP 상태코드 + 응답 Data로 적절한 HiTripError 생성
-    static func from(statusCode: Int, data: Data?) -> HiTripError {
-        let detail = ServerErrorDetail.parse(data: data, statusCode: statusCode)
+    static func from(statusCode: Int, data: Data?, retryAfter: String? = nil) -> HiTripError {
+        var detail = ServerErrorDetail.parse(data: data, statusCode: statusCode)
+        detail.retryAfter = retryAfter.flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }
 
         switch statusCode {
         case 400, 422:
@@ -390,7 +412,7 @@ extension HiTripError {
         case 409:
             return .conflict(detail)
         case 429:
-            return .rateLimited
+            return .rateLimited(detail)
         case 500...599:
             return .serverError(statusCode, detail)
         default:

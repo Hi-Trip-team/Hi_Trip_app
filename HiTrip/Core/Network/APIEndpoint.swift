@@ -53,13 +53,17 @@ extension APIEndpoint {
 
     /// 스태프 로그인
     /// POST /api/v1/staff/auth/login/
-    static func login(username: String, password: String) -> APIEndpoint {
-        APIEndpoint(
-            path: "/api/v1/staff/auth/login/",
-            method: .post,
-            body: ["username": username, "password": password]
-        )
+    static func login(username: String, password: String, force: Bool = false) -> APIEndpoint {
+        var body: [String: Any] = ["username": username, "password": password]
+        if force { body[forceLoginKey] = true }
+        return APIEndpoint(path: "/api/v1/staff/auth/login/", method: .post, body: body)
     }
+
+    /// 동시 로그인 차단 후 강제 로그인 플래그
+    ///
+    /// ⚠️ 서버 스펙 미정 — 동시 로그인 감지(409)와 이 필드는 서버에 아직 없습니다.
+    /// 서버가 확정되면 이 이름만 맞추면 됩니다.
+    static let forceLoginKey = "force_login"
 
     /// 스태프 로그아웃
     /// POST /api/v1/staff/auth/logout/
