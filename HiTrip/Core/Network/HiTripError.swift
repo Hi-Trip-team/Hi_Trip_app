@@ -151,6 +151,14 @@ extension HiTripError {
     /// 토큰 만료로 재로그인이 필요한지 여부
     var requiresReauth: Bool {
         if case .unauthorized = self { return true }
+        // 스태프는 세션 쿠키 인증이라 세션이 끊기면 401이 아니라 403이 옵니다.
+        // ("Authentication credentials were not provided.")
+        if case .forbidden(let detail) = self {
+            let message = (detail.message ?? "").lowercased()
+            return message.contains("authentication credentials")
+                || message.contains("자격 증명")
+                || message.contains("not authenticated")
+        }
         return false
     }
 

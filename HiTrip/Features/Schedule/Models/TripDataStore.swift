@@ -55,6 +55,15 @@ final class TripDataStore: ObservableObject {
     // MARK: - Public API
 
     func reload(onReady: (() -> Void)? = nil) {
+        // 여행객 전용 저장소입니다. 안내사로 로그인한 상태에서 부르면
+        // /api/v1/tourist/ 가 401을 뱉고, 그게 세션 만료로 오인돼
+        // 로그인 화면으로 튕겨 나갑니다.
+        // 서버 역할값은 admin | manager | tourist 입니다.
+        let role = (KeychainManager.shared.getUserType() ?? "tourist").lowercased()
+        guard role == "tourist" else {
+            onReady?()
+            return
+        }
         loadInitialData(onReady: onReady)
     }
 

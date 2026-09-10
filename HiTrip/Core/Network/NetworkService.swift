@@ -128,7 +128,18 @@ final class NetworkService {
                     print("✅ [Network] HTTP \(httpResponse.statusCode) | URL: \(url) | Body: \(body.prefix(500))")
                 }
 
-                // 5) JSON 디코딩
+                // 5) 본문 없는 성공 응답 (204 No Content, DELETE 등)
+                //    빈 바디를 JSON으로 파싱하려 하면 실패하므로 여기서 끊습니다.
+                if data.isEmpty || httpResponse.statusCode == 204 {
+                    if let empty = EmptyResponse() as? T {
+                        single(.success(empty))
+                    } else {
+                        single(.failure(HiTripError.noData))
+                    }
+                    return
+                }
+
+                // 6) JSON 디코딩
                 do {
                     let decoder = JSONDecoder()
                     decoder.dateDecodingStrategy = .custom(NetworkService.flexibleDateDecoder)

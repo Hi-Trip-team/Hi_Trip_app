@@ -181,8 +181,8 @@ struct SafetyManagementView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            headerCell("이름", width: 56)
-            headerCell("연락처", width: 88)
+            headerCell("이름", width: 72)
+            headerCell("연락처", width: 84)
             headerCell("이탈여부", width: 74)
             headerCell("심박수", width: 64)
             headerCell("SpO₂", width: 44)
@@ -205,13 +205,13 @@ struct SafetyManagementView: View {
             Text(p.travelerName)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(Color(hex: "#2563EB"))
-                .frame(width: 56, alignment: .leading)
+                .frame(width: 72, alignment: .leading)
                 .lineLimit(1)
 
             Text(viewModel.profile(for: p)?.phone ?? "—")
                 .font(.system(size: 10))
                 .foregroundColor(Color(hex: "#6B7280"))
-                .frame(width: 88, alignment: .leading)
+                .frame(width: 84, alignment: .leading)
                 .lineLimit(1)
 
             // 이탈 거리 — 빨간 셀을 누르면 위치 확인으로 이동합니다
@@ -462,13 +462,14 @@ struct TouristInfoPopup: View {
                 .foregroundColor(Color(hex: "#6B7280"))
                 .frame(width: 66, alignment: .leading)
 
-            Text(showsFullPassport
-                 ? (profile?.passportNumber ?? "—")
-                 : (profile?.maskedPassport ?? "—"))
+            Text(hasPassport
+                 ? (showsFullPassport ? (profile?.passportNumber ?? "") : (profile?.maskedPassport ?? ""))
+                 : "—")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(Color(hex: "#111827"))
 
-            if profile?.passportNumber != nil {
+            // 여권번호가 비어 있으면 눈 아이콘도 숨깁니다 (서버에 값이 없을 수 있습니다)
+            if hasPassport {
                 Button { revealPassport() } label: {
                     Text("👁")
                         .font(.system(size: 13))
@@ -483,6 +484,11 @@ struct TouristInfoPopup: View {
         showsFullPassport = true
         // 3초 뒤 자동으로 다시 가립니다 (개인정보 열람 최소화)
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { showsFullPassport = false }
+    }
+
+    private var hasPassport: Bool {
+        guard let passport = profile?.passportNumber else { return false }
+        return !passport.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private var hasPhone: Bool {

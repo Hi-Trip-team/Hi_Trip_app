@@ -234,7 +234,7 @@ final class StaffTripDetailViewModel: ObservableObject {
 
     /// 카드 제목 — 장소가 있으면 장소, 없으면 메모를 씁니다
     static func title(of item: StaffScheduleDTO) -> String {
-        if !item.placeName.isEmpty { return item.placeName }
+        if let place = item.placeName, !place.isEmpty { return place }
         return item.mainContent ?? "일정"
     }
 

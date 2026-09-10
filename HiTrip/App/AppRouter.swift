@@ -29,6 +29,27 @@ final class AppRouter: ObservableObject {
     @Published var currentScreen: Screen = .splash
     @Published var userType: UserType = .guide
 
+    private var expiryObserver: NSObjectProtocol?
+
+    init() {
+        // 세션·토큰이 끊기면 로그인 화면으로 되돌립니다.
+        // 이 처리가 없으면 홈에서 403만 반복하고 다시 로그인할 방법이 없습니다.
+        expiryObserver = NotificationCenter.default.addObserver(
+            forName: .hiTripTokenExpired,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            guard self.currentScreen == .home else { return }
+            KeychainManager.shared.clearAll()
+            self.currentScreen = .login
+        }
+    }
+
+    deinit {
+        if let expiryObserver { NotificationCenter.default.removeObserver(expiryObserver) }
+    }
+
     func navigateToLogin() {
         currentScreen = .login
     }
