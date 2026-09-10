@@ -17,7 +17,7 @@ enum AppLinks {
     /// 약관 전문 (웹뷰)
     static func terms(_ kind: TermsKind) -> URL? {
         switch kind {
-        case .service, .privacy, .location, .health, .marketing:
+        case .service, .privacy, .location, .health, .push:
             return nil
         }
     }
@@ -25,6 +25,6 @@ enum AppLinks {
 
 /// 약관 종류
 enum TermsKind: String, CaseIterable, Identifiable {
-    case service, privacy, location, health, marketing
+    case service, privacy, location, health, push
     var id: String { rawValue }
 }

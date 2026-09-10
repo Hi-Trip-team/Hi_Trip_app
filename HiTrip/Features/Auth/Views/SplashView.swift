@@ -29,10 +29,19 @@ struct SplashView: View {
                 .ignoresSafeArea()
 
             Text("Hi Trip")
-                .font(.system(size: 48, weight: .bold))
+                .font(.pretendard(.bold, size: 48))
                 .foregroundColor(.white)
                 .opacity(isAnimating ? 1 : 0)
                 .scaleEffect(isAnimating ? 1 : 0.8)
+
+            // 하단 앱 버전 — 번들의 MARKETING_VERSION을 그대로 보여줍니다
+            VStack {
+                Spacer()
+                Text("v\(AppVersionChecker.currentVersion)")
+                    .font(.pretendard(.regular, size: 12))
+                    .foregroundColor(.white)
+                    .padding(.bottom, 8)
+            }
 
             if phase == .offline {
                 offlineSection

@@ -6,7 +6,9 @@ import RxSwift
 // MARK: - AgreementView
 /// 약관/권한 동의 화면
 ///
-/// - 관광객: 필수 4(서비스·개인정보·위치·건강정보) + 선택 1
+/// Figma 0827 수정본 — 기본 12381:6078 / 위치 거부 팝업 12381:5737
+///
+/// - 관광객: 필수 4(서비스·개인정보·위치·건강정보) + 선택 1(푸시 알림 수신)
 /// - 안내사: 필수 3 + 선택 1 (건강정보 행 없음)
 /// - 건강정보는 개인정보보호법상 민감정보라 개인정보 동의와 분리된 별도 행입니다.
 /// - [다음] → OS 권한 순차 요청(위치 → 알림 → 헬스) → 동의 저장 → 역할별 홈
@@ -17,6 +19,13 @@ struct AgreementView: View {
     @StateObject private var vm: AgreementViewModel
     @State private var viewingTerms: TermsKind?
 
+    // Figma 색상 (약관·권한 동의 12381:6078)
+    private let titleColor = Color(hex: "#111827")
+    private let bodyColor = Color(hex: "#333840")
+    private let subColor = Color(hex: "#6B7280")
+    private let cardGray = Color(hex: "#F3F4F6")
+    private let checkBlue = Color(hex: "#2563EB")
+
     init(userType: UserType) {
         _vm = StateObject(wrappedValue: AgreementViewModel(userType: userType))
     }
@@ -26,39 +35,41 @@ struct AgreementView: View {
             Color.white.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
-                Text("서비스 이용을 위해\n약관에 동의해주세요")
-                    .font(HiTripFont.title1)
-                    .foregroundColor(HiTripColor.textBlack)
-                    .lineSpacing(4)
-                    .padding(.top, 60)
-                    .padding(.horizontal, HiTripSpacing.xl)
+                Text("약관에 동의해주세요")
+                    .font(.pretendard(.bold, size: 22))
+                    .foregroundColor(titleColor)
+                    .padding(.top, 33)
+
+                Text("모든 정보는 여행 종료 3일 후 자동 파기됩니다.")
+                    .font(.pretendard(.regular, size: 13))
+                    .foregroundColor(subColor)
+                    .padding(.top, 10)
 
                 allAgreeRow
-                    .padding(.top, 36)
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
+                    .padding(.top, 18)
 
-                VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(vm.items) { kind in
                         termsRow(kind)
                     }
                 }
-                .padding(.top, HiTripSpacing.sm)
-                .padding(.horizontal, HiTripSpacing.pagePadding)
+                .padding(.top, 18)
 
                 Spacer()
 
                 if let error = vm.errorMessage {
                     Text(error)
-                        .font(HiTripFont.caption)
-                        .foregroundColor(HiTripColor.danger)
+                        .font(.pretendard(.regular, size: 12))
+                        .foregroundColor(Color(hex: "#EF4444"))
                         .frame(maxWidth: .infinity)
-                        .padding(.bottom, HiTripSpacing.sm)
+                        .padding(.bottom, 8)
                 }
 
                 nextButton
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
-                    .padding(.bottom, HiTripSpacing.xl)
+                    .padding(.horizontal, -4)
+                    .padding(.bottom, 16)
             }
+            .padding(.horizontal, 24)
 
             if vm.showLocationDeniedPopup {
                 locationDeniedPopup
@@ -73,37 +84,37 @@ struct AgreementView: View {
 
     private var allAgreeRow: some View {
         Button { vm.toggleAll() } label: {
-            HStack(spacing: HiTripSpacing.md) {
-                checkIcon(vm.allChecked, size: 24)
+            HStack(spacing: 10) {
+                checkBox(vm.allChecked)
                 Text("전체 동의")
-                    .font(HiTripFont.bodyLBold)
-                    .foregroundColor(HiTripColor.textBlack)
+                    .font(.pretendard(.bold, size: 16))
+                    .foregroundColor(titleColor)
                 Spacer()
             }
-            .padding(HiTripSpacing.lg)
-            .background(HiTripColor.gray100)
-            .cornerRadius(HiTripRadius.card)
+            .padding(.horizontal, 16)
+            .frame(height: 52)
+            .background(cardGray)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - 개별 행
+    // MARK: - 개별 행 (행 간격 52pt, 체크박스 x=40)
 
     private func termsRow(_ kind: TermsKind) -> some View {
-        HStack(spacing: HiTripSpacing.md) {
+        HStack(alignment: .top, spacing: 10) {
             Button { vm.toggle(kind) } label: {
-                HStack(alignment: .top, spacing: HiTripSpacing.md) {
-                    checkIcon(vm.checked.contains(kind), size: 20)
-                    VStack(alignment: .leading, spacing: 2) {
-                        (Text(vm.isRequired(kind) ? "[필수] " : "[선택] ")
-                            .foregroundColor(vm.isRequired(kind) ? HiTripColor.primary800 : HiTripColor.gray500)
-                         + Text(kind.title)
-                            .foregroundColor(HiTripColor.textBlack))
-                            .font(HiTripFont.body)
+                HStack(alignment: .top, spacing: 10) {
+                    checkBox(vm.checked.contains(kind))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("[\(vm.isRequired(kind) ? "필수" : "선택")] \(kind.title)")
+                            .font(.pretendard(.regular, size: 14))
+                            .foregroundColor(bodyColor)
+                            .padding(.top, 1)
                         if let note = kind.note {
                             Text(note)
-                                .font(HiTripFont.caption)
-                                .foregroundColor(HiTripColor.gray400)
+                                .font(.pretendard(.regular, size: 11))
+                                .foregroundColor(subColor)
                         }
                     }
                     Spacer(minLength: 0)
@@ -113,23 +124,31 @@ struct AgreementView: View {
             .buttonStyle(.plain)
 
             Button { viewingTerms = kind } label: {
-                HStack(spacing: 2) {
-                    Text("보기")
-                    Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
-                }
-                .font(HiTripFont.caption)
-                .foregroundColor(HiTripColor.gray500)
+                Text("보기 >")
+                    .font(.pretendard(.regular, size: 13))
+                    .foregroundColor(subColor)
+                    .padding(.top, 2)
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, HiTripSpacing.md)
-        .padding(.horizontal, HiTripSpacing.xs)
+        .padding(.leading, 16)
+        .frame(minHeight: 52, alignment: .top)
+        .padding(.bottom, kind.note == nil ? 0 : 24)
     }
 
-    private func checkIcon(_ on: Bool, size: CGFloat) -> some View {
-        Image(systemName: on ? "checkmark.circle.fill" : "circle")
-            .font(.system(size: size))
-            .foregroundColor(on ? HiTripColor.primary800 : HiTripColor.gray300)
+    /// 20pt 원형 체크박스 — 체크 시 #2563EB 채움 + 흰 ✓
+    private func checkBox(_ on: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(on ? checkBlue : Color.white)
+                .overlay(Circle().stroke(on ? checkBlue : Color(hex: "#D1D5DB"), lineWidth: 1.5))
+            if on {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+        .frame(width: 20, height: 20)
     }
 
     // MARK: - 다음
@@ -145,61 +164,66 @@ struct AgreementView: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("다음")
-                        .font(HiTripFont.bodyLBold)
-                        .foregroundColor(vm.canProceed ? .white : HiTripColor.buttonDisabledText)
+                        .font(.pretendard(.medium, size: 16))
+                        .tracking(0.16)
+                        .foregroundColor(vm.canProceed ? Color(hex: "#F8F8F8") : HiTripColor.buttonDisabledText)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(vm.canProceed ? HiTripColor.primary800 : HiTripColor.buttonDisabled)
-            .cornerRadius(HiTripRadius.card)
+            .frame(height: 54)
+            .background(vm.canProceed ? Color(hex: "#0C46C0") : HiTripColor.buttonDisabled)
+            .clipShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
         .disabled(!vm.canProceed || vm.isProcessing)
     }
 
-    // MARK: - 위치 거부 안내 (앱 자체 팝업)
+    // MARK: - 위치 거부 안내 (12381:5737)
 
     private var locationDeniedPopup: some View {
         ZStack {
-            Color.black.opacity(0.4).ignoresSafeArea()
+            Color.black.opacity(0.45).ignoresSafeArea()
 
-            VStack(spacing: HiTripSpacing.md) {
-                Text("위치 권한이 꺼져 있어요")
-                    .font(HiTripFont.title3)
-                    .foregroundColor(HiTripColor.textBlack)
-                Text("위치 권한이 없으면 일정 이탈 알림 등\n안전 서비스가 제한됩니다.")
-                    .font(HiTripFont.body)
-                    .foregroundColor(HiTripColor.gray500)
+            VStack(spacing: 0) {
+                Text("위치 권한이 없으면 안전 서비스\n(위치 확인·이탈 보호)를 이용할 수 없습니다")
+                    .font(.pretendard(.bold, size: 14))
+                    .foregroundColor(titleColor)
                     .multilineTextAlignment(.center)
+                    .padding(.top, 28)
 
-                HStack(spacing: HiTripSpacing.sm) {
+                Text("설정에서 언제든지 변경할 수 있어요")
+                    .font(.pretendard(.regular, size: 12))
+                    .foregroundColor(subColor)
+                    .padding(.top, 8)
+
+                HStack(spacing: 10) {
                     Button { vm.resolveLocationPopup(openSettings: false) } label: {
                         Text("나중에")
-                            .font(HiTripFont.bodyBold)
-                            .foregroundColor(HiTripColor.gray500)
+                            .font(.pretendard(.medium, size: 14))
+                            .foregroundColor(bodyColor)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .background(HiTripColor.gray100)
-                            .cornerRadius(HiTripRadius.card)
+                            .frame(height: 44)
+                            .background(cardGray)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                     Button { vm.resolveLocationPopup(openSettings: true) } label: {
                         Text("설정으로 이동")
-                            .font(HiTripFont.bodyBold)
+                            .font(.pretendard(.bold, size: 14))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .background(HiTripColor.primary800)
-                            .cornerRadius(HiTripRadius.card)
+                            .frame(height: 44)
+                            .background(checkBlue)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                 }
                 .buttonStyle(.plain)
-                .padding(.top, HiTripSpacing.sm)
+                .padding(.top, 16)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
-            .padding(HiTripSpacing.xl)
+            .frame(width: 310)
             .background(Color.white)
-            .cornerRadius(HiTripRadius.lg)
-            .padding(.horizontal, 32)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
     }
 }
@@ -209,19 +233,18 @@ struct AgreementView: View {
 extension TermsKind {
     var title: String {
         switch self {
-        case .service:   return "서비스 이용약관 동의"
-        case .privacy:   return "개인정보 수집·이용 동의"
-        case .location:  return "위치기반서비스 이용약관 동의"
-        case .health:    return "건강정보(민감정보) 수집·이용 동의"
-        case .marketing: return "마케팅 정보 수신 동의"
+        case .service:  return "서비스 이용약관"
+        case .privacy:  return "개인정보 수집·이용 동의"
+        case .location: return "위치기반서비스 이용약관"
+        case .health:   return "건강정보(민감정보) 수집·이용 동의"
+        case .push:     return "푸시 알림 수신"
         }
     }
 
     var note: String? {
         switch self {
-        case .privacy: return "보유기간: 여행 종료 후 3일"
-        case .health:  return "워치로 측정한 심박수·산소포화도"
-        default:       return nil
+        case .health: return "심박수·산소포화도 수집 — 안전관리 목적"
+        default:      return nil
         }
     }
 }
@@ -275,11 +298,11 @@ final class AgreementViewModel: ObservableObject {
         self.userType = userType
         self.repository = repository
         self.items = userType == .tourist
-            ? [.service, .privacy, .location, .health, .marketing]
-            : [.service, .privacy, .location, .marketing]
+            ? [.service, .privacy, .location, .health, .push]
+            : [.service, .privacy, .location, .push]
     }
 
-    func isRequired(_ kind: TermsKind) -> Bool { kind != .marketing }
+    func isRequired(_ kind: TermsKind) -> Bool { kind != .push }
 
     var allChecked: Bool { Set(items).isSubset(of: checked) }
 
@@ -327,7 +350,7 @@ final class AgreementViewModel: ObservableObject {
                 try await saveTouristAgreement(location: locationGranted, notification: notification)
             }
             let userId = KeychainManager.shared.getUserId() ?? "0"
-            AgreementRecordStore.record(userId: userId, userType: userType, optionalAccepted: checked.contains(.marketing))
+            AgreementRecordStore.record(userId: userId, userType: userType, optionalAccepted: checked.contains(.push))
             return true
         } catch {
             errorMessage = "동의 내용을 저장하지 못했어요. 다시 시도해주세요."

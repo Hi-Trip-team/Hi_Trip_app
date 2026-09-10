@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - LoginView
-/// 로그인 화면 (관광객·안내사 공용)
+/// 로그인 화면 (관광객·안내사 공용) — Figma 0827 수정본 12380:1413 / 불일치 12381:6009
 ///
 /// - 계정은 SaaS에서 발급합니다. 앱에는 회원가입·비밀번호 변경이 없습니다.
 /// - 아이디: 서버 username (문자열, 최대 150자) / 비밀번호: 문자열
@@ -16,44 +16,52 @@ struct LoginView: View {
 
     enum Field { case id, password }
 
+    // Figma 색상
+    private let fieldBackground = Color(hex: "#F3F4F6")
+    private let placeholderGray = Color(hex: "#6B7280")
+    private let errorRed = Color(hex: "#EF4444")
+    private let brandBlue = Color(hex: "#0C46C0")
+
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
                 .onTapGesture { focusedField = nil }
 
             VStack(spacing: 0) {
-                Spacer()
-                logoSection
-                Spacer()
+                Text("Hi Trip")
+                    .font(.pretendard(.heavy, size: 40))
+                    .foregroundColor(brandBlue)
+                    .padding(.top, 133)
 
-                VStack(alignment: .leading, spacing: HiTripSpacing.md) {
+                VStack(alignment: .leading, spacing: 20) {
                     idField
                     passwordField
                 }
-                .padding(.horizontal, HiTripSpacing.pagePadding)
+                .padding(.top, 134)
+                .padding(.horizontal, 20)
 
                 autoLoginRow
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
-                    .padding(.top, HiTripSpacing.mdl)
+                    .padding(.top, 15)
+                    .padding(.horizontal, 24)
 
                 // 불일치 · 잠금 안내 — 버튼 바로 위
                 if let message = viewModel.bannerMessage {
                     Text(message)
-                        .font(HiTripFont.caption)
-                        .foregroundColor(HiTripColor.danger)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, HiTripSpacing.pagePadding)
-                        .padding(.top, HiTripSpacing.md)
+                        .font(.pretendard(.medium, size: 13))
+                        .foregroundColor(errorRed)
                         .monospacedDigit()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 7)
+                        .padding(.horizontal, 24)
                 }
 
                 loginButton
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
-                    .padding(.top, viewModel.bannerMessage == nil ? HiTripSpacing.md : HiTripSpacing.sm)
+                    .padding(.top, viewModel.bannerMessage == nil ? 35 : 12)
+                    .padding(.horizontal, 20)
 
                 inquiryButton
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
-                    .padding(.top, HiTripSpacing.sm)
+                    .padding(.top, 13)
+                    .padding(.horizontal, 22)
 
                 #if DEBUG
                 HStack(spacing: 12) {
@@ -65,7 +73,7 @@ struct LoginView: View {
                 .padding(.top, 8)
                 #endif
 
-                Spacer()
+                Spacer(minLength: 16)
                 copyrightSection
             }
         }
@@ -81,20 +89,11 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Logo
-
-    private var logoSection: some View {
-        Text("Hi Trip")
-            .font(.custom("Pretendard-Bold", size: 56))
-            .foregroundColor(HiTripColor.primary800)
-    }
-
     // MARK: - ID
 
     private var idField: some View {
-        VStack(alignment: .leading, spacing: HiTripSpacing.xs) {
-            TextField("발급받은 아이디", text: $viewModel.id)
-                .font(HiTripFont.body)
+        VStack(alignment: .leading, spacing: 6) {
+            TextField("", text: $viewModel.id, prompt: placeholder("발급받은 아이디"))
                 .keyboardType(.asciiCapable)
                 .textContentType(.username)
                 .textInputAutocapitalization(.never)
@@ -102,7 +101,7 @@ struct LoginView: View {
                 .focused($focusedField, equals: .id)
                 .submitLabel(.next)
                 .onSubmit { focusedField = .password }
-                .modifier(LoginFieldStyle(isError: viewModel.idError != nil, isFocused: focusedField == .id))
+                .modifier(fieldStyle(isError: viewModel.idError != nil))
 
             if let error = viewModel.idError {
                 fieldError(error)
@@ -113,9 +112,8 @@ struct LoginView: View {
     // MARK: - Password
 
     private var passwordField: some View {
-        VStack(alignment: .leading, spacing: HiTripSpacing.xs) {
-            SecureField("비밀번호", text: $viewModel.password)
-                .font(HiTripFont.body)
+        VStack(alignment: .leading, spacing: 6) {
+            SecureField("", text: $viewModel.password, prompt: placeholder("비밀번호"))
                 .textContentType(.password)
                 .focused($focusedField, equals: .password)
                 .submitLabel(.done)
@@ -123,7 +121,7 @@ struct LoginView: View {
                     focusedField = nil
                     viewModel.login()
                 }
-                .modifier(LoginFieldStyle(isError: viewModel.isPasswordHighlighted, isFocused: focusedField == .password))
+                .modifier(fieldStyle(isError: viewModel.isPasswordHighlighted))
 
             if let error = viewModel.passwordError {
                 fieldError(error)
@@ -131,24 +129,33 @@ struct LoginView: View {
         }
     }
 
+    private func placeholder(_ text: String) -> Text {
+        Text(text).foregroundColor(placeholderGray)
+    }
+
+    private func fieldStyle(isError: Bool) -> LoginFieldStyle {
+        LoginFieldStyle(isError: isError, background: fieldBackground, errorColor: errorRed)
+    }
+
     private func fieldError(_ text: String) -> some View {
         Text(text)
-            .font(HiTripFont.caption)
-            .foregroundColor(HiTripColor.danger)
-            .padding(.leading, HiTripSpacing.xs)
+            .font(.pretendard(.medium, size: 13))
+            .foregroundColor(errorRed)
+            .padding(.leading, 4)
     }
 
     // MARK: - Auto Login
 
     private var autoLoginRow: some View {
         Button { viewModel.isAutoLogin.toggle() } label: {
-            HStack(spacing: HiTripSpacing.sm) {
-                Image(systemName: viewModel.isAutoLogin ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(viewModel.isAutoLogin ? HiTripColor.primary800 : HiTripColor.gray400)
-                    .font(.system(size: 18))
+            HStack(spacing: 10) {
+                Image(systemName: viewModel.isAutoLogin ? "checkmark.circle.fill" : "checkmark.circle")
+                    .font(.system(size: 17))
+                    .foregroundColor(viewModel.isAutoLogin ? brandBlue : Color(hex: "#9CA3AF"))
                 Text("자동 로그인")
-                    .font(HiTripFont.body)
-                    .foregroundColor(HiTripColor.textBlack)
+                    .font(.pretendard(.semibold, size: 16))
+                    .tracking(0.16)
+                    .foregroundColor(Color(hex: "#1A1A1A"))
                 Spacer()
             }
             .contentShape(Rectangle())
@@ -172,14 +179,14 @@ struct LoginView: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("로그인")
-                        .font(HiTripFont.bodyLBold)
+                        .font(.pretendard(.bold, size: 16))
                         .foregroundColor(isButtonActive ? .white : HiTripColor.buttonDisabledText)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(isButtonActive || viewModel.isLoading ? HiTripColor.primary800 : HiTripColor.buttonDisabled)
-            .cornerRadius(HiTripRadius.card)
+            .frame(height: 53)
+            .background(isButtonActive || viewModel.isLoading ? brandBlue : HiTripColor.buttonDisabled)
+            .clipShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
         // 요청 중 중복 탭 방지 / 잠금 중 비활성
@@ -195,8 +202,8 @@ struct LoginView: View {
                 if let url = AppLinks.inquiry { openURL(url) }
             } label: {
                 Text("문의하기")
-                    .font(HiTripFont.body)
-                    .foregroundColor(HiTripColor.gray500)
+                    .font(.pretendard(.regular, size: 14))
+                    .foregroundColor(placeholderGray)
             }
             .buttonStyle(.plain)
         }
@@ -209,31 +216,31 @@ struct LoginView: View {
             Text("COPYRIGHT © 2025 FGTV ALL RIGHTS RESERVED.")
             Text("Contact PICTOREAL Inc.")
         }
-        .font(HiTripFont.caption)
-        .foregroundColor(HiTripColor.gray400)
+        .font(.pretendard(.regular, size: 10))
+        .foregroundColor(placeholderGray)
         .multilineTextAlignment(.center)
-        .padding(.bottom, HiTripSpacing.xl)
     }
 }
 
 // MARK: - LoginFieldStyle
-/// 회색 입력칸 + 상태별 테두리 (오류 빨강 > 포커스 파랑)
+/// 회색 입력칸(높이 50, radius 9) + 오류 시 빨간 테두리
 private struct LoginFieldStyle: ViewModifier {
     let isError: Bool
-    let isFocused: Bool
+    let background: Color
+    let errorColor: Color
 
     func body(content: Content) -> some View {
         content
-            .padding(HiTripSpacing.mdl)
-            .background(HiTripColor.gray100)
-            .cornerRadius(HiTripRadius.card)
+            .font(.pretendard(.medium, size: 16))
+            .tracking(0.16)
+            .foregroundColor(.black)
+            .padding(.horizontal, 21)
+            .frame(height: 50)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(
-                RoundedRectangle(cornerRadius: HiTripRadius.card)
-                    .stroke(
-                        isError ? HiTripColor.danger
-                            : isFocused ? HiTripColor.primary800.opacity(0.5) : Color.clear,
-                        lineWidth: 1
-                    )
+                RoundedRectangle(cornerRadius: 9)
+                    .stroke(isError ? errorColor : Color.clear, lineWidth: 1)
             )
     }
 }
