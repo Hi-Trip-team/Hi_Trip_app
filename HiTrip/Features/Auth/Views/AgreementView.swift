@@ -349,8 +349,7 @@ final class AgreementViewModel: ObservableObject {
             if userType == .tourist {
                 try await saveTouristAgreement(location: locationGranted, notification: notification)
             }
-            let userId = KeychainManager.shared.getUserId() ?? "0"
-            AgreementRecordStore.record(userId: userId, userType: userType, optionalAccepted: checked.contains(.push))
+            AgreementRecordStore.record(optionalAccepted: checked.contains(.push))
             return true
         } catch {
             errorMessage = "동의 내용을 저장하지 못했어요. 다시 시도해주세요."

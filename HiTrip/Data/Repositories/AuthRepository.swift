@@ -139,8 +139,8 @@ final class AuthRepository: AuthRepositoryProtocol {
                     accessToken: Self.staffSessionMarker,
                     refreshToken: Self.staffSessionMarker,
                     user: UserInfo(id: userId, name: dto.displayName, userType: userType, phone: dto.phone, country: nil),
-                    // 안내사 약관 동의 저장 API가 없어 기기 기록으로 판단합니다.
-                    requiresAgreement: !AgreementRecordStore.hasAgreed(userId: userId, userType: userType)
+                    // 약관·권한은 기기 첫 접근 때만 — 기기 기록으로 판단합니다.
+                    requiresAgreement: !AgreementRecordStore.hasAgreedOnDevice
                 )
             }
     }
@@ -190,12 +190,11 @@ final class AuthRepository: AuthRepositoryProtocol {
                 .map { SessionState(userType: .tourist, requiresAgreement: $0.requiresAgreement) }
         }
 
-        let userId = keychain.getUserId() ?? "0"
         return networkService.request(.staffMe(), type: StaffProfileDTO.self)
             .map { _ in
                 SessionState(
                     userType: .guide,
-                    requiresAgreement: !AgreementRecordStore.hasAgreed(userId: userId, userType: .guide)
+                    requiresAgreement: !AgreementRecordStore.hasAgreedOnDevice
                 )
             }
     }

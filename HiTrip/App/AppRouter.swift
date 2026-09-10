@@ -1,4 +1,6 @@
 import SwiftUI
+import RxSwift
+import CoreLocation
 
 // MARK: - AppRouter
 /// 앱 전체 화면 전환 관리
@@ -47,14 +49,36 @@ final class AppRouter: ObservableObject {
         currentScreen = .login
     }
 
-    /// 로그인/자동로그인 성공 후 — 약관 동의 필요 여부에 따라 분기
-    func proceedAfterLogin(as type: UserType, requiresAgreement: Bool) {
+    /// 로그인/자동로그인 성공 후 분기
+    ///
+    /// 약관·권한 화면은 이 기기에서 처음일 때만 보여줍니다.
+    /// 기기는 이미 동의했는데 관광객 서버 기록만 비어 있으면(다른 계정·새 여행)
+    /// 화면 없이 기기에 기록된 동의 내용으로 서버에 저장합니다.
+    func proceedAfterLogin(as type: UserType, requiresAgreement serverRequiresAgreement: Bool) {
         userType = type
-        if requiresAgreement {
+        guard AgreementRecordStore.hasAgreedOnDevice else {
             currentScreen = .agreement
-        } else {
-            navigateToHomeAs(type)
+            return
         }
+        if type == .tourist, serverRequiresAgreement {
+            syncTouristAgreement()
+        }
+        navigateToHomeAs(type)
+    }
+
+    private let disposeBag = DisposeBag()
+
+    private func syncTouristAgreement() {
+        let status = CLLocationManager().authorizationStatus
+        let locationGranted = status == .authorizedWhenInUse || status == .authorizedAlways
+        AppDIContainer.shared.makeTravelerRepository()
+            .updateAgreements(
+                termsAccepted: true,
+                locationAccepted: locationGranted,
+                notificationAccepted: AgreementRecordStore.optionalAccepted
+            )
+            .subscribe(onFailure: { print("⚠️ [Agreement] 서버 동의 동기화 실패: \($0.localizedDescription)") })
+            .disposed(by: disposeBag)
     }
 
     func navigateToHomeAs(_ type: UserType) {

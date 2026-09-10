@@ -16,7 +16,7 @@ final class MockAuthRepository: AuthRepositoryProtocol {
             accessToken: mockToken,
             refreshToken: mockToken,
             user: user,
-            requiresAgreement: !AgreementRecordStore.hasAgreed(userId: "1", userType: userType)
+            requiresAgreement: !AgreementRecordStore.hasAgreedOnDevice
         ))
     }
 
