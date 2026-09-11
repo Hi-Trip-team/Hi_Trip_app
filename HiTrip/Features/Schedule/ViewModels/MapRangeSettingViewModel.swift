@@ -67,7 +67,7 @@ final class MapRangeSettingViewModel: NSObject, ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] trips in
                     guard let self else { return }
-                    guard let trip = trips.first else {
+                    guard let trip = trips.current else {
                         self.state = .loaded
                         return
                     }

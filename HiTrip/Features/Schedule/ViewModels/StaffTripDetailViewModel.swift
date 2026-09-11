@@ -54,7 +54,7 @@ final class StaffTripDetailViewModel: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] trips in
                     guard let self else { return }
-                    guard let trip = trips.first else {
+                    guard let trip = trips.current else {
                         self.state = .loaded
                         return
                     }
@@ -103,13 +103,8 @@ final class StaffTripDetailViewModel: ObservableObject {
         }
     }
 
-    /// 오늘이 며칠째인지 — 스태프 API에 today_day_number가 없어 시작일로 계산합니다
-    var todayDayNumber: Int? {
-        guard let start = Self.date(from: trip?.startDate) else { return nil }
-        let today = Calendar.current.startOfDay(for: Date())
-        let days = Calendar.current.dateComponents([.day], from: start, to: today).day ?? 0
-        return days >= 0 ? days + 1 : nil
-    }
+    /// 오늘이 며칠째인지 — 서버 today_day_number (여행 기간이 아니면 nil)
+    var todayDayNumber: Int? { trip?.todayDayNumber }
 
     var tripTitle: String { trip?.title ?? "" }
 

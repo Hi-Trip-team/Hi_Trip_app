@@ -7,7 +7,7 @@ import RxSwift
 /// - GET  /api/monitoring/trips/{id}/alerts/                        경고·위험·이탈 알림
 /// - POST /api/monitoring/trips/{id}/incidents/{iid}/acknowledge/   위험 알림 [확인]
 ///
-/// 읽음 상태는 서버에 필드가 없어 앱에서만 관리합니다.
+/// 읽음 상태는 서버 is_read(확인 처리 시 true)를 따르고, 탭한 카드는 앱에서도 바로 회색으로 바꿉니다.
 
 @MainActor
 final class AlertCenterViewModel: ObservableObject {
@@ -48,8 +48,6 @@ final class AlertCenterViewModel: ObservableObject {
     private let repository: StaffRepositoryProtocol
     private let disposeBag = DisposeBag()
     private var tripId: Int?
-    /// 이름 → participant id — 알림에 participant_id가 없어 명단으로 맞춥니다
-    @Published private(set) var participantIdsByName: [String: Int] = [:]
 
     init(repository: StaffRepositoryProtocol = AppDIContainer.shared.staffRepositoryForGuide) {
         self.repository = repository
@@ -66,12 +64,11 @@ final class AlertCenterViewModel: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] trips in
                     guard let self else { return }
-                    guard let trip = trips.first else {
+                    guard let trip = trips.current else {
                         self.state = .loaded
                         return
                     }
                     self.tripId = trip.id
-                    self.loadParticipantIds(tripId: trip.id)
                     self.refresh()
                 },
                 onFailure: { [weak self] error in
@@ -81,21 +78,9 @@ final class AlertCenterViewModel: ObservableObject {
             .disposed(by: disposeBag)
     }
 
-    /// 이탈 알림에서 위치 확인으로 넘어가려면 participant id가 필요합니다
-    private func loadParticipantIds(tripId: Int) {
-        repository.fetchParticipantsLatest(tripId: tripId)
-            .observe(on: MainScheduler.instance)
-            .subscribe(onSuccess: { [weak self] list in
-                self?.participantIdsByName = Dictionary(
-                    list.map { ($0.travelerName, $0.participantId) },
-                    uniquingKeysWith: { first, _ in first }
-                )
-            }, onFailure: { _ in })
-            .disposed(by: disposeBag)
-    }
-
+    /// 이탈 알림 → 관광객 위치 확인 (서버 participant_id)
     func participantId(for alert: MonitoringAlertDTO) -> Int? {
-        participantIdsByName[alert.travelerName]
+        alert.participantId
     }
 
     func refresh() {
@@ -163,7 +148,7 @@ final class AlertCenterViewModel: ObservableObject {
         return parts.joined(separator: " · ")
     }
 
-    func isRead(_ alert: MonitoringAlertDTO) -> Bool { readIds.contains(alert.id) }
+    func isRead(_ alert: MonitoringAlertDTO) -> Bool { alert.isRead == true || readIds.contains(alert.id) }
 
     /// 확인이 필요한 위험 알림인지 — [확인] 전까지 5분 주기로 다시 알립니다
     func needsAcknowledge(_ alert: MonitoringAlertDTO) -> Bool {

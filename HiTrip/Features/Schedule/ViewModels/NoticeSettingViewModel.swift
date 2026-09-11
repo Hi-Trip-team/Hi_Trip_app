@@ -45,7 +45,7 @@ final class NoticeSettingViewModel: ObservableObject {
         repository.fetchTrips()
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] trips in
-                self?.tripId = trips.first?.id
+                self?.tripId = trips.current?.id
                 self?.refresh()
             }, onFailure: { [weak self] error in
                 self?.state = .failed(Self.message(for: error))
@@ -163,18 +163,10 @@ final class NoticeSettingViewModel: ObservableObject {
                     self?.toast = "공지를 삭제했어요"
                 },
                 onFailure: { [weak self] error in
-                    self?.saveError = Self.deleteMessage(for: error)
+                    self?.saveError = Self.message(for: error)
                 }
             )
             .disposed(by: disposeBag)
-    }
-
-    /// 서버가 아직 DELETE를 열어두지 않아 405가 오면 원인을 그대로 알려줍니다
-    private static func deleteMessage(for error: Error) -> String {
-        if let e = error as? HiTripError, case .httpError(let code, _) = e, code == 405 {
-            return "서버가 아직 공지 삭제를 지원하지 않아요"
-        }
-        return message(for: error)
     }
 
     func activate(id: Int) {

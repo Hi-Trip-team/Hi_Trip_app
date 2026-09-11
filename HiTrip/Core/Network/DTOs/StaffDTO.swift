@@ -47,6 +47,10 @@ struct StaffTripDTO: Decodable {
     let endDate: String
     let managerName: String
     let participantCount: Int
+    /// 오늘이 몇 일차인지 — 여행 기간이 아니면 nil
+    var todayDayNumber: Int? = nil
+    /// planning | ongoing | completed — 서버 판정
+    var status: String? = nil
 
     /// 여행별 안전 임계값 — 서버 설정값
     let heartRateMin: Int?
@@ -79,6 +83,24 @@ struct StaffScheduleDTO: Decodable {
 
 }
 
+// MARK: - 담당 여행 선택
+
+extension Array where Element == StaffTripDTO {
+
+    /// 안내사 화면들이 보여줄 여행 하나
+    ///
+    /// 담당 여행이 여러 개일 때 서버 상태(status)를 기준으로 고릅니다.
+    /// 진행 중 → 가장 가까운 준비 중 → 가장 최근 여행 순입니다.
+    /// (목록 순서는 서버가 id 내림차순으로 주기 때문에 first를 쓰면 안 됩니다)
+    var current: StaffTripDTO? {
+        if let ongoing = first(where: { $0.status == "ongoing" }) { return ongoing }
+        if let upcoming = filter({ $0.status == "planning" }).min(by: { $0.startDate < $1.startDate }) {
+            return upcoming
+        }
+        return self.max(by: { $0.endDate < $1.endDate })
+    }
+}
+
 // MARK: - 모니터링 (안전 관리)
 
 /// 안전 현황 요약 — 상단 pill
@@ -90,6 +112,8 @@ struct MonitoringSummaryDTO: Decodable {
     let stale: Int
     let offline: Int
     let unknown: Int
+    /// 범위 이탈 인원 — 서버 집계
+    var escaped: Int? = nil
 }
 
 /// 상태 값 — 서버 판정 결과
@@ -107,6 +131,9 @@ struct HealthSnapshotDTO: Decodable {
     let heartRate: Int?
     let spo2: String?
     let measuredAt: String?
+    /// 지표별 서버 판정 — normal | warning | danger
+    var heartRateStatus: MonitoringStatus? = nil
+    var spo2Status: MonitoringStatus? = nil
 
 }
 
@@ -132,6 +159,8 @@ struct IncidentSummaryDTO: Decodable {
     let message: String
     let openedAt: String?
     let acknowledgedAt: String?
+    /// 이탈 거리(m) — 지오펜스 사고만
+    var distanceM: Int? = nil
 
     var isGeofence: Bool { incidentType == "geofence" }
     var isOpen: Bool { status == "open" }
@@ -171,6 +200,9 @@ struct MonitoringAlertDTO: Decodable {
     let message: String
     let snapshotTime: String
     let createdAt: String
+    var participantId: Int? = nil
+    /// 서버 읽음 상태 (확인 처리 시 true)
+    var isRead: Bool? = nil
 
 }
 
