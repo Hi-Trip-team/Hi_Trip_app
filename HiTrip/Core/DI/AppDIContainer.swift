@@ -12,7 +12,7 @@ import Foundation
 ///     ↓
 ///   ViewModel
 ///
-/// TravelerRepository는 TripDataStore / ProfileViewModel / AgreementViewModel이 공유.
+/// TravelerRepository는 관광객 화면 ViewModel·AgreementViewModel이 공유.
 /// Chat은 스레드 기반 별도 패턴이므로 ChatRepository로 독립.
 
 final class AppDIContainer {
@@ -34,7 +34,7 @@ final class AppDIContainer {
         return AuthRepository(networkService: networkService)
     }()
 
-    /// 여행객 전용 API 저장소 — TripDataStore, ProfileVM, AgreementVM이 공유
+    /// 여행객 전용 API 저장소 — 관광객 화면 ViewModel·AgreementVM이 공유
     private lazy var travelerRepository: TravelerRepositoryProtocol = {
         if APIEnvironment.current.useMock {
             return MockTravelerRepository()
@@ -68,15 +68,7 @@ final class AppDIContainer {
     /// 안내사 화면들이 주입받는 저장소 (기본 인자용)
     var staffRepositoryForGuide: StaffRepositoryProtocol { staffRepository }
 
-    /// 로컬 긴급 연락처 (프리셋 + 개인 저장)
-    private lazy var emergencyRepository: EmergencyRepositoryProtocol = {
-        EmergencyRepository()
-    }()
 
-    /// TourAPI 관광지 검색
-    private lazy var spotRepository: SpotRepositoryProtocol = {
-        SpotRepository()
-    }()
 
     // MARK: - Init
 
@@ -103,18 +95,10 @@ final class AppDIContainer {
 
     func makeLoginUseCase()     -> LoginUseCase     { LoginUseCase(repository: authRepository) }
     func makeChatUseCase()      -> ChatUseCase      { ChatUseCase(repository: chatRepository) }
-    func makeEmergencyUseCase() -> EmergencyUseCase { EmergencyUseCase(repository: emergencyRepository) }
-    func makeSpotUseCase()      -> SpotUseCase      { SpotUseCase(repository: spotRepository) }
 
     // MARK: - ViewModel Factory
 
     func makeLoginViewModel()    -> LoginViewModel    { LoginViewModel(loginUseCase: makeLoginUseCase()) }
-    func makeScheduleViewModel() -> ScheduleViewModel { ScheduleViewModel() }
     func makeChatViewModel()     -> ChatViewModel     { ChatViewModel(chatUseCase: makeChatUseCase()) }
-    func makeEmergencyViewModel()-> EmergencyViewModel{ EmergencyViewModel(emergencyUseCase: makeEmergencyUseCase()) }
-    func makeSpotViewModel()     -> SpotViewModel     { SpotViewModel(spotUseCase: makeSpotUseCase()) }
 
-    func makeProfileViewModel() -> ProfileViewModel {
-        ProfileViewModel(repository: travelerRepository)
-    }
 }

@@ -19,9 +19,6 @@ protocol AuthRepositoryProtocol {
     /// 저장된 세션이 아직 유효한지 서버에 확인 (스플래시 자동 로그인)
     func validateSession() -> Single<SessionState>
 
-    /// Keychain에 저장된 토큰 조회 (자동 로그인 확인용)
-    func getSavedToken() -> String?
-
     /// 관광객 최초 비밀번호 변경 — 발급받은 임시 비밀번호로 처음 로그인하면 서버가 요구합니다
     func changeInitialPassword(username: String, currentPassword: String, newPassword: String) -> Single<Void>
 

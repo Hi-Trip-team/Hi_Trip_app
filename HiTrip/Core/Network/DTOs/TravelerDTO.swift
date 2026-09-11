@@ -2,12 +2,6 @@ import Foundation
 
 // MARK: - Auth
 
-struct TravelerLoginRequest: Encodable {
-    let username: String
-    let password: String
-    let tripId: Int?
-}
-
 struct TravelerAuthResponseDTO: Decodable {
     let token: String
     let expiresAt: String?
@@ -66,36 +60,6 @@ struct TravelerTripDTO: Decodable {
     let durationDays: Int
 }
 
-extension TravelerTripDTO {
-
-    func toTripPackage() -> TripPackage {
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        df.locale = Locale(identifier: "en_US_POSIX")
-
-        return TripPackage(
-            name: title,
-            startDate: df.date(from: startDate) ?? Date(),
-            endDate: df.date(from: endDate) ?? Date(),
-            destination: destination
-        )
-    }
-
-    func toTrip() -> Trip {
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        df.locale = Locale(identifier: "en_US_POSIX")
-
-        return Trip(
-            serverId: id,
-            title: title,
-            date: df.date(from: startDate) ?? Date(),
-            location: destination,
-            status: status
-        )
-    }
-}
-
 // MARK: - Agreement
 
 struct TravelerAgreementDTO: Decodable {
@@ -105,12 +69,6 @@ struct TravelerAgreementDTO: Decodable {
     let acceptedAt: String?
     let updatedAt: String?
     let requiresAgreement: Bool
-}
-
-struct TravelerAgreementUpdateRequest: Encodable {
-    let termsAccepted: Bool
-    let locationPermissionAccepted: Bool?
-    let notificationPermissionAccepted: Bool?
 }
 
 // MARK: - Home
@@ -174,53 +132,6 @@ struct TravelerScheduleDTO: Decodable, Identifiable {
     let placeAddress: String?
     let placeLatitude: String?
     let placeLongitude: String?
-}
-
-extension TravelerScheduleDTO {
-
-    func toOfficialSchedule(for date: Date) -> TripOfficialSchedule {
-        let start = parseTime(startTime, on: date)
-        let end = parseTime(endTime, on: date)
-
-        let emoji: String
-        switch transport {
-        case "도보":     emoji = "🚶"
-        case "전용버스":  emoji = "🚌"
-        case "자가용":   emoji = "🚗"
-        case "공항버스":  emoji = "✈️"
-        case "택시":     emoji = "🚕"
-        default:        emoji = "📍"
-        }
-
-        let displayTitle: String
-        if let pn = placeName, let mc = mainContent, !mc.isEmpty {
-            displayTitle = "\(pn) — \(mc)"
-        } else {
-            displayTitle = placeName ?? mainContent ?? "일정"
-        }
-
-        return TripOfficialSchedule(
-            emoji: emoji,
-            title: displayTitle,
-            startTime: start,
-            endTime: end,
-            date: date,
-            placeName: placeName,
-            mainContent: mainContent,
-            meetingPoint: meetingPoint,
-            transport: transport,
-            durationDisplay: durationDisplay,
-            dayNumber: dayNumber
-        )
-    }
-
-    private func parseTime(_ timeString: String, on date: Date) -> Date {
-        let parts = timeString.split(separator: ":").compactMap { Int($0) }
-        if parts.count >= 2 {
-            return Calendar.current.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: date) ?? date
-        }
-        return date
-    }
 }
 
 // MARK: - Personal Schedule (개인 일정)
@@ -287,11 +198,6 @@ struct LocalPhraseDTO: Decodable, Identifiable {
 
 // MARK: - Calendar
 
-struct TravelerCalendarDTO: Decodable {
-    let trip: TravelerTripDTO
-    let days: [TravelerCalendarDayDTO]
-}
-
 struct TravelerCalendarDayDTO: Decodable {
     let date: String            // "yyyy-MM-dd"
     let dayNumber: Int
@@ -319,10 +225,6 @@ struct TravelerChecklistItemDTO: Decodable, Identifiable {
     let displayOrder: Int
     let isChecked: Bool
     let checkedAt: String?      // ISO8601 datetime
-}
-
-struct TravelerChecklistStatusUpdateRequest: Encodable {
-    let isChecked: Bool
 }
 
 // MARK: - Notices
@@ -362,15 +264,6 @@ struct TravelerMessageDTO: Decodable, Identifiable {
     let staffSenderName: String?
     let body: String
     let createdAt: String?
-}
-
-struct TravelerMessageThreadCreateRequest: Encodable {
-    let subject: String
-    let body: String
-}
-
-struct TravelerMessageCreateRequest: Encodable {
-    let body: String
 }
 
 // MARK: - Spots (Popular / Recommended)
@@ -414,18 +307,7 @@ struct TravelerMapPlaceDTO: Decodable, Identifiable {
 
 // MARK: - Manager Contact
 
-struct TravelerManagerContactDTO: Decodable {
-    let manager: [String: String]?
-}
-
 // MARK: - Emergency Request
-
-struct TravelerEmergencyRequestCreateRequest: Encodable {
-    let message: String
-    let latitude: String?
-    let longitude: String?
-    let accuracyM: String?
-}
 
 struct TravelerEmergencyRequestDTO: Decodable, Identifiable {
     let id: Int
@@ -442,47 +324,7 @@ struct TravelerEmergencyRequestDTO: Decodable, Identifiable {
 
 // MARK: - Profile Update
 
-struct TravelerProfileUpdateRequest: Encodable {
-    let lastNameKr: String?
-    let firstNameKr: String?
-    let firstNameEn: String?
-    let lastNameEn: String?
-    let phone: String?
-    let email: String?
-    let address: String?
-    let country: String?
-}
-
 // MARK: - DTO → Domain Model Conversions
-
-extension TravelerChecklistItemDTO {
-    func toTripTodo(tripId: UUID) -> TripTodo {
-        TripTodo(
-            serverId: id,
-            title: title,
-            subtitle: description.isEmpty ? nil : description,
-            isCompleted: isChecked,
-            displayOrder: displayOrder,
-            tripId: tripId
-        )
-    }
-}
-
-extension TravelerNoticeDTO {
-    func toTripNotice() -> TripNotice {
-        let df = ISO8601DateFormatter()
-        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let date = df.date(from: publishedAt ?? createdAt ?? "") ?? Date()
-        return TripNotice(
-            title: title,
-            content: content,
-            date: date,
-            isImportant: priority == "important",
-            isRepresentative: priority == "important"
-        )
-    }
-}
-
 
 extension TravelerMessageThreadDTO {
     func toChatRoom() -> ChatRoom {
@@ -597,21 +439,9 @@ struct ChatUploadIntentDTO: Decodable {
     let requiredHeaders: [String: String]?
 }
 
-struct ChatUploadCompleteDTO: Decodable {
-    let attachmentId: Int
-    let status: String?
-    let size: Int?
-}
-
 struct ChatMessagePageDTO: Decodable {
     let results: [ChatMessageV1DTO]
     let nextCursor: Int?
-}
-
-struct ChatMessageCreateRequest: Encodable {
-    let body: String
-    let messageType: String
-    let clientMessageId: String?
 }
 
 // AnyCodable helper for heterogeneous JSON values
@@ -699,7 +529,6 @@ extension ChatMessageV1DTO {
         )
     }
 }
-
 
 // MARK: - 주변 스팟 (상황별 검색)
 

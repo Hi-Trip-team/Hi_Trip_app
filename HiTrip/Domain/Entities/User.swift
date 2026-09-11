@@ -47,12 +47,3 @@ struct LoginRequest {
     var tripId: Int? = nil
 }
 
-// MARK: - User (프로필 도메인 모델)
-/// 앱 내부에서 사용하는 사용자 프로필 모델
-/// ProfileDTO.toUser()에서 서버 응답을 이 모델로 변환
-struct User: Identifiable {
-    let id: UUID
-    let nickname: String
-    let email: String
-    let profileImageName: String?
-}
