@@ -83,8 +83,6 @@ final class AppRouter: ObservableObject {
 
     func navigateToHomeAs(_ type: UserType) {
         userType = type
-        // 관광객 홈 데이터는 로그인 직후 한 번 미리 받아둡니다 (역할 확인은 TripDataStore가 함)
-        TripDataStore.shared.reload()
         currentScreen = .home
     }
 }

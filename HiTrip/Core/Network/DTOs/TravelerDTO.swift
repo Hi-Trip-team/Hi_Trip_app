@@ -66,36 +66,6 @@ struct TravelerTripDTO: Decodable {
     let durationDays: Int
 }
 
-extension TravelerTripDTO {
-
-    func toTripPackage() -> TripPackage {
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        df.locale = Locale(identifier: "en_US_POSIX")
-
-        return TripPackage(
-            name: title,
-            startDate: df.date(from: startDate) ?? Date(),
-            endDate: df.date(from: endDate) ?? Date(),
-            destination: destination
-        )
-    }
-
-    func toTrip() -> Trip {
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        df.locale = Locale(identifier: "en_US_POSIX")
-
-        return Trip(
-            serverId: id,
-            title: title,
-            date: df.date(from: startDate) ?? Date(),
-            location: destination,
-            status: status
-        )
-    }
-}
-
 // MARK: - Agreement
 
 struct TravelerAgreementDTO: Decodable {
@@ -174,53 +144,6 @@ struct TravelerScheduleDTO: Decodable, Identifiable {
     let placeAddress: String?
     let placeLatitude: String?
     let placeLongitude: String?
-}
-
-extension TravelerScheduleDTO {
-
-    func toOfficialSchedule(for date: Date) -> TripOfficialSchedule {
-        let start = parseTime(startTime, on: date)
-        let end = parseTime(endTime, on: date)
-
-        let emoji: String
-        switch transport {
-        case "도보":     emoji = "🚶"
-        case "전용버스":  emoji = "🚌"
-        case "자가용":   emoji = "🚗"
-        case "공항버스":  emoji = "✈️"
-        case "택시":     emoji = "🚕"
-        default:        emoji = "📍"
-        }
-
-        let displayTitle: String
-        if let pn = placeName, let mc = mainContent, !mc.isEmpty {
-            displayTitle = "\(pn) — \(mc)"
-        } else {
-            displayTitle = placeName ?? mainContent ?? "일정"
-        }
-
-        return TripOfficialSchedule(
-            emoji: emoji,
-            title: displayTitle,
-            startTime: start,
-            endTime: end,
-            date: date,
-            placeName: placeName,
-            mainContent: mainContent,
-            meetingPoint: meetingPoint,
-            transport: transport,
-            durationDisplay: durationDisplay,
-            dayNumber: dayNumber
-        )
-    }
-
-    private func parseTime(_ timeString: String, on date: Date) -> Date {
-        let parts = timeString.split(separator: ":").compactMap { Int($0) }
-        if parts.count >= 2 {
-            return Calendar.current.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: date) ?? date
-        }
-        return date
-    }
 }
 
 // MARK: - Personal Schedule (개인 일정)
@@ -454,35 +377,6 @@ struct TravelerProfileUpdateRequest: Encodable {
 }
 
 // MARK: - DTO → Domain Model Conversions
-
-extension TravelerChecklistItemDTO {
-    func toTripTodo(tripId: UUID) -> TripTodo {
-        TripTodo(
-            serverId: id,
-            title: title,
-            subtitle: description.isEmpty ? nil : description,
-            isCompleted: isChecked,
-            displayOrder: displayOrder,
-            tripId: tripId
-        )
-    }
-}
-
-extension TravelerNoticeDTO {
-    func toTripNotice() -> TripNotice {
-        let df = ISO8601DateFormatter()
-        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let date = df.date(from: publishedAt ?? createdAt ?? "") ?? Date()
-        return TripNotice(
-            title: title,
-            content: content,
-            date: date,
-            isImportant: priority == "important",
-            isRepresentative: priority == "important"
-        )
-    }
-}
-
 
 extension TravelerMessageThreadDTO {
     func toChatRoom() -> ChatRoom {

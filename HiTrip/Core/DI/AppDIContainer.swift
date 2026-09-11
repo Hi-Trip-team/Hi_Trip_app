@@ -12,7 +12,7 @@ import Foundation
 ///     ↓
 ///   ViewModel
 ///
-/// TravelerRepository는 TripDataStore / ProfileViewModel / AgreementViewModel이 공유.
+/// TravelerRepository는 관광객 화면 ViewModel·AgreementViewModel이 공유.
 /// Chat은 스레드 기반 별도 패턴이므로 ChatRepository로 독립.
 
 final class AppDIContainer {
@@ -34,7 +34,7 @@ final class AppDIContainer {
         return AuthRepository(networkService: networkService)
     }()
 
-    /// 여행객 전용 API 저장소 — TripDataStore, ProfileVM, AgreementVM이 공유
+    /// 여행객 전용 API 저장소 — 관광객 화면 ViewModel·AgreementVM이 공유
     private lazy var travelerRepository: TravelerRepositoryProtocol = {
         if APIEnvironment.current.useMock {
             return MockTravelerRepository()

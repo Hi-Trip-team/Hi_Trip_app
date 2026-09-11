@@ -6,7 +6,7 @@ import RxSwift
 ///
 /// 사용법:
 ///   APIEnvironment.swift에서 `static let current: APIEnvironment = .mock` 으로 변경하면
-///   TripDataStore / ProfileViewModel / AgreementViewModel 모두 이 Mock을 사용.
+///   관광객 화면 ViewModel이 모두 이 Mock을 사용.
 ///
 /// 데이터 기준:
 ///   - 현재 날짜 기준 3박 4일 제주 여행 (어제 출발 → 오늘이 2일차)
