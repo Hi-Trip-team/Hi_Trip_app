@@ -2,7 +2,10 @@ import Foundation
 import Network
 
 // MARK: - NetworkMonitor
-/// 연결 상태 감시 — 오프라인 전송 대기 큐를 다시 굴리는 신호로 씁니다.
+/// 연결 상태 감시
+///
+/// - isConnected: 오프라인 배너 표시
+/// - 재연결 시 .hiTripNetworkReconnected 알림 — 실패 화면 자동 재시도, 채팅 전송 대기 큐 재전송
 
 final class NetworkMonitor: ObservableObject {
 
@@ -23,9 +26,17 @@ final class NetworkMonitor: ObservableObject {
             DispatchQueue.main.async {
                 let wasOffline = !self.isConnected
                 self.isConnected = connected
-                if connected && wasOffline { self.onReconnect?() }
+                if connected && wasOffline {
+                    self.onReconnect?()
+                    NotificationCenter.default.post(name: .hiTripNetworkReconnected, object: nil)
+                }
             }
         }
         monitor.start(queue: queue)
     }
+}
+
+extension Notification.Name {
+    /// 인터넷이 끊겼다가 다시 연결됨
+    static let hiTripNetworkReconnected = Notification.Name("hiTripNetworkReconnected")
 }

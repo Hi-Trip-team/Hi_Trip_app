@@ -121,53 +121,14 @@ struct LocalLanguageView: View {
     // MARK: - 로딩 / 빈 상태 / 에러
 
     private var loadingView: some View {
-        VStack(spacing: AppSpacing.sm) {
-            ProgressView()
-            Text("현지 표현을 불러오는 중이에요")
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        SkeletonList(rows: 5, rowHeight: 70)
     }
 
     private var emptyView: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "text.bubble")
-                .font(AppFont.logo)
-                .foregroundColor(AppColor.borderStrong)
-            Text("등록된 문구가 없어요")
-                .font(AppFont.bodyMMedium)
-                .foregroundColor(AppColor.textPrimary)
-            Text("안내사가 현지 문구를 등록하면\n여기에 표시됩니다")
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .lineSpacing(3)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EmptyStateView(icon: "text.bubble", title: "등록된 문구가 없어요", message: "안내사가 현지 문구를 등록하면\n여기에 표시됩니다")
     }
 
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: 14) {
-            Image(systemName: "exclamationmark.bubble")
-                .font(AppFont.emojiXL)
-                .foregroundColor(AppColor.borderStrong)
-            Text(message)
-                .font(AppFont.bodyMMedium)
-                .foregroundColor(AppColor.textPrimary)
-                .multilineTextAlignment(.center)
-            Button { viewModel.load() } label: {
-                Text("다시 시도")
-                    .font(AppFont.bodyBold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, AppSpacing.xl)
-                    .frame(height: 44)
-                    .background(AppColor.accent)
-                    .cornerRadius(AppRadius.md)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ErrorStateView(message: message) { viewModel.load() }
     }
 }

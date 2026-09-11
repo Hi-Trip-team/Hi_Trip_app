@@ -180,38 +180,14 @@ struct NotificationCenterView: View {
     // MARK: - 상태 화면
 
     private var loadingView: some View {
-        VStack(spacing: AppSpacing.sm) {
-            ProgressView()
-            Text("알림을 불러오는 중이에요")
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        SkeletonList(rows: 4, rowHeight: 76)
     }
 
     private var emptyView: some View {
-        Text("알림이 없어요")
-            .font(AppFont.body)
-            .foregroundColor(AppColor.textSecondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EmptyStateView(icon: "bell.slash", title: "알림이 없어요")
     }
 
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: 14) {
-            Text(message)
-                .font(AppFont.bodyMMedium)
-                .foregroundColor(AppColor.textPrimary)
-            Button { viewModel.load() } label: {
-                Text("재시도")
-                    .font(AppFont.bodyBold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, AppSpacing.xl)
-                    .frame(height: 44)
-                    .background(AppColor.accent)
-                    .cornerRadius(AppRadius.md)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ErrorStateView(message: message) { viewModel.load() }
     }
 }

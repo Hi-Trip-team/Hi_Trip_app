@@ -42,22 +42,7 @@ struct TouristNotificationListView: View {
     // MARK: - 빈 상태
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
-            Spacer()
-            Image(systemName: "bell")
-                .font(AppFont.logo)
-                .foregroundColor(AppColor.borderStrong)
-            Text("받은 알림이 없습니다")
-                .font(AppFont.bodyMMedium)
-                .foregroundColor(AppColor.textPrimary)
-            Text("일정 변경이나 안전 확인 요청이 오면\n여기에 표시됩니다")
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .lineSpacing(3)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
+        EmptyStateView(icon: "bell", title: "받은 알림이 없습니다", message: "일정 변경이나 안전 확인 요청이 오면\n여기에 표시됩니다")
     }
 
     // MARK: - 알림 행
