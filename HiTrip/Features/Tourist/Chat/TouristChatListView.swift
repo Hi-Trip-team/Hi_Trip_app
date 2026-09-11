@@ -40,9 +40,9 @@ struct TouristChatListView: View {
             headerSection
 
             searchBar
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppSpacing.xl)
                 .padding(.top, 3)
-                .padding(.bottom, 20)
+                .padding(.bottom, AppSpacing.lg)
 
             if filteredRooms.isEmpty {
                 emptyState(isSearching: !searchText.isEmpty)
@@ -64,43 +64,43 @@ struct TouristChatListView: View {
     private var headerSection: some View {
         ZStack {
             Text("메시지 및 문의")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
 
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                 }
                 Spacer()
                 Button { viewModel.markAllAsRead() } label: {
                     Text("모두 확인")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "#2563EB"))
+                        .font(AppFont.labelMedium)
+                        .foregroundColor(AppColor.accent)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AppSpacing.sm)
         }
         .frame(height: 44)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 검색바
 
     private var searchBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.xs) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 14))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.body)
+                .foregroundColor(AppColor.textSecondary)
             TextField("채팅 및 메시지 검색", text: $searchText)
                 .focused($isSearchFocused)
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textPrimary)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, AppSpacing.lg)
         .frame(height: 44)
-        .background(Color(hex: "#F3F4F6"))
+        .background(AppColor.surface)
         .clipShape(Capsule())
     }
 
@@ -120,9 +120,9 @@ struct TouristChatListView: View {
 
                     // Figma 구분선 #E5E7EB 1pt — 기본 Divider는 시스템 색이라 더 진합니다
                     Rectangle()
-                        .fill(Color(hex: "#E5E7EB"))
+                        .fill(AppColor.divider)
                         .frame(height: 1)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, AppSpacing.xl)
                 }
             }
         }
@@ -131,23 +131,23 @@ struct TouristChatListView: View {
     private func roomRow(_ room: ChatRoom) -> some View {
         HStack(spacing: 14) {
             Circle()
-                .fill(Color(hex: "#F3F4F6"))
+                .fill(AppColor.surface)
                 .frame(width: 48, height: 48)
                 .overlay(
                     Image(systemName: room.isGroupChat ? "person.3.fill" : "person.fill")
-                        .font(.system(size: room.isGroupChat ? 17 : 19))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .font(AppFont.icon(room.isGroupChat ? 17 : 19))
+                        .foregroundColor(AppColor.textTertiary)
                 )
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(room.participantName)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.bodyBold)
+                    .foregroundColor(AppColor.textPrimary)
                     .lineLimit(1)
 
                 Text(room.lastMessage.isEmpty ? "새로운 채팅방" : room.lastMessage)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textSecondary)
                     .lineLimit(1)
             }
 
@@ -155,16 +155,16 @@ struct TouristChatListView: View {
 
             VStack(alignment: .trailing, spacing: 6) {
                 Text(formatTime(room.lastMessageDate))
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textSecondary)
 
                 if room.unreadCount > 0 {
                     Text(room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.captionBold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .frame(minWidth: 22, minHeight: 22)
-                        .background(Color(hex: "#EF4444"))
+                        .background(AppColor.danger)
                         .clipShape(Capsule())
                 } else {
                     // 뱃지 자리를 비워 이름·시각 줄이 흔들리지 않게 합니다.
@@ -172,8 +172,8 @@ struct TouristChatListView: View {
                 }
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding(.horizontal, AppSpacing.xl)
+        .padding(.vertical, AppSpacing.md)
         .contentShape(Rectangle())
     }
 
@@ -183,16 +183,16 @@ struct TouristChatListView: View {
         VStack(spacing: 10) {
             Spacer()
             Image(systemName: isSearching ? "magnifyingglass" : "bubble.left.and.bubble.right")
-                .font(.system(size: 40))
-                .foregroundColor(Color(hex: "#D1D5DB"))
+                .font(AppFont.logo)
+                .foregroundColor(AppColor.borderStrong)
             Text(isSearching ? "검색 결과가 없어요" : "메시지가 없어요")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
             Text(isSearching
                  ? "다른 이름이나 내용으로 검색해 보세요"
                  : "여행사에서 채팅방을 개설하면\n여기에 표시됩니다")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
             Spacer()

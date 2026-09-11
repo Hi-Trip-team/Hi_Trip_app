@@ -18,10 +18,10 @@ struct InitialPasswordChangeView: View {
     enum Field { case new, confirm }
 
     private let minLength = 8
-    private let fieldBackground = Color(hex: "#F3F4F6")
-    private let subGray = Color(hex: "#6B7280")
-    private let errorRed = Color(hex: "#EF4444")
-    private let brandBlue = Color(hex: "#0C46C0")
+    private let fieldBackground = AppColor.surface
+    private let subGray = AppColor.textSecondary
+    private let errorRed = AppColor.danger
+    private let brandBlue = AppColor.brand
 
     private var isTooShort: Bool { !newPassword.isEmpty && newPassword.count < minLength }
     private var isMismatch: Bool { !confirmPassword.isEmpty && confirmPassword != newPassword }
@@ -36,17 +36,17 @@ struct InitialPasswordChangeView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("비밀번호를 변경해주세요")
-                    .font(.pretendard(.bold, size: 22))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.title1Bold)
+                    .foregroundColor(AppColor.textPrimary)
                     .padding(.top, 33)
 
                 Text("처음 로그인하셨어요. 발급받은 임시 비밀번호를\n새 비밀번호로 바꾸면 바로 로그인됩니다.")
-                    .font(.pretendard(.regular, size: 13))
+                    .font(AppFont.label)
                     .foregroundColor(subGray)
                     .lineSpacing(3)
                     .padding(.top, 10)
 
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: AppSpacing.lg) {
                     field(
                         "새 비밀번호 (\(minLength)자 이상)",
                         text: $newPassword,
@@ -66,9 +66,9 @@ struct InitialPasswordChangeView: View {
 
                 if let error = viewModel.passwordChangeError {
                     Text(error)
-                        .font(.pretendard(.medium, size: 13))
+                        .font(AppFont.labelMedium)
                         .foregroundColor(errorRed)
-                        .padding(.top, 16)
+                        .padding(.top, AppSpacing.md)
                 }
 
                 Spacer()
@@ -76,12 +76,12 @@ struct InitialPasswordChangeView: View {
                 submitButton
 
                 Button("취소") { viewModel.cancelPasswordChange() }
-                    .font(.pretendard(.regular, size: 14))
+                    .font(AppFont.body)
                     .foregroundColor(subGray)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppSpacing.xl)
         }
         .onAppear { focused = .new }
     }
@@ -99,7 +99,7 @@ struct InitialPasswordChangeView: View {
                 .onSubmit {
                     if field == .new { focused = .confirm } else if canSubmit { submit() }
                 }
-                .font(.pretendard(.medium, size: 16))
+                .font(AppFont.bodyLMedium)
                 .padding(.horizontal, 21)
                 .frame(height: 50)
                 .background(fieldBackground)
@@ -111,9 +111,9 @@ struct InitialPasswordChangeView: View {
 
             if let message {
                 Text(message)
-                    .font(.pretendard(.medium, size: 13))
+                    .font(AppFont.labelMedium)
                     .foregroundColor(errorRed)
-                    .padding(.leading, 4)
+                    .padding(.leading, AppSpacing.xxs)
             }
         }
     }
@@ -125,13 +125,13 @@ struct InitialPasswordChangeView: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("변경하고 로그인")
-                        .font(.pretendard(.bold, size: 16))
-                        .foregroundColor(canSubmit ? .white : HiTripColor.buttonDisabledText)
+                        .font(AppFont.bodyLBold)
+                        .foregroundColor(canSubmit ? .white : AppColor.buttonDisabledText)
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 53)
-            .background(canSubmit || viewModel.isChangingPassword ? brandBlue : HiTripColor.buttonDisabled)
+            .background(canSubmit || viewModel.isChangingPassword ? brandBlue : AppColor.buttonDisabled)
             .clipShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)

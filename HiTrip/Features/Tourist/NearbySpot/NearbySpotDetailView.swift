@@ -62,18 +62,18 @@ struct NearbySpotDetailView: View {
                 VStack(spacing: 0) {
                     thumbnailSection
                     infoSection
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.top, AppSpacing.lg)
                     Divider()
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.md)
                     descriptionSection
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, AppSpacing.lg)
                     Divider()
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.md)
                     mapPreviewSection
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, AppSpacing.lg)
                     Spacer().frame(height: 32)
                 }
             }
@@ -96,21 +96,21 @@ struct NearbySpotDetailView: View {
     private var headerSection: some View {
         ZStack {
             Text(name)
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
                 .lineLimit(1)
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                 }
                 Spacer()
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppSpacing.md)
         }
         .frame(height: 44)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 썸네일
@@ -135,13 +135,13 @@ struct NearbySpotDetailView: View {
 
             if isSponsored {
                 Text("광고")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(AppFont.microMedium)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, AppSpacing.xs)
                     .frame(height: 20)
-                    .background(Color(hex: "#1A1A1A"))
+                    .background(AppColor.ink)
                     .cornerRadius(4)
-                    .padding(12)
+                    .padding(AppSpacing.sm)
             }
         }
     }
@@ -149,23 +149,23 @@ struct NearbySpotDetailView: View {
     // MARK: - 기본 정보
 
     private var infoSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack(spacing: AppSpacing.xs) {
                 Text(name)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.title2Bold)
+                    .foregroundColor(AppColor.textPrimary)
                 Spacer()
                 if let rating {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#F59E0B"))
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.warningAmber)
                     Text(String(format: "%.1f", rating))
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.labelBold)
+                        .foregroundColor(AppColor.textPrimary)
                     if let reviewCount {
                         Text("(\(reviewCount))")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
+                            .font(AppFont.caption)
+                            .foregroundColor(AppColor.textTertiary)
                     }
                 }
             }
@@ -173,11 +173,11 @@ struct NearbySpotDetailView: View {
             if let address, !address.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "mappin.circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.caption)
+                        .foregroundColor(AppColor.textSecondary)
                     Text(address)
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.caption)
+                        .foregroundColor(AppColor.textSecondary)
 
                     Button {
                         UIPasteboard.general.string = address
@@ -185,37 +185,37 @@ struct NearbySpotDetailView: View {
                     } label: {
                         HStack(spacing: 3) {
                             Image(systemName: "doc.on.doc")
-                                .font(.system(size: 10))
+                                .font(AppFont.micro)
                             Text("복사")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(AppFont.caption2Medium)
                         }
-                        .foregroundColor(Color(hex: "#2563EB"))
+                        .foregroundColor(AppColor.accent)
                     }
                     .buttonStyle(.plain)
                 }
             }
 
             if hours != nil || distance != nil {
-                HStack(spacing: 12) {
+                HStack(spacing: AppSpacing.sm) {
                     if let hours {
-                        infoChip(icon: "clock", text: hours, color: Color(hex: "#2563EB"))
+                        infoChip(icon: "clock", text: hours, color: AppColor.accent)
                     }
                     if let distance {
-                        infoChip(icon: "location.circle", text: distance, color: Color(hex: "#2E9B67"))
+                        infoChip(icon: "location.circle", text: distance, color: AppColor.success)
                     }
                 }
             }
 
             if !tags.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: AppSpacing.xs) {
                     ForEach(tags, id: \.self) { tag in
                         Text(tag)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color(hex: "#2563EB"))
+                            .font(AppFont.caption2Medium)
+                            .foregroundColor(AppColor.accent)
                             .padding(.horizontal, 10)
                             .frame(height: 26)
-                            .background(Color(hex: "#EEF2FF"))
+                            .background(AppColor.accentSoft)
                             .cornerRadius(13)
                     }
                 }
@@ -225,18 +225,18 @@ struct NearbySpotDetailView: View {
     }
 
     private func infoChip(icon: String, text: String, color: Color) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xxs) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(AppFont.caption2)
                 .foregroundColor(color)
             Text(text)
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#374151"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textDark)
         }
         .padding(.horizontal, 10)
         .frame(height: 30)
         .background(color.opacity(0.08))
-        .cornerRadius(8)
+        .cornerRadius(AppRadius.sm)
     }
 
     // MARK: - 설명
@@ -246,11 +246,11 @@ struct NearbySpotDetailView: View {
         if let description, !description.isEmpty {
         VStack(alignment: .leading, spacing: 10) {
             Text("소개")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyBold)
+                .foregroundColor(AppColor.textPrimary)
             Text(description)
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#374151"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textDark)
                 .lineSpacing(4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -264,23 +264,23 @@ struct NearbySpotDetailView: View {
         if coordinate != nil {
         VStack(alignment: .leading, spacing: 10) {
             Text("위치")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyBold)
+                .foregroundColor(AppColor.textPrimary)
 
             Map(coordinateRegion: $region, annotationItems: [nearbyPin]) { pin in
                 MapAnnotation(coordinate: pin.coordinate) {
                     ZStack {
                         Circle()
-                            .fill(Color(hex: "#2563EB"))
+                            .fill(AppColor.accent)
                             .frame(width: 28, height: 28)
                         Image(systemName: "mappin")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppFont.captionBold)
                             .foregroundColor(.white)
                     }
                 }
             }
             .frame(height: 150)
-            .cornerRadius(12)
+            .cornerRadius(AppRadius.lg)
             .disabled(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -304,17 +304,17 @@ struct NearbySpotDetailView: View {
     private var bottomButton: some View {
         Button { showRouteOptions = true } label: {
             Text("길찾기")
-                .font(.system(size: 15, weight: .bold))
+                .font(AppFont.bodyMBold)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(coordinate == nil ? Color(hex: "#C3CDDA") : Color(hex: "#2563EB"))
-                .cornerRadius(12)
+                .background(coordinate == nil ? AppColor.borderMuted : AppColor.accent)
+                .cornerRadius(AppRadius.lg)
         }
         .buttonStyle(.plain)
         .disabled(coordinate == nil)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, AppSpacing.lg)
+        .padding(.vertical, AppSpacing.sm)
         .background(Color.white)
     }
 
@@ -355,11 +355,11 @@ struct NearbySpotDetailView: View {
     private var toastView: some View {
         if let toast {
             Text(toast)
-                .font(.system(size: 13, weight: .medium))
+                .font(AppFont.labelMedium)
                 .foregroundColor(.white)
                 .padding(.horizontal, 18)
                 .frame(height: 44)
-                .background(Color(hex: "#111827").opacity(0.92))
+                .background(AppColor.textPrimary.opacity(0.92))
                 .clipShape(Capsule())
                 .padding(.bottom, 90)
                 .transition(.opacity)

@@ -52,57 +52,57 @@ struct NotificationCenterView: View {
     private var headerSection: some View {
         ZStack {
             Text("알림")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
 
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
                 Spacer()
             }
-            .padding(.leading, 12)
+            .padding(.leading, AppSpacing.sm)
         }
         .frame(height: 24)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 필터 칩
 
     private var filterChips: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.xs) {
             ForEach(AlertCenterViewModel.Kind.allCases) { kind in
                 let isOn = viewModel.kind == kind
                 Button { viewModel.kind = kind } label: {
                     Text(kind.label)
-                        .font(.system(size: 12, weight: isOn ? .bold : .medium))
-                        .foregroundColor(isOn ? .white : Color(hex: "#6B7280"))
+                        .font(isOn ? AppFont.captionBold : AppFont.captionMedium)
+                        .foregroundColor(isOn ? .white : AppColor.textSecondary)
                         .frame(width: kind == .all ? 64 : 56, height: 32)
-                        .background(isOn ? Color(hex: "#2563EB") : Color(hex: "#F3F4F6"))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .background(isOn ? AppColor.accent : AppColor.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
                 }
                 .buttonStyle(.plain)
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     // MARK: - 목록
 
     private var alertList: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: AppSpacing.sm) {
                 ForEach(viewModel.filtered, id: \.id) { alert in
                     alertCard(alert)
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppSpacing.xl)
             .padding(.top, 28)
-            .padding(.bottom, 32)
+            .padding(.bottom, AppSpacing.xxl)
         }
         .refreshable { viewModel.refresh() }
     }
@@ -111,9 +111,9 @@ struct NotificationCenterView: View {
         let needsAck = viewModel.needsAcknowledge(alert)
 
         return VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: AppSpacing.sm) {
                 Text(viewModel.badgeText(alert))
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AppFont.caption2Bold)
                     .foregroundColor(badgeForeground(alert))
                     .frame(width: 44, height: 22)
                     .background(badgeBackground(alert))
@@ -121,19 +121,19 @@ struct NotificationCenterView: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text(viewModel.messageText(alert))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.captionMedium)
+                        .foregroundColor(AppColor.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(viewModel.metaText(alert))
-                        .font(.system(size: 10))
-                        .foregroundColor(Color(hex: "#6B7280"))
-                        .padding(.top, 8)
+                        .font(AppFont.micro)
+                        .foregroundColor(AppColor.textSecondary)
+                        .padding(.top, AppSpacing.xs)
 
                     if needsAck {
                         Text("[확인] 전까지 5분 주기 재알림")
-                            .font(.system(size: 9))
-                            .foregroundColor(Color(hex: "#EF4444"))
+                            .font(AppFont.micro2)
+                            .foregroundColor(AppColor.danger)
                             .padding(.top, 6)
                     }
                 }
@@ -146,38 +146,38 @@ struct NotificationCenterView: View {
                     Spacer()
                     Button { viewModel.acknowledge(alert) } label: {
                         Text("확인")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppFont.captionBold)
                             .foregroundColor(.white)
                             .frame(width: 80, height: 28)
-                            .background(Color(hex: "#EF4444"))
-                            .cornerRadius(8)
+                            .background(AppColor.danger)
+                            .cornerRadius(AppRadius.sm)
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.top, 8)
+                .padding(.top, AppSpacing.xs)
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         // 읽은 알림은 배경을 회색으로
-        .background(viewModel.isRead(alert) ? Color(hex: "#F9FAFB") : Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(viewModel.isRead(alert) ? AppColor.surfaceSubtle : Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "#E5E7EB"), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .stroke(AppColor.divider, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture { open(alert) }
     }
 
     private func badgeBackground(_ alert: MonitoringAlertDTO) -> Color {
-        if viewModel.isGeneral(alert) { return Color(hex: "#E8F0FF") }
-        return viewModel.isDangerous(alert) ? Color(hex: "#FCE5E5") : Color(hex: "#FFF2D9")
+        if viewModel.isGeneral(alert) { return AppColor.accentSubtle }
+        return viewModel.isDangerous(alert) ? AppColor.dangerSubtle : AppColor.warningSubtle
     }
 
     private func badgeForeground(_ alert: MonitoringAlertDTO) -> Color {
-        if viewModel.isGeneral(alert) { return Color(hex: "#2563EB") }
-        return viewModel.isDangerous(alert) ? Color(hex: "#EF4444") : Color(hex: "#EB8C0D")
+        if viewModel.isGeneral(alert) { return AppColor.accent }
+        return viewModel.isDangerous(alert) ? AppColor.danger : AppColor.warning
     }
 
     /// 유형별 딥링크 — 이탈은 위치 확인, 건강은 안전 관리로 돌아갑니다
@@ -197,35 +197,35 @@ struct NotificationCenterView: View {
     // MARK: - 상태 화면
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
             ProgressView()
             Text("알림을 불러오는 중이에요")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var emptyView: some View {
         Text("알림이 없어요")
-            .font(.system(size: 14))
-            .foregroundColor(Color(hex: "#6B7280"))
+            .font(AppFont.body)
+            .foregroundColor(AppColor.textSecondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
             Text(message)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
             Button { viewModel.load() } label: {
                 Text("재시도")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.bodyBold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .frame(height: 44)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(10)
+                    .background(AppColor.accent)
+                    .cornerRadius(AppRadius.md)
             }
             .buttonStyle(.plain)
         }

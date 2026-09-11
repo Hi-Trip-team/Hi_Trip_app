@@ -76,8 +76,8 @@ struct SafetyManagementView: View {
     private var headerSection: some View {
         ZStack {
             Text("안전 관리")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
 
             HStack {
                 Button {
@@ -85,41 +85,41 @@ struct SafetyManagementView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
                 Spacer()
             }
-            .padding(.leading, 12)
+            .padding(.leading, AppSpacing.sm)
         }
         .frame(height: 24)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 상태 요약 칩
 
     private var filterChips: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.xs) {
             chip("전체 \(viewModel.totalCount)",
-                 background: Color(hex: "#F3F4F6"), foreground: Color(hex: "#333840"),
+                 background: AppColor.surface, foreground: AppColor.textBody,
                  isOn: viewModel.filter == nil) { viewModel.filter = nil }
 
             chip("경고 \(viewModel.warningCount)",
-                 background: Color(hex: "#FFF2D9"), foreground: Color(hex: "#EB8C0D"),
+                 background: AppColor.warningSubtle, foreground: AppColor.warning,
                  isOn: viewModel.filter == .warning) { viewModel.toggle(.warning) }
 
             chip("위험 \(viewModel.dangerCount)",
-                 background: Color(hex: "#FCE5E5"), foreground: Color(hex: "#EF4444"),
+                 background: AppColor.dangerSubtle, foreground: AppColor.danger,
                  isOn: viewModel.filter == .danger) { viewModel.toggle(.danger) }
 
             chip("이탈 \(viewModel.escapedCount)",
-                 background: Color(hex: "#FCE5E5"), foreground: Color(hex: "#EF4444"),
+                 background: AppColor.dangerSubtle, foreground: AppColor.danger,
                  isOn: viewModel.filter == .escaped) { viewModel.toggle(.escaped) }
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     private func chip(
@@ -128,13 +128,13 @@ struct SafetyManagementView: View {
     ) -> some View {
         Button(action: action) {
             Text(text)
-                .font(.system(size: 12, weight: .bold))
+                .font(AppFont.captionBold)
                 .foregroundColor(foreground)
                 .frame(width: 64, height: 32)
                 .background(background)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: AppRadius.xl)
                         .stroke(isOn ? foreground : .clear, lineWidth: 1)
                 )
         }
@@ -145,10 +145,10 @@ struct SafetyManagementView: View {
         HStack {
             Spacer()
             Text(viewModel.updatedText)
-                .font(.system(size: 11))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.caption2)
+                .foregroundColor(AppColor.textSecondary)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     // MARK: - 표
@@ -157,23 +157,23 @@ struct SafetyManagementView: View {
         ScrollView {
             VStack(spacing: 0) {
                 tableHeader
-                    .padding(.horizontal, 24)
-                    .padding(.top, 24)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.top, AppSpacing.xl)
 
                 ForEach(viewModel.sortedParticipants, id: \.participantId) { p in
                     participantRow(p)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, AppSpacing.xl)
 
                     Rectangle()
-                        .fill(Color(hex: "#E5E7EB"))
+                        .fill(AppColor.divider)
                         .frame(height: 1)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, AppSpacing.xl)
                 }
 
                 legend
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .padding(.top, 26)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, AppSpacing.xxl)
             }
         }
         .refreshable { viewModel.refresh() }
@@ -187,30 +187,30 @@ struct SafetyManagementView: View {
             headerCell("심박수", width: 64)
             headerCell("SpO₂", width: 44)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, AppSpacing.xs)
         .frame(height: 36)
-        .background(Color(hex: "#F3F4F6"))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(AppColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
     }
 
     private func headerCell(_ text: String, width: CGFloat) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .bold))
-            .foregroundColor(Color(hex: "#6B7280"))
+            .font(AppFont.caption2Bold)
+            .foregroundColor(AppColor.textSecondary)
             .frame(width: width, alignment: .leading)
     }
 
     private func participantRow(_ p: ParticipantLatestDTO) -> some View {
         HStack(spacing: 0) {
             Text(p.travelerName)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Color(hex: "#2563EB"))
+                .font(AppFont.labelMedium)
+                .foregroundColor(AppColor.accent)
                 .frame(width: 72, alignment: .leading)
                 .lineLimit(1)
 
             Text(viewModel.profile(for: p)?.phone ?? "—")
-                .font(.system(size: 10))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.micro)
+                .foregroundColor(AppColor.textSecondary)
                 .frame(width: 84, alignment: .leading)
                 .lineLimit(1)
 
@@ -218,21 +218,21 @@ struct SafetyManagementView: View {
             Group {
                 if let distance = viewModel.escapeDistanceText(p) {
                     Text(distance)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(Color(hex: "#EF4444"))
-                        .padding(.horizontal, 8)
+                        .font(AppFont.captionBold)
+                        .foregroundColor(AppColor.danger)
+                        .padding(.horizontal, AppSpacing.xs)
                         .frame(height: 20)
-                        .background(Color(hex: "#FCE5E5"))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .background(AppColor.dangerSubtle)
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xs))
                         .onTapGesture {
                             locationTarget = p
                             showLocation = true
                         }
                 } else {
                     Text(p.locationStatus == .offline || p.locationStatus == .unknown ? "—" : "정상")
-                        .font(.system(size: 12))
+                        .font(AppFont.caption)
                         .foregroundColor(p.locationStatus == .offline || p.locationStatus == .unknown
-                                         ? Color(hex: "#6B7280") : Color(hex: "#333840"))
+                                         ? AppColor.textSecondary : AppColor.textBody)
                 }
             }
             .frame(width: 74, alignment: .leading)
@@ -240,7 +240,7 @@ struct SafetyManagementView: View {
             metricCell(viewModel.heartRateText(p), level: viewModel.heartRateLevel(p), width: 64)
             metricCell(viewModel.spo2Text(p), level: viewModel.spo2Level(p), width: 44)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, AppSpacing.xs)
         .frame(height: 56)
         .contentShape(Rectangle())
         .onTapGesture { selected = p }
@@ -256,20 +256,20 @@ struct SafetyManagementView: View {
             switch level {
             case .normal:
                 Text(text)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#333840"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textBody)
             case .unknown:
                 Text("—")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textSecondary)
             case .warning, .danger:
                 Text(text)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(level == .warning ? Color(hex: "#EB8C0D") : Color(hex: "#EF4444"))
-                    .padding(.horizontal, 8)
+                    .font(AppFont.captionBold)
+                    .foregroundColor(level == .warning ? AppColor.warning : AppColor.danger)
+                    .padding(.horizontal, AppSpacing.xs)
                     .frame(height: 20)
-                    .background(level == .warning ? Color(hex: "#FFF2D9") : Color(hex: "#FCE5E5"))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .background(level == .warning ? AppColor.warningSubtle : AppColor.dangerSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.xs))
             }
         }
         .frame(width: width, alignment: .leading)
@@ -280,43 +280,43 @@ struct SafetyManagementView: View {
             Text("경고(주황) · 위험(빨강) · — 데이터 수신 안 됨(워치 미연동·통신 두절)")
             Text("정렬: 위험 → 경고 → 정상 · 행 탭 시 관광객 정보 팝업")
         }
-        .font(.system(size: 10))
-        .foregroundColor(Color(hex: "#6B7280"))
+        .font(AppFont.micro)
+        .foregroundColor(AppColor.textSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - 상태 화면
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
             ProgressView()
             Text("안전 정보를 불러오는 중이에요")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var emptyView: some View {
         Text("등록된 관광객이 없습니다")
-            .font(.system(size: 14))
-            .foregroundColor(Color(hex: "#6B7280"))
+            .font(AppFont.body)
+            .foregroundColor(AppColor.textSecondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
             Text(message)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
             Button { viewModel.load() } label: {
                 Text("재시도")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.bodyBold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .frame(height: 44)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(10)
+                    .background(AppColor.accent)
+                    .cornerRadius(AppRadius.md)
             }
             .buttonStyle(.plain)
         }

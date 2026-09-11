@@ -111,22 +111,22 @@ struct StaffTripDetailView: View {
     private var headerSection: some View {
         ZStack {
             Text("전체 일정")
-                .font(.system(size: 17, weight: .bold))
+                .font(AppFont.headlineBold)
                 .foregroundColor(.black)
 
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
                 Spacer()
             }
-            .padding(.leading, 12)
+            .padding(.leading, AppSpacing.sm)
         }
         .frame(height: 24)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 본문
@@ -135,14 +135,14 @@ struct StaffTripDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 tripSummary
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .padding(.top, 33)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, AppSpacing.lg)
 
                 ForEach(viewModel.days) { day in
                     daySection(day)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 16)
+                        .padding(.horizontal, AppSpacing.xl)
+                        .padding(.bottom, AppSpacing.md)
                 }
 
                 Spacer().frame(height: 32)
@@ -153,19 +153,19 @@ struct StaffTripDetailView: View {
 
     /// 여행 요약 — SaaS 등록값, 읽기 전용
     private var tripSummary: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(viewModel.tripTitle)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMBold)
+                .foregroundColor(AppColor.textPrimary)
             Text(viewModel.tripSubtitle)
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textSecondary)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppSpacing.md)
         .frame(height: 72, alignment: .leading)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: "#F3F4F6"))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(AppColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
     }
 
     // MARK: - 일차
@@ -173,42 +173,42 @@ struct StaffTripDetailView: View {
     private func daySection(_ day: StaffTripDetailViewModel.DaySection) -> some View {
         let isExpanded = viewModel.expandedDay == day.dayNumber
 
-        return VStack(spacing: 12) {
+        return VStack(spacing: AppSpacing.sm) {
             Button { withAnimation(.easeInOut(duration: 0.2)) { viewModel.toggle(day: day.dayNumber) } } label: {
                 HStack(spacing: 10) {
                     Text("\(day.dayNumber)일차")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(isExpanded ? .white : Color(hex: "#6B7280"))
+                        .font(AppFont.captionBold)
+                        .foregroundColor(isExpanded ? .white : AppColor.textSecondary)
                         .frame(width: 48, height: 24)
-                        .background(isExpanded ? Color(hex: "#2563EB") : Color(hex: "#E5E7EB"))
-                        .cornerRadius(6)
+                        .background(isExpanded ? AppColor.accent : AppColor.divider)
+                        .cornerRadius(AppRadius.xs)
 
                     Text(day.date)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(isExpanded ? Color(hex: "#111827") : Color(hex: "#6B7280"))
+                        .font(AppFont.labelMedium)
+                        .foregroundColor(isExpanded ? AppColor.textPrimary : AppColor.textSecondary)
 
                     Spacer()
 
                     Text(isExpanded ? "∧" : "∨")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.body)
+                        .foregroundColor(AppColor.textSecondary)
                 }
                 .padding(.horizontal, 14)
                 .frame(height: 52)
-                .background(isExpanded ? Color(hex: "#E8F0FF") : Color(hex: "#F3F4F6"))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(isExpanded ? AppColor.accentSubtle : AppColor.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
             }
             .buttonStyle(.plain)
 
             if isExpanded {
                 if day.items.isEmpty {
                     Text("등록된 일정이 없어요")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.textSecondary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 60)
-                        .background(Color(hex: "#F9FAFB"))
-                        .cornerRadius(12)
+                        .background(AppColor.surfaceSubtle)
+                        .cornerRadius(AppRadius.lg)
                 }
 
                 ForEach(day.items, id: \.id) { item in
@@ -224,47 +224,47 @@ struct StaffTripDetailView: View {
         HStack {
             VStack(alignment: .leading, spacing: 6) {
                 Text(StaffTripDetailViewModel.title(of: item))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppColor.textPrimary)
                     .lineLimit(1)
 
                 Text(StaffTripDetailViewModel.timeRange(item.startTime, item.endTime))
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textSecondary)
             }
 
             Spacer()
 
             Button { menuTarget = item } label: {
                 Text("⋮")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.bodyLBold)
+                    .foregroundColor(AppColor.textSecondary)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppSpacing.md)
         .frame(height: 60)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "#E5E7EB"), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .stroke(AppColor.divider, lineWidth: 1)
         )
     }
 
     private func addButton(day: Int) -> some View {
         Button { openAddSheet(day: day) } label: {
             Text("+ 일정 추가")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Color(hex: "#2563EB"))
+                .font(AppFont.labelMedium)
+                .foregroundColor(AppColor.accent)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(Color(hex: "#F3F4F6"))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(AppColor.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color(hex: "#6B7280"), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    RoundedRectangle(cornerRadius: AppRadius.lg)
+                        .strokeBorder(AppColor.textSecondary, style: StrokeStyle(lineWidth: 1, dash: [4]))
                 )
         }
         .buttonStyle(.plain)
@@ -293,41 +293,41 @@ struct StaffTripDetailView: View {
             HStack {
                 Spacer()
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(hex: "#E5E7EB"))
+                    .fill(AppColor.divider)
                     .frame(width: 52, height: 5)
                 Spacer()
             }
             .padding(.top, 10)
 
             Text(sheetTitle)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyLBold)
+                .foregroundColor(AppColor.textPrimary)
                 .padding(.top, 22)
-                .padding(.bottom, 16)
+                .padding(.bottom, AppSpacing.md)
 
             if needsTitleField {
                 Text(isMemoMode ? "메모" : "제목")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.captionMedium)
+                    .foregroundColor(AppColor.textSecondary)
 
                 TextField(isMemoMode ? "메모를 입력하세요" : "예: 자유시간", text: $draftTitle)
                     .focused($isTextFocused)
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#111827"))
-                    .padding(.horizontal, 16)
+                    .font(AppFont.body)
+                    .foregroundColor(AppColor.textPrimary)
+                    .padding(.horizontal, AppSpacing.md)
                     .frame(height: 48)
-                    .background(Color(hex: "#F3F4F6"))
-                    .cornerRadius(12)
+                    .background(AppColor.surface)
+                    .cornerRadius(AppRadius.lg)
                     .padding(.top, 6)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, AppSpacing.sm)
             }
 
             if needsTimeFields {
                 Text("시간")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.captionMedium)
+                    .foregroundColor(AppColor.textSecondary)
 
-                HStack(spacing: 12) {
+                HStack(spacing: AppSpacing.sm) {
                     timeField("시작", value: hhmm(draftStart), field: .start)
                     timeField("종료", value: hhmm(draftEnd), field: .end)
                 }
@@ -346,13 +346,13 @@ struct StaffTripDetailView: View {
 
                 if isEndBeforeStart {
                     Text("종료 시간이 시작 시간보다 빠릅니다")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#EF4444"))
+                        .font(AppFont.caption2)
+                        .foregroundColor(AppColor.danger)
                         .padding(.top, 6)
                 } else if hasOverlap {
                     Text("기존 일정과 시간이 겹칩니다")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#EB8C0D"))
+                        .font(AppFont.caption2)
+                        .foregroundColor(AppColor.warning)
                         .padding(.top, 6)
                 }
             }
@@ -363,44 +363,44 @@ struct StaffTripDetailView: View {
                         ProgressView().tint(.white)
                     } else {
                         Text("저장")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(AppFont.bodyLBold)
                             .foregroundColor(.white)
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(canSubmit ? Color(hex: "#2563EB") : Color(hex: "#C3CDDA"))
-                .cornerRadius(12)
+                .background(canSubmit ? AppColor.accent : AppColor.borderMuted)
+                .cornerRadius(AppRadius.lg)
             }
             .buttonStyle(.plain)
             .disabled(!canSubmit)
-            .padding(.top, 20)
+            .padding(.top, AppSpacing.lg)
             .padding(.bottom, 34)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
         .background(Color.white)
         .cornerRadius(24, corners: [.topLeft, .topRight])
     }
 
     private func timeField(_ prefix: String, value: String, field: TimeField) -> some View {
         Button { openPicker = (openPicker == field) ? nil : field } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.xs) {
                 Text(prefix)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textSecondary)
                 Text(value)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppColor.textPrimary)
                 Spacer()
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
             .frame(height: 48)
-            .background(Color(hex: "#F3F4F6"))
-            .cornerRadius(12)
+            .background(AppColor.surface)
+            .cornerRadius(AppRadius.lg)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(openPicker == field ? Color(hex: "#2563EB") : .clear, lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppRadius.lg)
+                    .stroke(openPicker == field ? AppColor.accent : .clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -531,11 +531,11 @@ struct StaffTripDetailView: View {
     // MARK: - 상태 화면
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
             ProgressView()
             Text("일정을 불러오는 중이에요")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -543,16 +543,16 @@ struct StaffTripDetailView: View {
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
             Text(message)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
             Button { viewModel.load() } label: {
                 Text("재시도")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.bodyBold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .frame(height: 44)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(10)
+                    .background(AppColor.accent)
+                    .cornerRadius(AppRadius.md)
             }
             .buttonStyle(.plain)
         }
@@ -563,11 +563,11 @@ struct StaffTripDetailView: View {
     private var toastView: some View {
         if let toast = viewModel.toast {
             Text(toast)
-                .font(.system(size: 13, weight: .medium))
+                .font(AppFont.labelMedium)
                 .foregroundColor(.white)
                 .padding(.horizontal, 18)
                 .frame(height: 44)
-                .background(Color(hex: "#111827").opacity(0.92))
+                .background(AppColor.textPrimary.opacity(0.92))
                 .clipShape(Capsule())
                 .padding(.bottom, 40)
                 .task(id: toast) {

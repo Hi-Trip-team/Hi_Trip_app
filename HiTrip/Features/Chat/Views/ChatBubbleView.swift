@@ -21,7 +21,7 @@ struct ChatBubbleView: View {
     private var isMine: Bool { message.isMine }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: AppSpacing.xs) {
             if isMine {
                 Spacer(minLength: 40)
                 if message.sendFailed {
@@ -44,27 +44,27 @@ struct ChatBubbleView: View {
 
     /// 말풍선과, 실패했을 때 그 아래 붙는 안내 문구
     private var bubbleColumn: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
             bubble
 
             if message.sendFailed {
                 Text("전송 실패 — 탭하여 재전송·삭제")
-                    .font(.system(size: 10))
-                    .foregroundColor(Color(hex: "#EF4444"))
+                    .font(AppFont.micro)
+                    .foregroundColor(AppColor.danger)
                     .padding(.leading, 10)
             }
         }
     }
 
     private var bubble: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
             ForEach(message.attachments) { attachment in
                 attachmentView(attachment)
             }
 
             if !message.content.isEmpty {
                 Text(message.content)
-                    .font(.system(size: 14))
+                    .font(AppFont.body)
                     .lineSpacing(6)
                     .foregroundColor(textColor)
             }
@@ -96,16 +96,16 @@ struct ChatBubbleView: View {
             AsyncImage(url: attachment.downloadUrl.flatMap(URL.init)) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Rectangle().fill(Color(hex: "#E5E7EB"))
+                Rectangle().fill(AppColor.divider)
             }
             .frame(width: 180, height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         } else {
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.xs) {
                 Image(systemName: attachment.isVideo ? "play.rectangle.fill" : "waveform")
-                    .font(.system(size: 16))
+                    .font(AppFont.bodyL)
                 Text(attachmentLabel(attachment))
-                    .font(.system(size: 13))
+                    .font(AppFont.label)
             }
             .foregroundColor(textColor)
             .padding(.vertical, 2)
@@ -127,30 +127,30 @@ struct ChatBubbleView: View {
     }
 
     private var bubbleColor: Color {
-        if message.sendFailed { return Color(hex: "#E5F4FF") }
-        return isMine ? Color(hex: "#0C46C0") : Color(hex: "#F7F7F9")
+        if message.sendFailed { return AppColor.infoSubtle }
+        return isMine ? AppColor.brand : AppColor.surfaceMuted
     }
 
     private var textColor: Color {
-        if message.sendFailed { return Color(hex: "#1B1E28") }
-        return isMine ? .white : Color(hex: "#1B1E28")
+        if message.sendFailed { return AppColor.textStrong }
+        return isMine ? .white : AppColor.textStrong
     }
 
     // MARK: - 시각 / 전송 상태
 
     private var timeText: some View {
         Text(message.timeString)
-            .font(.system(size: 12))
-            .foregroundColor(Color(hex: "#7D848D"))
+            .font(AppFont.caption)
+            .foregroundColor(AppColor.textMuted)
     }
 
     /// 내 메시지 왼쪽에 붙는 시각과 전송 상태
     private var statusColumn: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xxs) {
             timeText
             Image(systemName: message.isSending ? "clock" : "checkmark")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(Color(hex: "#7D848D"))
+                .font(AppFont.microSemiBold)
+                .foregroundColor(AppColor.textMuted)
         }
     }
 
@@ -158,14 +158,14 @@ struct ChatBubbleView: View {
     private var failureBadge: some View {
         ZStack {
             Circle()
-                .fill(Color(hex: "#EF4444"))
+                .fill(AppColor.danger)
                 .frame(width: 22, height: 22)
             Text("!")
-                .font(.system(size: 13, weight: .bold))
+                .font(AppFont.labelBold)
                 .foregroundColor(.white)
         }
         // 실패 안내 문구 높이만큼 위로 올려 말풍선과 나란히 둡니다
-        .padding(.bottom, 20)
+        .padding(.bottom, AppSpacing.lg)
     }
 }
 
@@ -177,11 +177,11 @@ struct ChatDateSeparatorView: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 13))
-            .foregroundColor(Color(hex: "#7D848D"))
+            .font(AppFont.label)
+            .foregroundColor(AppColor.textMuted)
             .padding(.horizontal, 14)
             .frame(height: 32)
-            .background(Color(hex: "#F7F7F9"))
-            .cornerRadius(8)
+            .background(AppColor.surfaceMuted)
+            .cornerRadius(AppRadius.sm)
     }
 }

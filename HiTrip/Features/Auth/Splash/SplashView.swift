@@ -25,11 +25,11 @@ struct SplashView: View {
 
     var body: some View {
         ZStack {
-            HiTripColor.splashBackground
+            AppColor.brand
                 .ignoresSafeArea()
 
             Text("Hi Trip")
-                .font(.pretendard(.bold, size: 48))
+                .font(AppFont.displayBold)
                 .foregroundColor(.white)
                 .opacity(isAnimating ? 1 : 0)
                 .scaleEffect(isAnimating ? 1 : 0.8)
@@ -38,9 +38,9 @@ struct SplashView: View {
             VStack {
                 Spacer()
                 Text("v\(AppVersionChecker.currentVersion)")
-                    .font(.pretendard(.regular, size: 12))
+                    .font(AppFont.caption)
                     .foregroundColor(.white)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, AppSpacing.xs)
             }
 
             if phase == .offline {
@@ -125,21 +125,21 @@ struct SplashView: View {
     // MARK: - 네트워크 미연결
 
     private var offlineSection: some View {
-        VStack(spacing: HiTripSpacing.lg) {
+        VStack(spacing: AppSpacing.md) {
             Spacer()
             Text("네트워크 연결을 확인해주세요")
-                .font(HiTripFont.bodyLBold)
+                .font(AppFont.bodyLSemiBold)
                 .foregroundColor(.white)
             Button {
                 phase = .launching
                 attempt += 1
             } label: {
                 Text("재시도")
-                    .font(HiTripFont.bodyBold)
-                    .foregroundColor(HiTripColor.primary800)
+                    .font(AppFont.bodySemiBold)
+                    .foregroundColor(AppColor.brand)
                     .frame(width: 120, height: 44)
                     .background(Color.white)
-                    .cornerRadius(HiTripRadius.card)
+                    .cornerRadius(AppRadius.lg)
             }
             .buttonStyle(.plain)
         }
@@ -152,31 +152,31 @@ struct SplashView: View {
         ZStack {
             Color.black.opacity(0.4).ignoresSafeArea()
 
-            VStack(spacing: HiTripSpacing.md) {
+            VStack(spacing: AppSpacing.sm) {
                 Text("업데이트가 필요합니다")
-                    .font(HiTripFont.title3)
-                    .foregroundColor(HiTripColor.textBlack)
+                    .font(AppFont.headlineSemiBold)
+                    .foregroundColor(AppColor.textPrimary)
                 Text("안정적인 서비스 이용을 위해\n최신 버전으로 업데이트해주세요.")
-                    .font(HiTripFont.body)
-                    .foregroundColor(HiTripColor.gray500)
+                    .font(AppFont.body)
+                    .foregroundColor(AppColor.textGray)
                     .multilineTextAlignment(.center)
                 Button {
                     if let url = AppLinks.appStore { UIApplication.shared.open(url) }
                 } label: {
                     Text("업데이트")
-                        .font(HiTripFont.bodyLBold)
+                        .font(AppFont.bodyLSemiBold)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(HiTripColor.primary800)
-                        .cornerRadius(HiTripRadius.card)
+                        .background(AppColor.brand)
+                        .cornerRadius(AppRadius.lg)
                 }
                 .buttonStyle(.plain)
-                .padding(.top, HiTripSpacing.sm)
+                .padding(.top, AppSpacing.xs)
             }
-            .padding(HiTripSpacing.xl)
+            .padding(AppSpacing.xl)
             .background(Color.white)
-            .cornerRadius(HiTripRadius.lg)
+            .cornerRadius(AppRadius.xl)
             .padding(.horizontal, 40)
         }
     }

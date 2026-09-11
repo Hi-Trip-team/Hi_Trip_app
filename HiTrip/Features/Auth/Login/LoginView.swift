@@ -17,10 +17,10 @@ struct LoginView: View {
     enum Field { case id, password }
 
     // Figma 색상
-    private let fieldBackground = Color(hex: "#F3F4F6")
-    private let placeholderGray = Color(hex: "#6B7280")
-    private let errorRed = Color(hex: "#EF4444")
-    private let brandBlue = Color(hex: "#0C46C0")
+    private let fieldBackground = AppColor.surface
+    private let placeholderGray = AppColor.textSecondary
+    private let errorRed = AppColor.danger
+    private let brandBlue = AppColor.brand
 
     var body: some View {
         ZStack {
@@ -29,48 +29,48 @@ struct LoginView: View {
 
             VStack(spacing: 0) {
                 Text("Hi Trip")
-                    .font(.pretendard(.heavy, size: 40))
+                    .font(AppFont.logoHeavy)
                     .foregroundColor(brandBlue)
                     .padding(.top, 133)
 
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: AppSpacing.lg) {
                     idField
                     passwordField
                 }
                 .padding(.top, 134)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppSpacing.lg)
 
                 autoLoginRow
                     .padding(.top, 15)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
 
                 // 불일치 · 잠금 안내 — 버튼 바로 위
                 if let message = viewModel.bannerMessage {
                     Text(message)
-                        .font(.pretendard(.medium, size: 13))
+                        .font(AppFont.labelMedium)
                         .foregroundColor(errorRed)
                         .monospacedDigit()
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 7)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, AppSpacing.xl)
                 }
 
                 loginButton
                     .padding(.top, viewModel.bannerMessage == nil ? 35 : 12)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, AppSpacing.lg)
 
                 inquiryButton
                     .padding(.top, 13)
                     .padding(.horizontal, 22)
 
                 #if DEBUG
-                HStack(spacing: 12) {
+                HStack(spacing: AppSpacing.sm) {
                     Button("🧑 Guide") { router.navigateToHomeAs(.guide) }
                     Button("🧳 Tourist") { router.navigateToHomeAs(.tourist) }
                 }
                 .font(.caption)
-                .foregroundColor(HiTripColor.gray500)
-                .padding(.top, 8)
+                .foregroundColor(AppColor.textGray)
+                .padding(.top, AppSpacing.xs)
                 #endif
 
                 Spacer(minLength: 16)
@@ -145,9 +145,9 @@ struct LoginView: View {
 
     private func fieldError(_ text: String) -> some View {
         Text(text)
-            .font(.pretendard(.medium, size: 13))
+            .font(AppFont.labelMedium)
             .foregroundColor(errorRed)
-            .padding(.leading, 4)
+            .padding(.leading, AppSpacing.xxs)
     }
 
     // MARK: - Auto Login
@@ -156,12 +156,12 @@ struct LoginView: View {
         Button { viewModel.isAutoLogin.toggle() } label: {
             HStack(spacing: 10) {
                 Image(systemName: viewModel.isAutoLogin ? "checkmark.circle.fill" : "checkmark.circle")
-                    .font(.system(size: 17))
-                    .foregroundColor(viewModel.isAutoLogin ? brandBlue : Color(hex: "#9CA3AF"))
+                    .font(AppFont.headline)
+                    .foregroundColor(viewModel.isAutoLogin ? brandBlue : AppColor.textTertiary)
                 Text("자동 로그인")
-                    .font(.pretendard(.semibold, size: 16))
+                    .font(AppFont.bodyLSemiBold)
                     .tracking(0.16)
-                    .foregroundColor(Color(hex: "#1A1A1A"))
+                    .foregroundColor(AppColor.ink)
                 Spacer()
             }
             .contentShape(Rectangle())
@@ -185,13 +185,13 @@ struct LoginView: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("로그인")
-                        .font(.pretendard(.bold, size: 16))
-                        .foregroundColor(isButtonActive ? .white : HiTripColor.buttonDisabledText)
+                        .font(AppFont.bodyLBold)
+                        .foregroundColor(isButtonActive ? .white : AppColor.buttonDisabledText)
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 53)
-            .background(isButtonActive || viewModel.isLoading ? brandBlue : HiTripColor.buttonDisabled)
+            .background(isButtonActive || viewModel.isLoading ? brandBlue : AppColor.buttonDisabled)
             .clipShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
@@ -208,7 +208,7 @@ struct LoginView: View {
                 if let url = AppLinks.inquiry { openURL(url) }
             } label: {
                 Text("문의하기")
-                    .font(.pretendard(.regular, size: 14))
+                    .font(AppFont.body)
                     .foregroundColor(placeholderGray)
             }
             .buttonStyle(.plain)
@@ -222,7 +222,7 @@ struct LoginView: View {
             Text("COPYRIGHT © 2025 FGTV ALL RIGHTS RESERVED.")
             Text("Contact PICTOREAL Inc.")
         }
-        .font(.pretendard(.regular, size: 10))
+        .font(AppFont.micro)
         .foregroundColor(placeholderGray)
         .multilineTextAlignment(.center)
     }
@@ -237,7 +237,7 @@ private struct LoginFieldStyle: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .font(.pretendard(.medium, size: 16))
+            .font(AppFont.bodyLMedium)
             .tracking(0.16)
             .foregroundColor(.black)
             .padding(.horizontal, 21)

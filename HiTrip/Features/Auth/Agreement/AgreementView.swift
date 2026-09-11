@@ -20,11 +20,11 @@ struct AgreementView: View {
     @State private var viewingTerms: TermsKind?
 
     // Figma 색상 (약관·권한 동의 12381:6078)
-    private let titleColor = Color(hex: "#111827")
-    private let bodyColor = Color(hex: "#333840")
-    private let subColor = Color(hex: "#6B7280")
-    private let cardGray = Color(hex: "#F3F4F6")
-    private let checkBlue = Color(hex: "#2563EB")
+    private let titleColor = AppColor.textPrimary
+    private let bodyColor = AppColor.textBody
+    private let subColor = AppColor.textSecondary
+    private let cardGray = AppColor.surface
+    private let checkBlue = AppColor.accent
 
     init(userType: UserType) {
         _vm = StateObject(wrappedValue: AgreementViewModel(userType: userType))
@@ -36,12 +36,12 @@ struct AgreementView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("약관에 동의해주세요")
-                    .font(.pretendard(.bold, size: 22))
+                    .font(AppFont.title1Bold)
                     .foregroundColor(titleColor)
                     .padding(.top, 33)
 
                 Text("모든 정보는 여행 종료 3일 후 자동 파기됩니다.")
-                    .font(.pretendard(.regular, size: 13))
+                    .font(AppFont.label)
                     .foregroundColor(subColor)
                     .padding(.top, 10)
 
@@ -59,17 +59,17 @@ struct AgreementView: View {
 
                 if let error = vm.errorMessage {
                     Text(error)
-                        .font(.pretendard(.regular, size: 12))
-                        .foregroundColor(Color(hex: "#EF4444"))
+                        .font(AppFont.caption)
+                        .foregroundColor(AppColor.danger)
                         .frame(maxWidth: .infinity)
-                        .padding(.bottom, 8)
+                        .padding(.bottom, AppSpacing.xs)
                 }
 
                 nextButton
                     .padding(.horizontal, -4)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, AppSpacing.md)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppSpacing.xl)
 
             if vm.showLocationDeniedPopup {
                 locationDeniedPopup
@@ -87,14 +87,14 @@ struct AgreementView: View {
             HStack(spacing: 10) {
                 checkBox(vm.allChecked)
                 Text("전체 동의")
-                    .font(.pretendard(.bold, size: 16))
+                    .font(AppFont.bodyLBold)
                     .foregroundColor(titleColor)
                 Spacer()
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppSpacing.md)
             .frame(height: 52)
             .background(cardGray)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         }
         .buttonStyle(.plain)
     }
@@ -106,14 +106,14 @@ struct AgreementView: View {
             Button { vm.toggle(kind) } label: {
                 HStack(alignment: .top, spacing: 10) {
                     checkBox(vm.checked.contains(kind))
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("[\(vm.isRequired(kind) ? "필수" : "선택")] \(kind.title)")
-                            .font(.pretendard(.regular, size: 14))
+                            .font(AppFont.body)
                             .foregroundColor(bodyColor)
                             .padding(.top, 1)
                         if let note = kind.note {
                             Text(note)
-                                .font(.pretendard(.regular, size: 11))
+                                .font(AppFont.caption2)
                                 .foregroundColor(subColor)
                         }
                     }
@@ -125,13 +125,13 @@ struct AgreementView: View {
 
             Button { viewingTerms = kind } label: {
                 Text("보기 >")
-                    .font(.pretendard(.regular, size: 13))
+                    .font(AppFont.label)
                     .foregroundColor(subColor)
                     .padding(.top, 2)
             }
             .buttonStyle(.plain)
         }
-        .padding(.leading, 16)
+        .padding(.leading, AppSpacing.md)
         .frame(minHeight: 52, alignment: .top)
         .padding(.bottom, kind.note == nil ? 0 : 24)
     }
@@ -141,10 +141,10 @@ struct AgreementView: View {
         ZStack {
             Circle()
                 .fill(on ? checkBlue : Color.white)
-                .overlay(Circle().stroke(on ? checkBlue : Color(hex: "#D1D5DB"), lineWidth: 1.5))
+                .overlay(Circle().stroke(on ? checkBlue : AppColor.borderStrong, lineWidth: 1.5))
             if on {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(AppFont.microBold)
                     .foregroundColor(.white)
             }
         }
@@ -164,14 +164,14 @@ struct AgreementView: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("다음")
-                        .font(.pretendard(.medium, size: 16))
+                        .font(AppFont.bodyLMedium)
                         .tracking(0.16)
-                        .foregroundColor(vm.canProceed ? Color(hex: "#F8F8F8") : HiTripColor.buttonDisabledText)
+                        .foregroundColor(vm.canProceed ? AppColor.onBrand : AppColor.buttonDisabledText)
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 54)
-            .background(vm.canProceed ? Color(hex: "#0C46C0") : HiTripColor.buttonDisabled)
+            .background(vm.canProceed ? AppColor.brand : AppColor.buttonDisabled)
             .clipShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
@@ -186,44 +186,44 @@ struct AgreementView: View {
 
             VStack(spacing: 0) {
                 Text("위치 권한이 없으면 안전 서비스\n(위치 확인·이탈 보호)를 이용할 수 없습니다")
-                    .font(.pretendard(.bold, size: 14))
+                    .font(AppFont.bodyBold)
                     .foregroundColor(titleColor)
                     .multilineTextAlignment(.center)
                     .padding(.top, 28)
 
                 Text("설정에서 언제든지 변경할 수 있어요")
-                    .font(.pretendard(.regular, size: 12))
+                    .font(AppFont.caption)
                     .foregroundColor(subColor)
-                    .padding(.top, 8)
+                    .padding(.top, AppSpacing.xs)
 
                 HStack(spacing: 10) {
                     Button { vm.resolveLocationPopup(openSettings: false) } label: {
                         Text("나중에")
-                            .font(.pretendard(.medium, size: 14))
+                            .font(AppFont.bodyMedium)
                             .foregroundColor(bodyColor)
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                             .background(cardGray)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     Button { vm.resolveLocationPopup(openSettings: true) } label: {
                         Text("설정으로 이동")
-                            .font(.pretendard(.bold, size: 14))
+                            .font(AppFont.bodyBold)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                             .background(checkBlue)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 16)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
+                .padding(.top, AppSpacing.md)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.xl)
             }
             .frame(width: 310)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
         }
     }
 }
@@ -258,12 +258,12 @@ private struct TermsDocumentView: View {
         if let url = AppLinks.terms(kind) {
             SafariView(url: url).ignoresSafeArea()
         } else {
-            VStack(spacing: HiTripSpacing.md) {
+            VStack(spacing: AppSpacing.sm) {
                 Text(kind.title)
-                    .font(HiTripFont.title3)
+                    .font(AppFont.headlineSemiBold)
                 Text("약관 전문 주소가 아직 등록되지 않았습니다.")
-                    .font(HiTripFont.body)
-                    .foregroundColor(HiTripColor.gray500)
+                    .font(AppFont.body)
+                    .foregroundColor(AppColor.textGray)
             }
             .padding()
             .presentationDetents([.medium])

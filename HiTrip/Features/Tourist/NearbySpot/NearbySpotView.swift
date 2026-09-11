@@ -23,27 +23,27 @@ struct NearbySpotView: View {
             VStack(spacing: 0) {
                 headerSection
                 categoryChips
-                    .padding(.top, 8)
+                    .padding(.top, AppSpacing.xs)
                 statusChips
-                    .padding(.top, 16)
+                    .padding(.top, AppSpacing.md)
                 Spacer()
             }
 
             VStack(spacing: 0) {
                 Spacer()
                 myLocationButton
-                    .padding(.trailing, 24)
+                    .padding(.trailing, AppSpacing.xl)
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, AppSpacing.sm)
                 spotCards
-                    .padding(.bottom, 24)
+                    .padding(.bottom, AppSpacing.xl)
             }
 
             if viewModel.isOutsideGeofence {
                 outsideBanner
             }
         }
-        .background(Color(hex: "#E0EAE0"))
+        .background(AppColor.successSubtle)
         .navigationBarHidden(true)
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }
@@ -76,15 +76,15 @@ struct NearbySpotView: View {
                     center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
                     radius: radius
                 )
-                .foregroundStyle(Color(hex: "#E46059").opacity(0.08))
-                .stroke(Color(hex: "#E46059"), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                .foregroundStyle(AppColor.dangerSoft.opacity(0.08))
+                .stroke(AppColor.dangerSoft, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
             }
 
             ForEach(viewModel.spots) { spot in
                 if let lat = spot.latitude, let lng = spot.longitude {
                     Marker(spot.name, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng))
                         .tint(spot.id == viewModel.focusedSpotId
-                              ? Color(hex: "#2563EB") : Color(hex: "#6B7280"))
+                              ? AppColor.accent : AppColor.textSecondary)
                         .tag(spot.id)
                 }
             }
@@ -97,22 +97,22 @@ struct NearbySpotView: View {
     private var headerSection: some View {
         ZStack {
             Text("주변 인기 스팟")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
 
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
                 Spacer()
             }
-            .padding(.leading, 12)
+            .padding(.leading, AppSpacing.sm)
         }
         .frame(height: 24)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 상황별 검색 칩
@@ -124,8 +124,8 @@ struct NearbySpotView: View {
                     let isSelected = viewModel.selectedCategory == category
                     Button { viewModel.select(category) } label: {
                         Text(category.label)
-                            .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
-                            .foregroundColor(isSelected ? Color(hex: "#2563EB") : Color(hex: "#333840"))
+                            .font(isSelected ? AppFont.captionSemiBold : AppFont.captionMedium)
+                            .foregroundColor(isSelected ? AppColor.accent : AppColor.textBody)
                             .frame(width: 63, height: 34)
                             .background(Color.white)
                             .clipShape(RoundedRectangle(cornerRadius: 15))
@@ -142,10 +142,10 @@ struct NearbySpotView: View {
     private var statusChips: some View {
         HStack(spacing: 7) {
             if viewModel.isAccuracyLow {
-                statusChip("⚠ GPS 정확도 낮음", background: Color(hex: "#4F4F4F"))
+                statusChip("⚠ GPS 정확도 낮음", background: AppColor.gray700)
             }
             if viewModel.geofence != nil {
-                statusChip("빨간 선 = 안전 구역 경계", background: Color(hex: "#E46059"))
+                statusChip("빨간 선 = 안전 구역 경계", background: AppColor.dangerSoft)
             }
             Spacer()
         }
@@ -154,7 +154,7 @@ struct NearbySpotView: View {
 
     private func statusChip(_ text: String, background: Color) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .medium))
+            .font(AppFont.caption2Medium)
             .foregroundColor(.white)
             .padding(.horizontal, 11)
             .frame(height: 26)
@@ -167,11 +167,11 @@ struct NearbySpotView: View {
     private var outsideBanner: some View {
         VStack {
             Text("안전 구역을 벗어났어요")
-                .font(.system(size: 13, weight: .bold))
+                .font(AppFont.labelBold)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
-                .background(Color(hex: "#E46059"))
+                .background(AppColor.dangerSoft)
             Spacer()
         }
         .ignoresSafeArea(edges: .top)
@@ -183,8 +183,8 @@ struct NearbySpotView: View {
     private var myLocationButton: some View {
         Button { moveToCurrentLocation() } label: {
             Image(systemName: "location.fill")
-                .font(.system(size: 17))
-                .foregroundColor(Color(hex: "#2563EB"))
+                .font(AppFont.headline)
+                .foregroundColor(AppColor.accent)
                 .frame(width: 44, height: 44)
                 .background(Color.white)
                 .clipShape(Circle())
@@ -239,7 +239,7 @@ struct NearbySpotView: View {
     }
 
     private func spotCard(_ spot: TravelerNearbySpotDTO) -> some View {
-        HStack(alignment: .top, spacing: 20) {
+        HStack(alignment: .top, spacing: AppSpacing.lg) {
             ZStack(alignment: .topLeading) {
                 SpotImageView(
                     imageUrl: spot.imageUrl,
@@ -247,42 +247,42 @@ struct NearbySpotView: View {
                     iconSize: 24
                 )
                 .frame(width: 86, height: 86)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
 
                 if spot.isSponsored == true {
                     Text("광고")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(AppFont.micro2Medium)
                         .foregroundColor(.white)
                         .padding(.horizontal, 5)
                         .frame(height: 16)
-                        .background(Color(hex: "#1A1A1A"))
+                        .background(AppColor.ink)
                         .cornerRadius(4)
-                        .padding(4)
+                        .padding(AppSpacing.xxs)
                 }
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(spot.name)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.labelBold)
+                    .foregroundColor(AppColor.textPrimary)
                     .lineLimit(1)
 
                 if let distance = spot.distanceText {
                     Text(distance)
-                        .font(.system(size: 11))
+                        .font(AppFont.caption2)
                         .foregroundColor(.black)
                 }
 
                 if let address = spot.roadAddress ?? spot.address {
                     Text(address)
-                        .font(.system(size: 11))
+                        .font(AppFont.caption2)
                         .foregroundColor(.black)
                         .lineLimit(2)
                 }
 
                 if let description = spot.description, !description.isEmpty {
                     Text(description)
-                        .font(.system(size: 11))
+                        .font(AppFont.caption2)
                         .foregroundColor(.black)
                         .lineLimit(1)
                 }
@@ -290,13 +290,13 @@ struct NearbySpotView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(width: 326, height: 113, alignment: .topLeading)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "#E5E7EB"), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .stroke(AppColor.divider, lineWidth: 1)
         )
         .id(spot.id)
     }
@@ -306,11 +306,11 @@ struct NearbySpotView: View {
     private var permissionCard: some View {
         VStack(spacing: 10) {
             Text("위치 권한을 허용해주세요")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyBold)
+                .foregroundColor(AppColor.textPrimary)
             Text("주변 스팟과 안전 구역을 보여드리려면 위치 정보가 필요해요")
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
 
             Button {
@@ -319,51 +319,51 @@ struct NearbySpotView: View {
                 }
             } label: {
                 Text("설정 이동")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(AppFont.labelBold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, AppSpacing.lg)
                     .frame(height: 40)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(10)
+                    .background(AppColor.accent)
+                    .cornerRadius(AppRadius.md)
             }
             .buttonStyle(.plain)
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .frame(width: 326)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "#E5E7EB"), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .stroke(AppColor.divider, lineWidth: 1)
         )
     }
 
     private func messageCard(_ text: String, actionTitle: String?, action: (() -> Void)?) -> some View {
         VStack(spacing: 10) {
             Text(text)
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
 
             if let actionTitle, let action {
                 Button(action: action) {
                     Text(actionTitle)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(AppFont.labelBold)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, AppSpacing.lg)
                         .frame(height: 40)
-                        .background(Color(hex: "#2563EB"))
-                        .cornerRadius(10)
+                        .background(AppColor.accent)
+                        .cornerRadius(AppRadius.md)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .frame(width: 326)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "#E5E7EB"), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .stroke(AppColor.divider, lineWidth: 1)
         )
     }
 }

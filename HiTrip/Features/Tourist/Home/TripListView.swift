@@ -37,7 +37,7 @@ struct TripListView: View {
                             noticeSection
                             localLanguageCard
                             bottomActionRow
-                                .padding(.bottom, 32)
+                                .padding(.bottom, AppSpacing.xxl)
                         }
                     }
                     .refreshable { viewModel.refresh() }
@@ -90,11 +90,11 @@ struct TripListView: View {
     // MARK: - 로딩 / 에러
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
             ProgressView()
             Text("여행 정보를 불러오는 중이에요")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -102,19 +102,19 @@ struct TripListView: View {
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
             Text("🧭")
-                .font(.system(size: 34))
+                .font(AppFont.emojiXL)
             Text(message)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
             Button { viewModel.load() } label: {
                 Text("다시 시도")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.bodyBold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .frame(height: 44)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(10)
+                    .background(AppColor.accent)
+                    .cornerRadius(AppRadius.md)
             }
             .buttonStyle(.plain)
         }
@@ -127,19 +127,19 @@ struct TripListView: View {
     private var headerSection: some View {
         HStack(alignment: .center) {
             Text(viewModel.tripTitle)
-                .font(.system(size: 17, weight: .bold))
+                .font(AppFont.headlineBold)
                 .foregroundColor(.black)
             Spacer()
             ZStack(alignment: .topTrailing) {
                 Text("🔔")
-                    .font(.system(size: 18))
+                    .font(AppFont.title3)
                 if viewModel.hasUnreadNotice {
                     ZStack {
                         Circle()
                             .fill(Color.red)
                             .frame(width: 18, height: 18)
                         Text("\(viewModel.unreadNoticeCount)")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.caption2Bold)
                             .foregroundColor(.white)
                     }
                     .offset(x: 6, y: -4)
@@ -147,9 +147,9 @@ struct TripListView: View {
             }
             .onTapGesture { showNotificationList = true }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
-        .padding(.bottom, 20)
+        .padding(.horizontal, AppSpacing.xl)
+        .padding(.top, AppSpacing.md)
+        .padding(.bottom, AppSpacing.lg)
     }
 
     // MARK: - 오늘의 일정
@@ -172,11 +172,11 @@ struct TripListView: View {
             // 전체일정 링크
             Button { showTripDetail = true } label: {
                 Text("전체일정 확인 및 개인 일정 수정하기  >")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(Color(hex: "#2563EB"))
+                    .font(AppFont.labelMedium)
+                    .foregroundColor(AppColor.accent)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppSpacing.xl)
             .padding(.top, 14)
             .padding(.bottom, 22)
         }
@@ -184,10 +184,10 @@ struct TripListView: View {
 
     private var sectionTitle: some View {
         Text("오늘의 일정")
-            .font(.system(size: 16, weight: .bold))
-            .foregroundColor(Color(hex: "#111827"))
-            .padding(.horizontal, 24)
-            .padding(.bottom, 16)
+            .font(AppFont.bodyLBold)
+            .foregroundColor(AppColor.textPrimary)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.bottom, AppSpacing.md)
     }
 
     // MARK: - 여행 시작 전
@@ -195,17 +195,17 @@ struct TripListView: View {
     private var beforeTripCard: some View {
         VStack(spacing: 6) {
             Text("여행 시작 전이에요")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#2563EB"))
+                .font(AppFont.bodyLBold)
+                .foregroundColor(AppColor.accent)
             Text(viewModel.departureText)
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 92)
-        .background(Color(hex: "#E8F0FF"))
-        .cornerRadius(12)
-        .padding(.horizontal, 24)
+        .background(AppColor.accentSubtle)
+        .cornerRadius(AppRadius.lg)
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     // MARK: - 여행 종료 후
@@ -213,18 +213,18 @@ struct TripListView: View {
     private var finishedTripCard: some View {
         VStack(spacing: 6) {
             Text("여행이 종료되었습니다")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyLBold)
+                .foregroundColor(AppColor.textPrimary)
             Text("여행 정보와 계정은 \(viewModel.dataPurgeDateText)에 파기됩니다")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 92)
-        .background(Color(hex: "#F3F4F6"))
-        .cornerRadius(12)
-        .padding(.horizontal, 24)
+        .background(AppColor.surface)
+        .cornerRadius(AppRadius.lg)
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     // MARK: - 여행 중
@@ -237,7 +237,7 @@ struct TripListView: View {
                 remainingDays: viewModel.tripTotalDays - viewModel.todayDayNumber,
                 destination: viewModel.destinationText
             )            .padding(.horizontal, 21)
-            .padding(.bottom, 20)
+            .padding(.bottom, AppSpacing.lg)
 
             sectionTitle
 
@@ -245,58 +245,58 @@ struct TripListView: View {
             if let current = viewModel.currentSchedule {
                 HStack {
                     Text(TravelerHomeViewModel.title(of: current))
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.bodyMMedium)
+                        .foregroundColor(AppColor.textPrimary)
                     Spacer()
                     Text(TravelerHomeViewModel.timeRange(current.startTime, current.endTime))
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.textSecondary)
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, AppSpacing.md)
                 .frame(height: 64)
-                .background(Color(hex: "#F3F4F6"))
-                .cornerRadius(12)
-                .padding(.horizontal, 24)
+                .background(AppColor.surface)
+                .cornerRadius(AppRadius.lg)
+                .padding(.horizontal, AppSpacing.xl)
                 .contentShape(Rectangle())
                 .onTapGesture { showTripDetail = true }
             } else {
                 Text(viewModel.todayState == .finished
                      ? "오늘 일정이 모두 끝났어요"
                      : "오늘은 등록된 일정이 없어요")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.body)
+                    .foregroundColor(AppColor.textSecondary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 64)
-                    .background(Color(hex: "#F3F4F6"))
-                    .cornerRadius(12)
-                    .padding(.horizontal, 24)
+                    .background(AppColor.surface)
+                    .cornerRadius(AppRadius.lg)
+                    .padding(.horizontal, AppSpacing.xl)
             }
 
             // 다음 일정 — 없으면 레이블째 숨김
             if let next = viewModel.nextSchedule {
                 Text("다음 일정")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                    .padding(.horizontal, 24)
+                    .font(AppFont.label)
+                    .foregroundColor(AppColor.textSecondary)
+                    .padding(.horizontal, AppSpacing.xl)
                     .padding(.top, 14)
                     .padding(.bottom, 6)
 
                 HStack {
                     Text(TravelerHomeViewModel.title(of: next))
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(AppColor.textPrimary)
                     Spacer()
                     Text(TravelerHomeViewModel.timeRange(next.startTime, next.endTime))
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.textSecondary)
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, AppSpacing.md)
                 .frame(height: 48)
-                .background(Color(hex: "#F3F4F6"))
-                .cornerRadius(12)
+                .background(AppColor.surface)
+                .cornerRadius(AppRadius.lg)
                 .contentShape(Rectangle())
                 .onTapGesture { showTripDetail = true }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppSpacing.xl)
             }
         }
     }
@@ -307,31 +307,31 @@ struct TripListView: View {
     private var nearbySpotSection: some View {
         // 스팟이 없으면 섹션째 숨깁니다
         if !viewModel.popularSpots.isEmpty {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Text("주변 인기 스팟")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
-                .padding(.horizontal, 24)
+                .font(AppFont.bodyLBold)
+                .foregroundColor(AppColor.textPrimary)
+                .padding(.horizontal, AppSpacing.xl)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: AppSpacing.sm) {
                     ForEach(viewModel.popularSpots) { spot in
                         spotCard(spot)
                             .onTapGesture { selectedSpot = spot }
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppSpacing.xl)
             }
 
             Button { showNearbySpot = true } label: {
                 Text("가이드의 추천 스팟 더보기  >")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(Color(hex: "#2563EB"))
+                    .font(AppFont.labelMedium)
+                    .foregroundColor(AppColor.accent)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppSpacing.xl)
             .padding(.top, 2)
-            .padding(.bottom, 20)
+            .padding(.bottom, AppSpacing.lg)
         }
         }
     }
@@ -345,22 +345,22 @@ struct TripListView: View {
                     iconSize: 26
                 )
                 .frame(width: 150, height: 84)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
 
                 if spot.isSponsored == true {
                     Text("광고")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(AppFont.microMedium)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, AppSpacing.xs)
                         .frame(height: 20)
-                        .background(Color(hex: "#1A1A1A"))
+                        .background(AppColor.ink)
                         .cornerRadius(4)
                         .padding(6)
                 }
             }
             Text(spot.title)
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#333840"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textBody)
                 .lineLimit(1)
                 .frame(width: 150, alignment: .leading)
         }
@@ -374,27 +374,27 @@ struct TripListView: View {
         ZStack(alignment: .topTrailing) {
             HStack(alignment: .top, spacing: 10) {
                 Text("공지")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppFont.caption2Medium)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, AppSpacing.xs)
                     .frame(height: 20)
-                    .background(Color(hex: "#2563EB"))
+                    .background(AppColor.accent)
                     .cornerRadius(4)
                 Text(notice.content)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#333840"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textBody)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 58)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(hex: "#F3F4F6"))
-            .cornerRadius(12)
+            .background(AppColor.surface)
+            .cornerRadius(AppRadius.lg)
 
             if notice.isRead != true {
                 Circle()
-                    .fill(Color(hex: "#EF4444"))
+                    .fill(AppColor.danger)
                     .frame(width: 8, height: 8)
                     .offset(x: -8, y: 8)
             }
@@ -404,18 +404,18 @@ struct TripListView: View {
             viewModel.markNoticeRead(notice)
             showNotice = true
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
         .padding(.bottom, 10)
         } else {
             Text("등록된 공지가 없어요")
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textSecondary)
                 .padding(.horizontal, 14)
                 .frame(minHeight: 58)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(hex: "#F3F4F6"))
-                .cornerRadius(12)
-                .padding(.horizontal, 24)
+                .background(AppColor.surface)
+                .cornerRadius(AppRadius.lg)
+                .padding(.horizontal, AppSpacing.xl)
                 .padding(.bottom, 10)
         }
     }
@@ -426,35 +426,35 @@ struct TripListView: View {
         Button { showLocalLanguage = true } label: {
             HStack {
                 Text("🗣  주로 사용하는 현지말")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#2563EB"))
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppColor.accent)
                 Spacer()
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppSpacing.md)
             .frame(height: 56)
-            .background(Color(hex: "#E8F0FF"))
-            .cornerRadius(12)
+            .background(AppColor.accentSubtle)
+            .cornerRadius(AppRadius.lg)
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
         .padding(.bottom, 14)
     }
 
     // MARK: - 하단 액션 버튼
 
     private var bottomActionRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppSpacing.sm) {
             Button { showEmergency = true } label: {
                 Text("긴급 즉시 연락")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(Color(hex: "#EF4444"))
+                    .font(AppFont.bodyBold)
+                    .foregroundColor(AppColor.danger)
                     .frame(maxWidth: .infinity)
                     .frame(height: 72)
                     .background(Color.white)
-                    .cornerRadius(12)
+                    .cornerRadius(AppRadius.lg)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(hex: "#EF4444"), lineWidth: 1.5)
+                        RoundedRectangle(cornerRadius: AppRadius.lg)
+                            .stroke(AppColor.danger, lineWidth: 1.5)
                     )
             }
             .buttonStyle(.plain)
@@ -462,28 +462,28 @@ struct TripListView: View {
             ZStack(alignment: .topTrailing) {
                 Button { showChat = true } label: {
                     Text("메시지 및 문의")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(AppColor.textPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 72)
-                        .background(Color(hex: "#F3F4F6"))
-                        .cornerRadius(12)
+                        .background(AppColor.surface)
+                        .cornerRadius(AppRadius.lg)
                 }
                 .buttonStyle(.plain)
 
                 if viewModel.hasUnreadMessage {
                     Text(viewModel.unreadMessageBadgeText)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.captionBold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .frame(minWidth: 20, minHeight: 20)
-                        .background(Color(hex: "#EF4444"))
+                        .background(AppColor.danger)
                         .clipShape(Capsule())
                         .offset(x: -4, y: -4)
                 }
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
     }
 }
 

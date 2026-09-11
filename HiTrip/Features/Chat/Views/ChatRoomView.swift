@@ -99,7 +99,7 @@ struct ChatRoomView: View {
     /// SwiftUI 기본 Divider는 시스템 separator라 훨씬 진하게 보입니다.
     private var separator: some View {
         Rectangle()
-            .fill(Color(hex: "#F7F7F9"))
+            .fill(AppColor.surfaceMuted)
             .frame(height: 1.5)
     }
 
@@ -109,32 +109,32 @@ struct ChatRoomView: View {
         HStack(spacing: 0) {
             Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(Color(hex: "#1B1E28"))
+                    .font(AppFont.title3Medium)
+                    .foregroundColor(AppColor.textStrong)
                     .frame(width: 24, height: 24)
             }
-            .padding(.leading, 12)
+            .padding(.leading, AppSpacing.sm)
 
             // 아바타
             Circle()
-                .fill(Color(hex: "#F3F4F6"))
+                .fill(AppColor.surface)
                 .frame(width: 36, height: 36)
                 .overlay(
                     Image(systemName: chatRoom.isGroupChat ? "person.3.fill" : "person.fill")
-                        .font(.system(size: chatRoom.isGroupChat ? 13 : 15))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .font(AppFont.icon(chatRoom.isGroupChat ? 13 : 15))
+                        .foregroundColor(AppColor.textTertiary)
                 )
-                .padding(.leading, 16)
+                .padding(.leading, AppSpacing.md)
 
             // 이름
             //
             // 디자인에는 "● 활동중"이 있으나 서버가 접속 상태를 주지 않습니다.
             // 근거 없는 상태를 표시하지 않고 이름만 보여줍니다.
             Text(chatRoom.participantName)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMBold)
+                .foregroundColor(AppColor.textPrimary)
                 .lineLimit(1)
-                .padding(.leading, 8)
+                .padding(.leading, AppSpacing.xs)
 
             Spacer(minLength: 8)
 
@@ -142,10 +142,10 @@ struct ChatRoomView: View {
             if !chatRoom.isGroupChat, let phone = peerPhoneNumber, !phone.isEmpty {
                 Button { dial(phone) } label: {
                     Image(systemName: "phone")
-                        .font(.system(size: 17))
-                        .foregroundColor(Color(hex: "#1B1E28"))
+                        .font(AppFont.headline)
+                        .foregroundColor(AppColor.textStrong)
                 }
-                .padding(.trailing, 32)
+                .padding(.trailing, AppSpacing.xxl)
             }
         }
         .frame(height: 62)
@@ -161,7 +161,7 @@ struct ChatRoomView: View {
                     // 맨 위에 닿으면 과거 30개를 더 불러옵니다
                     if viewModel.hasOlderMessages {
                         ProgressView()
-                            .padding(.vertical, 8)
+                            .padding(.vertical, AppSpacing.xs)
                             .onAppear { viewModel.loadOlderMessages(chatRoomId: chatRoom.id) }
                     }
 
@@ -178,7 +178,7 @@ struct ChatRoomView: View {
                         .id(msg.id)
                     }
                 }
-                .padding(.vertical, 16)
+                .padding(.vertical, AppSpacing.md)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: chatMessages.count) { _ in
@@ -257,11 +257,11 @@ struct ChatRoomView: View {
     private var offlineBanner: some View {
         if viewModel.isOffline {
             Text("연결이 끊겼어요. 다시 연결되면 보낼게요")
-                .font(.system(size: 12, weight: .medium))
+                .font(AppFont.captionMedium)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 32)
-                .background(Color(hex: "#6B7280"))
+                .background(AppColor.textSecondary)
         }
     }
 
@@ -269,11 +269,11 @@ struct ChatRoomView: View {
     private var toastView: some View {
         if let toast = viewModel.toast {
             Text(toast)
-                .font(.system(size: 13, weight: .medium))
+                .font(AppFont.labelMedium)
                 .foregroundColor(.white)
                 .padding(.horizontal, 18)
                 .frame(height: 44)
-                .background(Color(hex: "#111827").opacity(0.92))
+                .background(AppColor.textPrimary.opacity(0.92))
                 .clipShape(Capsule())
                 .padding(.bottom, 90)
                 .task(id: toast) {
@@ -302,8 +302,8 @@ struct ChatRoomView: View {
                         ProgressView()
                     } else {
                         Text("＋")
-                            .font(.system(size: 22))
-                            .foregroundColor(Color(hex: "#6B7280"))
+                            .font(AppFont.title1)
+                            .foregroundColor(AppColor.textSecondary)
                     }
                 }
                 .frame(width: 22, height: 22)
@@ -318,22 +318,22 @@ struct ChatRoomView: View {
             VStack(alignment: .trailing, spacing: 2) {
                 TextField("메시지를 입력하세요", text: $viewModel.messageText)
                     .focused($isInputFocused)
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#1B1E28"))
+                    .font(AppFont.bodyL)
+                    .foregroundColor(AppColor.textStrong)
                     .padding(.horizontal, 14)
                     .frame(height: 48)
-                    .background(Color(hex: "#F7F7F9"))
+                    .background(AppColor.surfaceMuted)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(viewModel.isOverMessageLimit ? Color(hex: "#EF4444") : .clear, lineWidth: 1)
+                            .stroke(viewModel.isOverMessageLimit ? AppColor.danger : .clear, lineWidth: 1)
                     )
 
                 if viewModel.messageText.count > viewModel.messageLimit - 100 {
                     Text("\(viewModel.messageText.count)/\(viewModel.messageLimit)")
-                        .font(.system(size: 11, weight: viewModel.isOverMessageLimit ? .bold : .regular))
+                        .font(viewModel.isOverMessageLimit ? AppFont.caption2Bold : AppFont.caption2)
                         .foregroundColor(viewModel.isOverMessageLimit
-                                         ? Color(hex: "#EF4444") : Color(hex: "#7D848D"))
+                                         ? AppColor.danger : AppColor.textMuted)
                 }
             }
             .padding(.leading, 11)
@@ -347,13 +347,13 @@ struct ChatRoomView: View {
                 Image(systemName: recorder.isRecording
                       ? "stop.fill"
                       : (viewModel.messageText.isEmpty ? "mic.fill" : "arrow.up"))
-                    .font(.system(size: viewModel.messageText.isEmpty ? 18 : 16, weight: .semibold))
+                    .font(AppFont.icon(viewModel.messageText.isEmpty ? 18 : 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 48, height: 48)
                     .background(recorder.isRecording
-                                ? Color(hex: "#EF4444")
+                                ? AppColor.danger
                                 : (viewModel.isOverMessageLimit
-                                   ? Color(hex: "#C3CDDA") : Color(hex: "#0C46C0")))
+                                   ? AppColor.borderMuted : AppColor.brand))
                     .clipShape(Circle())
             }
             .disabled(viewModel.isOverMessageLimit)
@@ -372,7 +372,7 @@ struct ChatRoomView: View {
             .padding(.leading, 14)
             .padding(.trailing, 21)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, AppSpacing.xs)
         .background(Color.white)
     }
 }

@@ -56,14 +56,14 @@ struct EmergencyCallDialog: View {
     private var dialogCard: some View {
         VStack(spacing: 0) {
             Text("☎")
-                .font(.system(size: 26))
-                .foregroundColor(Color(hex: "#EF4444"))
-                .padding(.top, 24)
+                .font(AppFont.emojiL)
+                .foregroundColor(AppColor.danger)
+                .padding(.top, AppSpacing.xl)
 
             Text(isWithinOperatingHours ? "긴급 통역 연결" : "지금은 연결이 어려워요")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
-                .padding(.top, 16)
+                .font(AppFont.title3Bold)
+                .foregroundColor(AppColor.textPrimary)
+                .padding(.top, AppSpacing.md)
 
             VStack(spacing: 2) {
                 if !isWithinOperatingHours {
@@ -75,20 +75,20 @@ struct EmergencyCallDialog: View {
                 }
                 Text("운영시간 \(operatingHoursText) (현지 기준)")
             }
-            .font(.system(size: 13))
-            .foregroundColor(Color(hex: "#333840"))
+            .font(AppFont.label)
+            .foregroundColor(AppColor.textBody)
             .multilineTextAlignment(.center)
             .padding(.top, 14)
 
             HStack(spacing: 10) {
                 Button { isPresented = false } label: {
                     Text("취소")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color(hex: "#333840"))
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(AppColor.textBody)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(Color(hex: "#F3F4F6"))
-                        .cornerRadius(12)
+                        .background(AppColor.surface)
+                        .cornerRadius(AppRadius.lg)
                 }
                 .buttonStyle(.plain)
 
@@ -99,14 +99,14 @@ struct EmergencyCallDialog: View {
                                 ProgressView().tint(.white)
                             } else {
                                 Text("전화하기")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(AppFont.bodyBold)
                                     .foregroundColor(.white)
                             }
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(canCall ? Color(hex: "#EF4444") : Color(hex: "#C3CDDA"))
-                        .cornerRadius(12)
+                        .background(canCall ? AppColor.danger : AppColor.borderMuted)
+                        .cornerRadius(AppRadius.lg)
                     }
                     .buttonStyle(.plain)
                     .disabled(!canCall || isSending)
@@ -117,23 +117,23 @@ struct EmergencyCallDialog: View {
                         onMessageGuide?()
                     } label: {
                         Text("안내사에게 메시지")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(AppFont.bodyBold)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .background(Color(hex: "#2563EB"))
-                            .cornerRadius(12)
+                            .background(AppColor.accent)
+                            .cornerRadius(AppRadius.lg)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppSpacing.lg)
             .padding(.top, 22)
             .padding(.bottom, 22)
         }
         .frame(width: 310)
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(AppRadius.xl)
     }
 
     private var canCall: Bool {

@@ -15,23 +15,23 @@ struct SafetyRestrictionBanner: View {
         Group {
             if permissions.isLocationRestricted {
                 Button { permissions.openSettings() } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 13))
+                            .font(AppFont.label)
                         Text("안전 서비스 제한 중")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppFont.labelSemiBold)
                         Text("위치 권한을 허용해주세요")
-                            .font(.system(size: 12))
+                            .font(AppFont.caption)
                             .opacity(0.8)
                         Spacer(minLength: 4)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.caption2SemiBold)
                     }
-                    .foregroundColor(HiTripColor.danger)
-                    .padding(.horizontal, HiTripSpacing.pagePadding)
+                    .foregroundColor(AppColor.dangerStrong)
+                    .padding(.horizontal, AppSpacing.lg)
                     .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
-                    .background(HiTripColor.dangerBg)
+                    .background(AppColor.dangerBackground)
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint("설정 앱에서 위치 권한을 켤 수 있습니다")

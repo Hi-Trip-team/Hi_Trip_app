@@ -28,55 +28,55 @@ struct NoticeEditorPopup: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(isEditing ? "공지 수정" : "새 공지 작성")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.bodyLBold)
+                    .foregroundColor(AppColor.textPrimary)
                     .padding(.top, 22)
 
                 ZStack(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(hex: "#F3F4F6"))
+                    RoundedRectangle(cornerRadius: AppRadius.lg)
+                        .fill(AppColor.surface)
 
                     if text.isEmpty {
                         Text("새 공지를 작성하세요")
-                            .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "#6B7280"))
-                            .padding(.horizontal, 20)
-                            .padding(.top, 16)
+                            .font(AppFont.label)
+                            .foregroundColor(AppColor.textSecondary)
+                            .padding(.horizontal, AppSpacing.lg)
+                            .padding(.top, AppSpacing.md)
                     }
 
                     // 입력 중에 자르지 않습니다 (조합형 문자 입력이 깨집니다)
                     TextEditor(text: $text)
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.textPrimary)
                         .scrollContentBackground(.hidden)
                         .background(Color.clear)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, AppSpacing.md)
                         .padding(.vertical, 10)
                 }
                 .frame(height: 160)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isOverLimit ? Color(hex: "#EF4444") : .clear, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: AppRadius.lg)
+                        .stroke(isOverLimit ? AppColor.danger : .clear, lineWidth: 1)
                 )
                 .padding(.top, 14)
 
                 HStack {
                     Spacer()
                     Text("\(text.count)/\(limit)")
-                        .font(.system(size: 11, weight: isOverLimit ? .bold : .regular))
-                        .foregroundColor(isOverLimit ? Color(hex: "#EF4444") : Color(hex: "#6B7280"))
+                        .font(isOverLimit ? AppFont.caption2Bold : AppFont.caption2)
+                        .foregroundColor(isOverLimit ? AppColor.danger : AppColor.textSecondary)
                 }
-                .padding(.top, 8)
+                .padding(.top, AppSpacing.xs)
 
-                HStack(spacing: 12) {
+                HStack(spacing: AppSpacing.sm) {
                     Button { requestCancel() } label: {
                         Text("취소하기")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(hex: "#333840"))
+                            .font(AppFont.bodyMedium)
+                            .foregroundColor(AppColor.textBody)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .background(Color(hex: "#F3F4F6"))
-                            .cornerRadius(12)
+                            .background(AppColor.surface)
+                            .cornerRadius(AppRadius.lg)
                     }
                     .buttonStyle(.plain)
 
@@ -86,14 +86,14 @@ struct NoticeEditorPopup: View {
                                 ProgressView().tint(.white)
                             } else {
                                 Text("작성완료")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(AppFont.bodyBold)
                                     .foregroundColor(.white)
                             }
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(canSubmit ? Color(hex: "#2563EB") : Color(hex: "#C3CDDA"))
-                        .cornerRadius(12)
+                        .background(canSubmit ? AppColor.accent : AppColor.borderMuted)
+                        .cornerRadius(AppRadius.lg)
                     }
                     .buttonStyle(.plain)
                     .disabled(!canSubmit)
@@ -102,11 +102,11 @@ struct NoticeEditorPopup: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.bottom, AppSpacing.lg)
             .frame(width: 330, height: 320, alignment: .top)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
         }
         .confirmationDialog("작성을 취소할까요?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
             Button("작성 취소", role: .destructive) { onCancel() }

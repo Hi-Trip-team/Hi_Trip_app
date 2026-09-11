@@ -58,21 +58,21 @@ struct StaffDashboardView: View {
 
                 Button { showFullSchedule = true } label: {
                     Text("전체일정 확인 및 일정 수정하기  >")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "#2563EB"))
+                        .font(AppFont.labelMedium)
+                        .foregroundColor(AppColor.accent)
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
+                .padding(.horizontal, AppSpacing.xl)
+                .padding(.top, AppSpacing.xl)
                 .padding(.bottom, 18)
 
                 quickMenuGrid
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .padding(.bottom, 28)
 
                 safetyStatusCard
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 32)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.bottom, AppSpacing.xxl)
             }
         }
         .refreshable { viewModel.refreshSafety() }
@@ -82,13 +82,13 @@ struct StaffDashboardView: View {
 
     private var headerSection: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(viewModel.tripTitle)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(AppFont.headlineBold)
                     .foregroundColor(.black)
                 Text(viewModel.managerText)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textSecondary)
             }
 
             Spacer()
@@ -97,15 +97,15 @@ struct StaffDashboardView: View {
             Button { showNotification = true } label: {
                 ZStack(alignment: .topTrailing) {
                     Text("🔔")
-                        .font(.system(size: 18))
+                        .font(AppFont.title3)
                         .padding(.top, 6)
 
                     if viewModel.unreadAlertCount > 0 {
                         Text("\(min(viewModel.unreadAlertCount, 99))")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.caption2Bold)
                             .foregroundColor(.white)
                             .frame(width: 18, height: 18)
-                            .background(Color(hex: "#EF4444"))
+                            .background(AppColor.danger)
                             .clipShape(Circle())
                             .offset(x: 8, y: 0)
                     }
@@ -113,9 +113,9 @@ struct StaffDashboardView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
         .padding(.top, 10)
-        .padding(.bottom, 24)
+        .padding(.bottom, AppSpacing.xl)
     }
 
     // MARK: - 오늘의 일정
@@ -123,53 +123,53 @@ struct StaffDashboardView: View {
     private var todayScheduleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("오늘의 일정")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
-                .padding(.horizontal, 24)
+                .font(AppFont.bodyLBold)
+                .foregroundColor(AppColor.textPrimary)
+                .padding(.horizontal, AppSpacing.xl)
 
             // 진행바 + 버스 — 관광객 홈과 같은 규칙(당일 시각 비율)
             GeometryReader { geo in
                 let filled = geo.size.width * viewModel.todayProgress
                 VStack(alignment: .leading, spacing: 2) {
                     Text("🚌")
-                        .font(.system(size: 16))
+                        .font(AppFont.bodyL)
                         .offset(x: max(filled - 8, 0))
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color(hex: "#E5E7EB"))
+                            .fill(AppColor.divider)
                             .frame(height: 4)
                         Capsule()
-                            .fill(Color(hex: "#2563EB"))
+                            .fill(AppColor.accent)
                             .frame(width: filled, height: 4)
                     }
                 }
             }
             .frame(height: 40)
-            .padding(.horizontal, 24)
-            .padding(.top, 4)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.top, AppSpacing.xxs)
 
             if let current = viewModel.currentSchedule {
                 scheduleRow(current, height: 56, titleSize: 14)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 4)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.top, AppSpacing.xxs)
             } else {
                 Text(viewModel.todaySchedules.isEmpty
                      ? "오늘은 등록된 일정이 없어요"
                      : "오늘 일정이 모두 끝났어요")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.body)
+                    .foregroundColor(AppColor.textSecondary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color(hex: "#F3F4F6"))
-                    .cornerRadius(12)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 4)
+                    .background(AppColor.surface)
+                    .cornerRadius(AppRadius.lg)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.top, AppSpacing.xxs)
             }
 
             if let next = viewModel.nextSchedule {
                 scheduleRow(next, height: 48, titleSize: 13)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 8)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.top, AppSpacing.xs)
             }
         }
     }
@@ -178,17 +178,17 @@ struct StaffDashboardView: View {
         HStack {
             // 장소가 없는 일정(앱에서 추가한 것)은 메모를 제목으로 씁니다
             Text(item.placeName?.isEmpty == false ? (item.placeName ?? "") : (item.mainContent ?? "일정"))
-                .font(.system(size: titleSize, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(.pretendard(.medium, size: titleSize))
+                .foregroundColor(AppColor.textPrimary)
             Spacer()
             Text(StaffHomeViewModel.timeRange(item.startTime, item.endTime))
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textSecondary)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppSpacing.md)
         .frame(height: height)
-        .background(Color(hex: "#F3F4F6"))
-        .cornerRadius(12)
+        .background(AppColor.surface)
+        .cornerRadius(AppRadius.lg)
         .contentShape(Rectangle())
         .onTapGesture { showFullSchedule = true }
     }
@@ -196,13 +196,13 @@ struct StaffDashboardView: View {
     // MARK: - 퀵 메뉴 2×2
 
     private var quickMenuGrid: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 12) {
+        VStack(spacing: AppSpacing.md) {
+            HStack(spacing: AppSpacing.sm) {
                 menuCard("📢", "공지글 설정") { showNotice = true }
                 menuCard("💬", "고객 관리", badge: viewModel.unreadMessageCount > 0
                          ? viewModel.unreadMessageBadgeText : nil) { showChat = true }
             }
-            HStack(spacing: 12) {
+            HStack(spacing: AppSpacing.sm) {
                 menuCard("📍", "지도 범위 설정") { showMapRange = true }
                 menuCard("🛡", "안전 관리", showsDot: viewModel.hasSafetyIssue) { showSafety = true }
             }
@@ -220,31 +220,31 @@ struct StaffDashboardView: View {
             ZStack(alignment: .topTrailing) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(emoji)
-                        .font(.system(size: 24))
+                        .font(AppFont.title0)
                     Spacer(minLength: 0)
                     Text(title)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.bodyBold)
+                        .foregroundColor(AppColor.textPrimary)
                 }
                 .padding(18)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(height: 106)
-                .background(Color(hex: "#F3F4F6"))
+                .background(AppColor.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
                 if let badge {
                     Text(badge)
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.caption2Bold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .frame(minWidth: 20, minHeight: 20)
-                        .background(Color(hex: "#EF4444"))
+                        .background(AppColor.danger)
                         .clipShape(Capsule())
                         .padding(10)
                 } else if showsDot {
                     // 경고·위험 인원이 있으면 빨간 점
                     Circle()
-                        .fill(Color(hex: "#EF4444"))
+                        .fill(AppColor.danger)
                         .frame(width: 8, height: 8)
                         .padding(14)
                 }
@@ -259,27 +259,27 @@ struct StaffDashboardView: View {
         Button { showSafety = true } label: {
             VStack(alignment: .leading, spacing: 0) {
                 Text("오늘의 안전 현황")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "#2563EB"))
+                    .font(AppFont.labelBold)
+                    .foregroundColor(AppColor.accent)
                     .padding(.top, 14)
 
                 Text(viewModel.safetySummaryText)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppColor.textPrimary)
                     .padding(.top, 14)
 
                 Text("안전 관리에서 자세히 보기  >")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textSecondary)
                     .padding(.top, 10)
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppSpacing.md)
             .frame(height: 90, alignment: .top)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(hex: "#E8F0FF"))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(AppColor.accentSubtle)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         }
         .buttonStyle(.plain)
     }
@@ -287,11 +287,11 @@ struct StaffDashboardView: View {
     // MARK: - 상태 화면
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
             ProgressView()
             Text("여행 정보를 불러오는 중이에요")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -299,32 +299,32 @@ struct StaffDashboardView: View {
     /// 배정된 여행이 없을 때
     private var noTripView: some View {
         VStack(spacing: 10) {
-            Text("🧭").font(.system(size: 34))
+            Text("🧭").font(AppFont.emojiXL)
             Text("배정된 여행이 없습니다")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMBold)
+                .foregroundColor(AppColor.textPrimary)
             Text("SaaS에서 확인해주세요")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
-            Text("🧭").font(.system(size: 34))
+            Text("🧭").font(AppFont.emojiXL)
             Text(message)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
             Button { viewModel.load() } label: {
                 Text("다시 시도")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.bodyBold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .frame(height: 44)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(10)
+                    .background(AppColor.accent)
+                    .cornerRadius(AppRadius.md)
             }
             .buttonStyle(.plain)
         }

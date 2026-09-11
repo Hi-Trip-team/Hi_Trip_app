@@ -40,15 +40,15 @@ struct NoticeSettingView: View {
                     showEditor = true
                 } label: {
                     Text("새 공지 작성하기")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(AppFont.bodyMBold)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(Color(hex: "#2563EB"))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .background(AppColor.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppSpacing.xl)
                 .padding(.top, 33)
 
                 switch viewModel.state {
@@ -195,36 +195,36 @@ struct NoticeSettingView: View {
     private var headerSection: some View {
         ZStack {
             Text("공지 설정")
-                .font(.system(size: 17, weight: .bold))
+                .font(AppFont.headlineBold)
                 .foregroundColor(.black)
 
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
                 Spacer()
             }
-            .padding(.leading, 12)
+            .padding(.leading, AppSpacing.sm)
         }
         .frame(height: 24)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 목록
 
     private var noticeList: some View {
         ScrollView {
-            LazyVStack(spacing: 16) {
+            LazyVStack(spacing: AppSpacing.md) {
                 ForEach(viewModel.notices, id: \.id) { notice in
                     noticeCard(notice)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 32)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.top, AppSpacing.xl)
+            .padding(.bottom, AppSpacing.xxl)
         }
         .refreshable { viewModel.refresh() }
     }
@@ -236,23 +236,23 @@ struct NoticeSettingView: View {
 
                 if notice.isActive {
                     Text("활성")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(Color(hex: "#2563EB"))
+                        .font(AppFont.caption2Bold)
+                        .foregroundColor(AppColor.accent)
                         .frame(width: 44, height: 20)
-                        .background(Color(hex: "#E8F0FF"))
+                        .background(AppColor.accentSubtle)
                         .cornerRadius(4)
                 }
 
                 Text(viewModel.dateText(notice))
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textSecondary)
 
                 Spacer()
 
                 Button { menuTarget = notice } label: {
                     Text("⋮")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.bodyLBold)
+                        .foregroundColor(AppColor.textSecondary)
                         .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
@@ -260,23 +260,23 @@ struct NoticeSettingView: View {
 
             // 한글 기준 2줄 말줄임 — 넘치면 행을 눌러 전문을 봅니다
             Text(notice.content)
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#333840"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textBody)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 20)
+                .padding(.top, AppSpacing.lg)
 
             Spacer(minLength: 0)
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .frame(height: 104, alignment: .top)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(notice.isActive ? Color(hex: "#2563EB") : Color(hex: "#E5E7EB"),
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .stroke(notice.isActive ? AppColor.accent : AppColor.divider,
                         lineWidth: notice.isActive ? 1.5 : 1)
         )
         .contentShape(Rectangle())
@@ -293,7 +293,7 @@ struct NoticeSettingView: View {
         } label: {
             ZStack(alignment: notice.isActive ? .trailing : .leading) {
                 Capsule()
-                    .fill(notice.isActive ? Color(hex: "#2563EB") : Color(hex: "#E5E7EB"))
+                    .fill(notice.isActive ? AppColor.accent : AppColor.divider)
                     .frame(width: 44, height: 24)
                 Circle()
                     .fill(Color.white)
@@ -316,66 +316,66 @@ struct NoticeSettingView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(viewModel.dateText(notice))
-                        .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.caption2)
+                        .foregroundColor(AppColor.textSecondary)
                     Spacer()
                     Button { detailTarget = nil } label: {
                         Text("✕")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color(hex: "#6B7280"))
+                            .font(AppFont.bodyL)
+                            .foregroundColor(AppColor.textSecondary)
                     }
                     .buttonStyle(.plain)
                 }
 
                 ScrollView {
                     Text(notice.content)
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#333840"))
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.textBody)
                         .lineSpacing(4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxHeight: 240)
-                .padding(.top, 16)
+                .padding(.top, AppSpacing.md)
             }
-            .padding(20)
+            .padding(AppSpacing.lg)
             .frame(width: 330)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
         }
     }
 
     // MARK: - 상태 화면
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
             ProgressView()
             Text("공지를 불러오는 중이에요")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var emptyView: some View {
         Text("작성된 공지가 없어요")
-            .font(.system(size: 14))
-            .foregroundColor(Color(hex: "#6B7280"))
+            .font(AppFont.body)
+            .foregroundColor(AppColor.textSecondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
             Text(message)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
             Button { viewModel.load() } label: {
                 Text("재시도")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.bodyBold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .frame(height: 44)
-                    .background(Color(hex: "#2563EB"))
-                    .cornerRadius(10)
+                    .background(AppColor.accent)
+                    .cornerRadius(AppRadius.md)
             }
             .buttonStyle(.plain)
         }
@@ -386,11 +386,11 @@ struct NoticeSettingView: View {
     private var toastView: some View {
         if let toast = viewModel.toast {
             Text(toast)
-                .font(.system(size: 13, weight: .medium))
+                .font(AppFont.labelMedium)
                 .foregroundColor(.white)
                 .padding(.horizontal, 18)
                 .frame(height: 44)
-                .background(Color(hex: "#111827").opacity(0.92))
+                .background(AppColor.textPrimary.opacity(0.92))
                 .clipShape(Capsule())
                 .padding(.bottom, 40)
                 .task(id: toast) {

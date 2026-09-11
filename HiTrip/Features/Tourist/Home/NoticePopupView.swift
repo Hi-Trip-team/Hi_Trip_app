@@ -44,7 +44,7 @@ struct NoticePopupView: View {
                 .onTapGesture { isPresented = false }
 
             popupCard
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppSpacing.xl)
         }
     }
 
@@ -53,80 +53,80 @@ struct NoticePopupView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(notice.title.isEmpty ? "공지사항" : notice.title)
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(Color(hex: "#111827"))
+                        .font(AppFont.headlineBold)
+                        .foregroundColor(AppColor.textPrimary)
                     // 작성자명은 여행객 공지 API에 없어 날짜만 표시합니다 (백엔드 요청 중)
                     Text(dateText)
-                        .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.caption2)
+                        .foregroundColor(AppColor.textSecondary)
                 }
                 Spacer()
                 Button { isPresented = false } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.body)
+                        .foregroundColor(AppColor.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 20)
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.top, AppSpacing.lg)
+            .padding(.bottom, AppSpacing.lg)
 
             ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
                 ForEach(paragraphs, id: \.self) { p in
                     Text(p)
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#333840"))
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.textBody)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.bottom, AppSpacing.xl)
             }
             // 긴 공지도 팝업 안에서 읽을 수 있게 본문만 스크롤합니다
             .frame(maxHeight: 320)
 
             if !previousNotices.isEmpty {
             Divider()
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppSpacing.lg)
 
             if showPrevious {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     ForEach(previousNotices) { prev in
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                             Text(prev.title)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(Color(hex: "#111827"))
+                                .font(AppFont.labelMedium)
+                                .foregroundColor(AppColor.textPrimary)
                             Text(prev.content)
-                                .font(.system(size: 12))
-                                .foregroundColor(Color(hex: "#6B7280"))
+                                .font(AppFont.caption)
+                                .foregroundColor(AppColor.textSecondary)
                                 .lineLimit(2)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.md)
             }
 
             Button { showPrevious.toggle() } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xxs) {
                     Text("이전 공지 보기")
-                        .font(.system(size: 13))
+                        .font(AppFont.label)
                     Image(systemName: showPrevious ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppFont.microSemiBold)
                 }
-                .foregroundColor(Color(hex: "#2563EB"))
+                .foregroundColor(AppColor.accent)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.vertical, AppSpacing.md)
             }
         }
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(AppRadius.xl)
         .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 4)
     }
 }

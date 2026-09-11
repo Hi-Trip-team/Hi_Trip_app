@@ -26,7 +26,7 @@ struct SpotImageView: View {
                     case .empty:
                         ZStack {
                             placeholderBackground
-                            ProgressView().tint(Color(hex: "#9CA3AF"))
+                            ProgressView().tint(AppColor.textTertiary)
                         }
                     @unknown default:
                         placeholder
@@ -50,13 +50,13 @@ struct SpotImageView: View {
         ZStack {
             placeholderBackground
             Image(systemName: Self.icon(for: categoryName))
-                .font(.system(size: iconSize, weight: .light))
-                .foregroundColor(Color(hex: "#9CA3AF"))
+                .font(AppFont.icon(iconSize, weight: .light))
+                .foregroundColor(AppColor.textTertiary)
         }
     }
 
     private var placeholderBackground: some View {
-        Color(hex: "#D9DEE5")
+        AppColor.borderSoft
     }
 
     // MARK: - 카테고리 매핑

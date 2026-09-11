@@ -49,10 +49,10 @@ struct TripProgressCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(headline)
-                .font(.system(size: 13, weight: .medium))
+                .font(AppFont.labelMedium)
                 .tracking(-0.26)
                 .foregroundColor(.white)
-                .padding(.top, 12)
+                .padding(.top, AppSpacing.sm)
 
             // 버스는 진행 위치(점) 바로 위를 따라갑니다.
             // 제목과 같은 줄에 두면 진행률이 낮을 때 글자를 가려서 한 줄 아래에 둡니다.
@@ -73,7 +73,7 @@ struct TripProgressCard: View {
 
             HStack(alignment: .firstTextBaseline) {
                 Text(percentText)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(AppFont.bodyLBold)
                     .tracking(-0.38)
                     .foregroundColor(.white)
 
@@ -81,7 +81,7 @@ struct TripProgressCard: View {
 
                 if let destination, !destination.isEmpty {
                     Text(destination)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(AppFont.labelMedium)
                         .tracking(-0.26)
                         .foregroundColor(.white)
                         .padding(.trailing, 2)
@@ -94,8 +94,8 @@ struct TripProgressCard: View {
         .padding(.horizontal, trackInset)
         .frame(height: 103)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: "#0C46C0"))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppColor.brand)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
     }
 
     /// 버스를 점 중앙에 맞춥니다 (아이콘 폭의 절반만큼 왼쪽으로)
@@ -114,16 +114,16 @@ struct TripProgressCard: View {
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color(hex: "#A0BCF8"))
+                    .fill(AppColor.brandLight)
                     .frame(height: trackHeight)
 
                 // 지나온 구간
                 Capsule()
-                    .fill(Color(hex: "#4F7BFF"))
+                    .fill(AppColor.brandBright)
                     .frame(width: dotCenter, height: trackHeight)
 
                 Circle()
-                    .fill(Color(hex: "#4F7BFF"))
+                    .fill(AppColor.brandBright)
                     .frame(width: dotSize, height: dotSize)
                     .offset(x: travel * clamped)
             }
@@ -133,7 +133,7 @@ struct TripProgressCard: View {
 }
 
 #Preview {
-    VStack(spacing: 12) {
+    VStack(spacing: AppSpacing.sm) {
         TripProgressCard(progress: 0,    remainingDays: 6, destination: "제주")
         TripProgressCard(progress: 0.65, remainingDays: 3, destination: "제주")
         TripProgressCard(progress: 1,    remainingDays: 0, destination: "제주")

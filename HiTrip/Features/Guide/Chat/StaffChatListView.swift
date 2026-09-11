@@ -54,7 +54,7 @@ struct StaffChatListView: View {
 
             tabRow
                 .padding(.top, 36)
-                .padding(.bottom, 20)
+                .padding(.bottom, AppSpacing.lg)
 
             if rooms.isEmpty {
                 emptyView
@@ -83,13 +83,13 @@ struct StaffChatListView: View {
     private var headerSection: some View {
         ZStack {
             Text("메시지 및 문의")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
 
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
@@ -97,36 +97,36 @@ struct StaffChatListView: View {
                 // 즉시 실행하지 않고 한 번 확인합니다
                 Button { showMarkAllConfirm = true } label: {
                     Text("모두 확인")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "#2563EB"))
+                        .font(AppFont.labelMedium)
+                        .foregroundColor(AppColor.accent)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AppSpacing.sm)
         }
         .frame(height: 24)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 탭 필터
 
     private var tabRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppSpacing.sm) {
             ForEach(Tab.allCases) { item in
                 let isOn = tab == item
                 Button { tab = item } label: {
                     Text(item.rawValue)
-                        .font(.system(size: 12, weight: isOn ? .bold : .medium))
-                        .foregroundColor(isOn ? .white : Color(hex: "#6B7280"))
+                        .font(isOn ? AppFont.captionBold : AppFont.captionMedium)
+                        .foregroundColor(isOn ? .white : AppColor.textSecondary)
                         .frame(width: item.width, height: 34)
-                        .background(isOn ? Color(hex: "#2563EB") : Color(hex: "#F3F4F6"))
+                        .background(isOn ? AppColor.accent : AppColor.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 17))
                 }
                 .buttonStyle(.plain)
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     // MARK: - 방 목록
@@ -139,9 +139,9 @@ struct StaffChatListView: View {
                         .buttonStyle(.plain)
 
                     Rectangle()
-                        .fill(Color(hex: "#E5E7EB"))
+                        .fill(AppColor.divider)
                         .frame(height: 1)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, AppSpacing.xl)
                 }
             }
         }
@@ -151,23 +151,23 @@ struct StaffChatListView: View {
     private func roomRow(_ room: ChatRoom) -> some View {
         HStack(spacing: 14) {
             Circle()
-                .fill(Color(hex: "#F3F4F6"))
+                .fill(AppColor.surface)
                 .frame(width: 48, height: 48)
                 .overlay(
                     Image(systemName: room.isGroupChat ? "person.3.fill" : "person.fill")
-                        .font(.system(size: room.isGroupChat ? 17 : 19))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .font(AppFont.icon(room.isGroupChat ? 17 : 19))
+                        .foregroundColor(AppColor.textTertiary)
                 )
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(room.isGroupChat ? "📌 \(room.participantName)" : room.participantName)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.bodyBold)
+                    .foregroundColor(AppColor.textPrimary)
                     .lineLimit(1)
 
                 Text(room.lastMessage.isEmpty ? "새로운 채팅방" : room.lastMessage)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.textSecondary)
                     .lineLimit(1)
             }
 
@@ -175,24 +175,24 @@ struct StaffChatListView: View {
 
             VStack(alignment: .trailing, spacing: 6) {
                 Text(Self.timeText(room.lastMessageDate))
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textSecondary)
 
                 if room.unreadCount > 0 {
                     Text(room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.captionBold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .frame(minWidth: 22, minHeight: 22)
-                        .background(Color(hex: "#EF4444"))
+                        .background(AppColor.danger)
                         .clipShape(Capsule())
                 } else {
                     Color.clear.frame(width: 0, height: 22)
                 }
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding(.horizontal, AppSpacing.xl)
+        .padding(.vertical, AppSpacing.md)
         .contentShape(Rectangle())
     }
 
@@ -202,11 +202,11 @@ struct StaffChatListView: View {
         VStack(spacing: 10) {
             Spacer()
             Image(systemName: tab == .unread ? "checkmark.circle" : "bubble.left.and.bubble.right")
-                .font(.system(size: 40))
-                .foregroundColor(Color(hex: "#D1D5DB"))
+                .font(AppFont.logo)
+                .foregroundColor(AppColor.borderStrong)
             Text(tab == .unread ? "미확인 메시지가 없어요" : "메시지가 없어요")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
             Spacer()
         }
         .frame(maxWidth: .infinity)

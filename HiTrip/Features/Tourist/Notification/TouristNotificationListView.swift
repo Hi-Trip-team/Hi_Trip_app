@@ -38,20 +38,20 @@ struct TouristNotificationListView: View {
     private var headerSection: some View {
         ZStack {
             Text("알림")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                 }
                 Spacer()
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AppSpacing.sm)
         }
         .frame(height: 44)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 빈 상태
@@ -60,14 +60,14 @@ struct TouristNotificationListView: View {
         VStack(spacing: 10) {
             Spacer()
             Image(systemName: "bell")
-                .font(.system(size: 40))
-                .foregroundColor(Color(hex: "#D1D5DB"))
+                .font(AppFont.logo)
+                .foregroundColor(AppColor.borderStrong)
             Text("받은 알림이 없습니다")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.bodyMMedium)
+                .foregroundColor(AppColor.textPrimary)
             Text("일정 변경이나 안전 확인 요청이 오면\n여기에 표시됩니다")
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
             Spacer()
@@ -78,20 +78,20 @@ struct TouristNotificationListView: View {
     // MARK: - 알림 행
 
     private func row(_ item: TouristNotificationItem) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: AppSpacing.sm) {
             Circle()
-                .fill(item.isRead ? Color.clear : Color(hex: "#EF4444"))
+                .fill(item.isRead ? Color.clear : AppColor.danger)
                 .frame(width: 7, height: 7)
                 .padding(.top, 6)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(item.title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(item.time)
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textTertiary)
             }
             Spacer()
         }

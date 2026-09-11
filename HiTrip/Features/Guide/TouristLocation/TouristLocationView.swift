@@ -40,23 +40,23 @@ struct TouristLocationView: View {
                 Spacer()
                 legend
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .padding(.bottom, 38)
 
                 mapButtons
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, AppSpacing.xl)
                     .padding(.bottom, 19)
 
                 callButton
                     .padding(.horizontal, 21)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, AppSpacing.xl)
             }
 
             if viewModel.returnedNotice {
                 returnedToast
             }
         }
-        .background(Color(hex: "#E0EAE0"))
+        .background(AppColor.successSubtle)
         .navigationBarHidden(true)
         .task { viewModel.load() }
         .onAppear { viewModel.startPolling() }
@@ -80,7 +80,7 @@ struct TouristLocationView: View {
             if let coordinate = viewModel.touristCoordinate {
                 Annotation(viewModel.touristName.isEmpty ? touristName : viewModel.touristName,
                            coordinate: coordinate) {
-                    pin(color: Color(hex: "#734CD9"))
+                    pin(color: AppColor.touristPin)
                         // GPS가 끊기면 반투명으로 — 옛 위치라는 표시
                         .opacity(viewModel.isStale ? 0.45 : 1)
                 }
@@ -88,7 +88,7 @@ struct TouristLocationView: View {
 
             if let guide = viewModel.guideLocation {
                 Annotation("나 (안내사)", coordinate: guide) {
-                    pin(color: Color(hex: "#0C46C0"))
+                    pin(color: AppColor.brand)
                 }
             }
         }
@@ -100,7 +100,7 @@ struct TouristLocationView: View {
                 .fill(color)
                 .frame(width: 26, height: 26)
             Image(systemName: "mappin")
-                .font(.system(size: 12, weight: .bold))
+                .font(AppFont.captionBold)
                 .foregroundColor(.white)
         }
     }
@@ -111,38 +111,38 @@ struct TouristLocationView: View {
         VStack(spacing: 0) {
             ZStack {
                 Text("\(viewModel.touristName.isEmpty ? touristName : viewModel.touristName) 님의 현재 위치")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.headlineBold)
+                    .foregroundColor(AppColor.textPrimary)
 
                 HStack {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(AppFont.title3Medium)
                             .foregroundColor(.black)
                             .frame(width: 24, height: 24)
                     }
                     Spacer()
                 }
-                .padding(.leading, 12)
+                .padding(.leading, AppSpacing.sm)
             }
             .frame(height: 24)
-            .padding(.top, 8)
+            .padding(.top, AppSpacing.xs)
 
             HStack(alignment: .firstTextBaseline) {
                 Text("주소: \(viewModel.address.isEmpty ? "확인 중" : viewModel.address)")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#333840"))
+                    .font(AppFont.label)
+                    .foregroundColor(AppColor.textBody)
                     .lineLimit(1)
 
                 Spacer(minLength: 8)
 
                 Text(viewModel.updatedText)
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textSecondary)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppSpacing.xl)
             .padding(.top, 17)
-            .padding(.bottom, 12)
+            .padding(.bottom, AppSpacing.sm)
         }
         .background(Color.white)
     }
@@ -150,16 +150,16 @@ struct TouristLocationView: View {
     // MARK: - 범례
 
     private var legend: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.xs) {
             Rectangle()
                 .fill(Color.red)
                 .frame(width: 14, height: 3)
                 .cornerRadius(1)
             Text("허용 범위 경계")
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#333840"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textBody)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, AppSpacing.sm)
         .frame(height: 30)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 15))
@@ -168,7 +168,7 @@ struct TouristLocationView: View {
     // MARK: - 지도 이동 버튼
 
     private var mapButtons: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppSpacing.sm) {
             mapButton("내 위치", isPrimary: false) {
                 if let guide = viewModel.guideLocation { focus(on: guide) }
             }
@@ -182,12 +182,12 @@ struct TouristLocationView: View {
     private func mapButton(_ title: String, isPrimary: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 13, weight: isPrimary ? .bold : .medium))
-                .foregroundColor(isPrimary ? Color(hex: "#2563EB") : Color(hex: "#333840"))
+                .font(isPrimary ? AppFont.labelBold : AppFont.labelMedium)
+                .foregroundColor(isPrimary ? AppColor.accent : AppColor.textBody)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
-                .background(isPrimary ? Color(hex: "#E8F0FF") : Color(hex: "#F3F4F6"))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .background(isPrimary ? AppColor.accentSubtle : AppColor.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         }
         .buttonStyle(.plain)
     }
@@ -229,12 +229,12 @@ struct TouristLocationView: View {
     private var callButton: some View {
         Button { call() } label: {
             Text("전화걸기")
-                .font(.system(size: 16, weight: .bold))
+                .font(AppFont.bodyLBold)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
                 .background(viewModel.phoneNumber == nil
-                            ? Color(hex: "#C3CDDA") : Color(hex: "#EF4444"))
+                            ? AppColor.borderMuted : AppColor.danger)
                 .clipShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
@@ -252,11 +252,11 @@ struct TouristLocationView: View {
 
     private var returnedToast: some View {
         Text("범위 내로 복귀했어요")
-            .font(.system(size: 13, weight: .medium))
+            .font(AppFont.labelMedium)
             .foregroundColor(.white)
             .padding(.horizontal, 18)
             .frame(height: 44)
-            .background(Color(hex: "#111827").opacity(0.92))
+            .background(AppColor.textPrimary.opacity(0.92))
             .clipShape(Capsule())
             .padding(.top, 120)
             .task(id: viewModel.returnedNotice) {

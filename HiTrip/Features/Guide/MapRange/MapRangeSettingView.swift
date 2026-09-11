@@ -34,7 +34,7 @@ struct MapRangeSettingView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .overlay(alignment: .top) { toastView }
-        .background(Color(hex: "#E0EAE0"))
+        .background(AppColor.successSubtle)
         .navigationBarHidden(true)
         .task { viewModel.load() }
         .onDisappear { viewModel.stop() }
@@ -65,16 +65,16 @@ struct MapRangeSettingView: View {
             Map(position: $camera) {
                 if let center = viewModel.centerCoordinate {
                     MapCircle(center: center, radius: Double(viewModel.radiusKm) * 1000)
-                        .foregroundStyle(Color(hex: "#2563EB").opacity(0.10))
-                        .stroke(Color(hex: "#2563EB"), lineWidth: 2)
+                        .foregroundStyle(AppColor.accent.opacity(0.10))
+                        .stroke(AppColor.accent, lineWidth: 2)
 
                     Annotation("", coordinate: center) {
                         ZStack {
                             Circle()
-                                .fill(Color(hex: "#0C46C0"))
+                                .fill(AppColor.brand)
                                 .frame(width: 26, height: 26)
                             Image(systemName: "mappin")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(AppFont.captionBold)
                                 .foregroundColor(.white)
                         }
                     }
@@ -112,41 +112,41 @@ struct MapRangeSettingView: View {
     private var headerSection: some View {
         ZStack {
             Text("지도 범위 설정")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.headlineBold)
+                .foregroundColor(AppColor.textPrimary)
 
             HStack {
                 Button { requestLeave() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(AppFont.title3Medium)
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
                 Spacer()
             }
-            .padding(.leading, 12)
+            .padding(.leading, AppSpacing.sm)
         }
         .frame(height: 24)
-        .padding(.top, 8)
+        .padding(.top, AppSpacing.xs)
     }
 
     private var dayTabs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.xs) {
                 ForEach(1...max(viewModel.totalDays, 1), id: \.self) { day in
                     let isOn = viewModel.selectedDay == day
                     Button { viewModel.select(day: day) } label: {
                         Text("\(day)일차")
-                            .font(.system(size: 13, weight: isOn ? .bold : .medium))
-                            .foregroundColor(isOn ? .white : Color(hex: "#6B7280"))
+                            .font(isOn ? AppFont.labelBold : AppFont.labelMedium)
+                            .foregroundColor(isOn ? .white : AppColor.textSecondary)
                             .frame(width: 78, height: 36)
-                            .background(isOn ? Color(hex: "#2563EB") : Color.white)
+                            .background(isOn ? AppColor.accent : Color.white)
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppSpacing.xl)
         }
     }
 
@@ -154,24 +154,24 @@ struct MapRangeSettingView: View {
 
     private var bottomSheet: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 4) {
+            HStack(spacing: AppSpacing.xxs) {
                 Text("중심 주소")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(AppFont.bodyMBold)
                     .foregroundColor(.black)
                 Text("|  탭하여 검색, 지도 롱프레스로도 지정")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(AppFont.bodyMMedium)
                     .foregroundColor(.black)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .padding(.top, 32)
+            .padding(.top, AppSpacing.xxl)
 
             HStack(spacing: 10) {
                 Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#EF4444"))
+                    .font(AppFont.bodyL)
+                    .foregroundColor(AppColor.danger)
                 Text(viewModel.centerAddress.isEmpty ? "중심을 지정해주세요" : viewModel.centerAddress)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(AppFont.bodyMMedium)
                     .foregroundColor(.black)
                     .lineLimit(1)
             }
@@ -180,18 +180,18 @@ struct MapRangeSettingView: View {
             if viewModel.isUnset {
                 // 미설정 일차는 전일 값을 기본으로 제안합니다
                 Text("아직 설정되지 않은 일차예요. 전일 설정을 기본값으로 불러왔습니다.")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#EB8C0D"))
-                    .padding(.top, 8)
+                    .font(AppFont.caption)
+                    .foregroundColor(AppColor.warning)
+                    .padding(.top, AppSpacing.xs)
             }
 
             HStack {
                 Text("허용 반경")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(AppFont.bodyMMedium)
                     .foregroundColor(.black)
                 Spacer()
                 Text("\(viewModel.radiusKm)km")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(AppFont.bodyMBold)
                     .foregroundColor(.black)
             }
             .padding(.top, 26)
@@ -205,7 +205,7 @@ struct MapRangeSettingView: View {
                 in: 1...10,
                 step: 1
             )
-            .tint(Color(hex: "#2563EB"))
+            .tint(AppColor.accent)
             .padding(.top, 6)
 
             HStack {
@@ -213,20 +213,20 @@ struct MapRangeSettingView: View {
                 Spacer()
                 Text("10km • 정수 단계")
             }
-            .font(.system(size: 12))
+            .font(AppFont.caption)
             .foregroundColor(.black)
 
             Button { viewModel.useMyLocation() } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 14))
+                        .font(AppFont.body)
                     Text("내 위치로 중심 설정")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(AppFont.bodyLBold)
                 }
-                .foregroundColor(Color(hex: "#0C46C0"))
+                .foregroundColor(AppColor.brand)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
-                .background(Color(hex: "#E8F0FF"))
+                .background(AppColor.accentSubtle)
                 .clipShape(RoundedRectangle(cornerRadius: 9))
             }
             .buttonStyle(.plain)
@@ -238,14 +238,14 @@ struct MapRangeSettingView: View {
                         ProgressView().tint(.white)
                     } else {
                         Text("저장하기")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(AppFont.bodyLBold)
                             .foregroundColor(.white)
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
                 .background(viewModel.centerCoordinate == nil
-                            ? Color(hex: "#C3CDDA") : Color(hex: "#2563EB"))
+                            ? AppColor.borderMuted : AppColor.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 9))
             }
             .buttonStyle(.plain)
@@ -253,7 +253,7 @@ struct MapRangeSettingView: View {
             .padding(.top, 10)
             .padding(.bottom, 34)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, AppSpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
@@ -271,11 +271,11 @@ struct MapRangeSettingView: View {
     private var toastView: some View {
         if let toast = viewModel.toast {
             Text(toast)
-                .font(.system(size: 13, weight: .medium))
+                .font(AppFont.labelMedium)
                 .foregroundColor(.white)
                 .padding(.horizontal, 18)
                 .frame(height: 44)
-                .background(Color(hex: "#111827").opacity(0.92))
+                .background(AppColor.textPrimary.opacity(0.92))
                 .clipShape(Capsule())
                 .padding(.top, 100)
                 .task(id: toast) {

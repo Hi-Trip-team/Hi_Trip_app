@@ -25,18 +25,18 @@ struct TouristInfoPopup: View {
 
     private var card: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: AppSpacing.xs) {
                 Text(participant.travelerName)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(Color(hex: "#111827"))
+                    .font(AppFont.title3Bold)
+                    .foregroundColor(AppColor.textPrimary)
 
                 if isEscaped {
                     Text("이탈")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(Color(hex: "#EF4444"))
+                        .font(AppFont.caption2Bold)
+                        .foregroundColor(AppColor.danger)
                         .padding(.horizontal, 10)
                         .frame(height: 20)
-                        .background(Color(hex: "#FCE5E5"))
+                        .background(AppColor.dangerSubtle)
                         .cornerRadius(4)
                         .padding(.top, 2)
                 }
@@ -45,31 +45,31 @@ struct TouristInfoPopup: View {
 
                 Button(action: onClose) {
                     Text("✕")
-                        .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(AppFont.bodyL)
+                        .foregroundColor(AppColor.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.top, 24)
+            .padding(.top, AppSpacing.xl)
 
             infoRow("국가", profile?.country ?? "—")
                 .padding(.top, 22)
             passportRow
-                .padding(.top, 12)
+                .padding(.top, AppSpacing.sm)
             infoRow("전화번호", profile?.phone ?? "—")
-                .padding(.top, 12)
-            infoRow("상태", statusLine, valueColor: Color(hex: "#EF4444"))
-                .padding(.top, 12)
+                .padding(.top, AppSpacing.sm)
+            infoRow("상태", statusLine, valueColor: AppColor.danger)
+                .padding(.top, AppSpacing.sm)
 
-            HStack(spacing: 12) {
+            HStack(spacing: AppSpacing.sm) {
                 Button { call() } label: {
                     Text("전화걸기")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(hasPhone ? Color(hex: "#333840") : Color(hex: "#9CA3AF"))
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(hasPhone ? AppColor.textBody : AppColor.textTertiary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(Color(hex: "#F3F4F6"))
-                        .cornerRadius(12)
+                        .background(AppColor.surface)
+                        .cornerRadius(AppRadius.lg)
                 }
                 .buttonStyle(.plain)
                 .disabled(!hasPhone)
@@ -78,47 +78,47 @@ struct TouristInfoPopup: View {
                     if canViewLocation { onViewLocation() } else { blockedNotice = true }
                 } label: {
                     Text("위치보기")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(AppFont.bodyBold)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(canViewLocation ? Color(hex: "#2563EB") : Color(hex: "#C3CDDA"))
-                        .cornerRadius(12)
+                        .background(canViewLocation ? AppColor.accent : AppColor.borderMuted)
+                        .cornerRadius(AppRadius.lg)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.top, 24)
+            .padding(.top, AppSpacing.xl)
 
             if !hasPhone {
                 Text("연락처가 등록되지 않았어요")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                    .padding(.top, 8)
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textSecondary)
+                    .padding(.top, AppSpacing.xs)
             } else if blockedNotice {
                 Text("위험 상태의 관광객만 위치를 볼 수 있어요")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                    .padding(.top, 8)
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textSecondary)
+                    .padding(.top, AppSpacing.xs)
             }
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 20)
+        .padding(.horizontal, AppSpacing.xl)
+        .padding(.bottom, AppSpacing.lg)
         // Figma 320x300 카드
         .frame(width: 320, height: 300, alignment: .top)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
     }
 
-    private func infoRow(_ label: String, _ value: String, valueColor: Color = Color(hex: "#111827")) -> some View {
+    private func infoRow(_ label: String, _ value: String, valueColor: Color = AppColor.textPrimary) -> some View {
         HStack(alignment: .top, spacing: 0) {
             Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textSecondary)
                 .frame(width: 66, alignment: .leading)
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(AppFont.labelMedium)
                 .foregroundColor(valueColor)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -128,24 +128,24 @@ struct TouristInfoPopup: View {
     private var passportRow: some View {
         HStack(alignment: .top, spacing: 0) {
             Text("여권번호")
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textSecondary)
                 .frame(width: 66, alignment: .leading)
 
             Text(hasPassport
                  ? (showsFullPassport ? (profile?.passportNumber ?? "") : (profile?.maskedPassport ?? ""))
                  : "—")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Color(hex: "#111827"))
+                .font(AppFont.labelMedium)
+                .foregroundColor(AppColor.textPrimary)
 
             // 여권번호가 비어 있으면 눈 아이콘도 숨깁니다 (서버에 값이 없을 수 있습니다)
             if hasPassport {
                 Button { revealPassport() } label: {
                     Text("👁")
-                        .font(.system(size: 13))
+                        .font(AppFont.label)
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, 8)
+                .padding(.leading, AppSpacing.xs)
             }
         }
     }
