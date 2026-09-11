@@ -1,145 +1,218 @@
 import Foundation
 import RxSwift
-import RxCocoa
 
 // MARK: - LoginViewModel
-/// 로그인 화면의 ViewModel
+/// 로그인 화면 상태
 ///
-/// 두 가지 바인딩 방식을 모두 지원:
-/// 1. RxSwift Input/Output 패턴 — UIKit 또는 RxCocoa 기반 View에서 사용
-/// 2. SwiftUI @Published 바인딩 — SwiftUI View에서 직접 사용
-///
-/// 면접 포인트:
-/// "Input/Output 패턴이 뭔가요?"
-/// → "ViewModel의 입력(사용자 액션)과 출력(UI 상태)을 struct로 명시적으로 분리하여
-///    단방향 데이터 흐름을 만드는 패턴입니다.
-///    View → Input → transform → Output → View 순서로 흐릅니다."
+/// - 버튼: ID·PW가 모두 있어야 활성(파란색). 비어 있어도 탭은 받아 어느 칸이 비었는지 알려줍니다.
+/// - 불일치: PW 칸 빨간 테두리 + 버튼 위 "(n/5)". 5회째에 잠금 문구 + 버튼 비활성.
+/// - 잠금은 서버(429)가 기준이고, 남은 시간은 1초마다 줄여 보여줍니다.
+/// - 아이디·비밀번호를 고치기 시작하면 빨간 표시는 바로 지웁니다(잠금 문구는 유지).
 
 final class LoginViewModel: ObservableObject {
 
-    // MARK: - RxSwift Input/Output
+    // MARK: - 입력
 
-    /// View에서 들어오는 사용자 액션
-    struct Input {
-        let idText: Observable<String>          // ID 텍스트 변화
-        let passwordText: Observable<String>    // 비밀번호 텍스트 변화
-        let loginTapped: Observable<Void>       // 로그인 버튼 탭
+    @Published var id: String = "" {
+        didSet {
+            guard id != oldValue else { return }
+            clearInputErrors()
+            refreshLockState()
+        }
     }
-
-    /// View에 전달할 UI 상태
-    struct Output {
-        let isLoginEnabled: Driver<Bool>        // 로그인 버튼 활성화 여부
-        let isLoading: Driver<Bool>             // 로딩 인디케이터
-        let errorMessage: Driver<String?>       // 에러 메시지 (nil이면 숨김)
-        let loginSuccess: Driver<UserInfo>      // 로그인 성공 시 유저 정보
+    @Published var password: String = "" {
+        didSet { if password != oldValue { clearInputErrors() } }
     }
+    /// 자동 로그인 — 기본 체크
+    @Published var isAutoLogin: Bool = true
 
-    // MARK: - SwiftUI @Published Properties
+    // MARK: - 출력
 
-    @Published var id: String = ""
-    @Published var password: String = ""
-    @Published var isLoading: Bool = false
-    @Published var errorMessage: String?
-    @Published var loginSuccess: Bool = false
-    @Published var loggedInUserType: UserType = .guide
+    @Published private(set) var isLoading = false
+    @Published private(set) var idError: String?
+    @Published private(set) var passwordError: String?
+    /// 불일치 등 버튼 위에 뜨는 문구
+    @Published private(set) var credentialError: String?
+    /// 잠금 남은 초 (nil이면 잠금 아님)
+    @Published private(set) var lockRemaining: Int?
+    @Published var showConcurrentAlert = false
+    /// 최초 비밀번호 변경 화면 표시
+    @Published var showPasswordChange = false
+    @Published private(set) var isChangingPassword = false
+    @Published private(set) var passwordChangeError: String?
+    @Published private(set) var result: LoginResponse?
 
-    // MARK: - Validation (회원가입 조건과 동일)
+    var isFormFilled: Bool { !id.trimmed.isEmpty && !password.isEmpty }
+    var isLocked: Bool { lockRemaining != nil }
+    var isPasswordHighlighted: Bool { passwordError != nil || credentialError != nil }
 
-    var isIdValid: Bool { APIEnvironment.current.useMock || !id.trimmed.isEmpty }
-    var isPasswordValid: Bool { APIEnvironment.current.useMock || !password.isEmpty }
-    var isFormValid: Bool { isIdValid && isPasswordValid }
+    /// 버튼 위 빨간 문구 — 잠금이 우선
+    var bannerMessage: String? {
+        if let remaining = lockRemaining {
+            let minutes = max(1, lockTotalSeconds / 60)
+            let clock = String(format: "%02d:%02d", remaining / 60, remaining % 60)
+            return "\(LoginAttemptStore.maxAttempts)회 실패로 \(minutes)분간 잠금되었습니다 (남은 시간 \(clock))"
+        }
+        return credentialError
+    }
 
     // MARK: - Dependencies
 
     private let loginUseCase: LoginUseCase
     private let disposeBag = DisposeBag()
+    private var lockTimer: Timer?
+    private var lockTotalSeconds = LoginAttemptStore.defaultLockSeconds
 
     init(loginUseCase: LoginUseCase) {
         self.loginUseCase = loginUseCase
     }
 
-    // MARK: - RxSwift Transform
+    deinit { lockTimer?.invalidate() }
 
-    /// Input을 받아서 Output으로 변환
-    ///
-    /// 동작 흐름:
-    /// 1. idText + passwordText 결합 → 둘 다 비어있지 않으면 버튼 활성화
-    /// 2. loginTapped → 최신 id/pw 가져와서 UseCase 호출
-    /// 3. 성공 → loginSuccess 방출, 실패 → errorMessage 방출
-    ///
-    /// Driver를 사용하는 이유:
-    /// - MainScheduler에서 방출 보장 (UI 업데이트 안전)
-    /// - error 이벤트가 없음 (스트림 끊김 방지)
-    /// - replay(1)로 구독 즉시 마지막 값 전달
-    func transform(input: Input) -> Output {
-        let isLoading = BehaviorRelay<Bool>(value: false)
-        let errorMessage = BehaviorRelay<String?>(value: nil)
-        let loginSuccess = PublishRelay<UserInfo>()
+    // MARK: - 로그인
 
-        // 버튼 활성화: ID, PW 모두 입력되었을 때
-        let isLoginEnabled = Observable
-            .combineLatest(input.idText, input.passwordText)
-            .map { !$0.0.trimmed.isEmpty && !$0.1.trimmed.isEmpty }
-            .asDriver(onErrorJustReturn: false)
+    /// - Parameter force: 동시 로그인 안내에서 [확인]을 눌러 기존 기기를 끊고 들어갈 때
+    func login(force: Bool = false) {
+        guard !isLoading, !isLocked else { return }
 
-        // 로그인 실행
-        input.loginTapped
-            .withLatestFrom(
-                Observable.combineLatest(input.idText, input.passwordText)
-            )
-            .do(onNext: { _ in
-                isLoading.accept(true)
-                errorMessage.accept(nil)
-            })
-            .flatMapLatest { [weak self] id, pw -> Observable<UserInfo> in
-                guard let self else { return .empty() }
-                return self.loginUseCase.execute(id: id, password: pw)
-                    .asObservable()
-                    .catch { error in
-                        errorMessage.accept(error.localizedDescription)
-                        isLoading.accept(false)
-                        return .empty()
-                    }
-            }
-            .do(onNext: { _ in isLoading.accept(false) })
-            .bind(to: loginSuccess)
-            .disposed(by: disposeBag)
+        let username = id.trimmed
+        idError = username.isEmpty ? LoginError.emptyId.errorDescription : nil
+        passwordError = (!username.isEmpty && password.isEmpty) ? LoginError.emptyPassword.errorDescription : nil
+        guard idError == nil, passwordError == nil else { return }
 
-        return Output(
-            isLoginEnabled: isLoginEnabled,
-            isLoading: isLoading.asDriver(),
-            errorMessage: errorMessage.asDriver(),
-            loginSuccess: loginSuccess.asDriver(onErrorDriveWith: .empty())
-        )
-    }
-
-    // MARK: - SwiftUI 직접 호출
-
-    /// SwiftUI View에서 버튼 탭 시 호출
-    ///
-    /// RxSwift transform과 동일한 로직을 @Published로 구현:
-    /// - isLoading → ProgressView 표시
-    /// - errorMessage → 에러 텍스트 표시
-    /// - loginSuccess → AppRouter가 화면 전환
-    func login() {
+        credentialError = nil
         isLoading = true
-        errorMessage = nil
 
-        loginUseCase.execute(id: id, password: password)
-            .observe(on: MainScheduler.instance) // UI 업데이트는 반드시 메인 스레드
+        loginUseCase.execute(id: username, password: password, force: force)
+            .observe(on: MainScheduler.instance)
             .subscribe(
-                onSuccess: { [weak self] userInfo in
-                    self?.isLoading = false
-                    self?.loggedInUserType = userInfo.userType
-                    self?.loginSuccess = true
-                    // 로그인 성공 → 서버 데이터 로드 시작
-                    TripDataStore.shared.reload()
+                onSuccess: { [weak self] response in
+                    guard let self else { return }
+                    self.isLoading = false
+                    LoginAttemptStore.reset(for: username)
+                    KeychainManager.shared.isAutoLoginEnabled = self.isAutoLogin
+                    self.result = response
                 },
                 onFailure: { [weak self] error in
                     self?.isLoading = false
-                    self?.errorMessage = error.localizedDescription
+                    self?.handle(error, username: username)
                 }
             )
             .disposed(by: disposeBag)
+    }
+
+    // MARK: - 실패 처리
+
+    private func handle(_ error: Error, username: String) {
+        let max = LoginAttemptStore.maxAttempts
+
+        switch error as? LoginError {
+        case .invalidCredentials(let remaining)?:
+            let count: Int
+            if let remaining {
+                count = max - remaining
+                LoginAttemptStore.setFailures(count, for: username)
+            } else {
+                count = LoginAttemptStore.recordFailure(for: username)
+            }
+            if count >= max {
+                startLock(for: username, seconds: LoginAttemptStore.defaultLockSeconds)
+            } else {
+                credentialError = "아이디 또는 비밀번호가 일치하지 않습니다. (\(count)/\(max))"
+            }
+
+        case .locked(let seconds)?:
+            startLock(for: username, seconds: seconds)
+
+        case .concurrentSession?:
+            showConcurrentAlert = true
+
+        case .passwordChangeRequired?:
+            // 임시 비밀번호는 맞았으니 실패 횟수로 세지 않습니다
+            LoginAttemptStore.reset(for: username)
+            passwordChangeError = nil
+            showPasswordChange = true
+
+        default:
+            credentialError = error.localizedDescription
+        }
+    }
+
+    // MARK: - 최초 비밀번호 변경
+
+    /// 새 비밀번호로 바꾼 뒤 그 비밀번호로 바로 다시 로그인합니다
+    func changeInitialPassword(to newPassword: String) {
+        guard !isChangingPassword else { return }
+        isChangingPassword = true
+        passwordChangeError = nil
+
+        loginUseCase.changeInitialPassword(username: id, currentPassword: password, newPassword: newPassword)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in
+                    guard let self else { return }
+                    self.isChangingPassword = false
+                    self.showPasswordChange = false
+                    self.password = newPassword
+                    self.login()
+                },
+                onFailure: { [weak self] error in
+                    self?.isChangingPassword = false
+                    self?.passwordChangeError = error.localizedDescription
+                }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    func cancelPasswordChange() {
+        showPasswordChange = false
+        password = ""
+    }
+
+    private func clearInputErrors() {
+        idError = nil
+        passwordError = nil
+        credentialError = nil
+    }
+
+    // MARK: - 잠금 타이머
+
+    private func startLock(for username: String, seconds: Int) {
+        LoginAttemptStore.lock(username, seconds: seconds)
+        lockTotalSeconds = seconds
+        credentialError = nil
+        refreshLockState()
+    }
+
+    /// 입력한 아이디가 잠겨 있으면 타이머를 돌리고, 아니면 멈춥니다.
+    private func refreshLockState() {
+        let username = id.trimmed
+        guard !username.isEmpty, let until = LoginAttemptStore.lockedUntil(for: username) else {
+            stopLockTimer()
+            return
+        }
+        updateRemaining(until: until, username: username)
+        guard lockTimer == nil else { return }
+        lockTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.updateRemaining(until: until, username: username)
+        }
+    }
+
+    private func updateRemaining(until: Date, username: String) {
+        let remaining = Int(ceil(until.timeIntervalSinceNow))
+        if remaining <= 0 {
+            // 잠금 해제 → 실패 횟수도 초기화
+            LoginAttemptStore.reset(for: username)
+            stopLockTimer()
+        } else {
+            lockRemaining = remaining
+        }
+    }
+
+    private func stopLockTimer() {
+        lockTimer?.invalidate()
+        lockTimer = nil
+        lockRemaining = nil
     }
 }

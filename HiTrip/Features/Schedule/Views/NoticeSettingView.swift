@@ -22,6 +22,8 @@ struct NoticeSettingView: View {
     @State private var menuTarget: StaffNoticeDTO?
     /// 삭제 확인 대상
     @State private var deleteTarget: StaffNoticeDTO?
+    /// 비활성 확인 대상 — 서버가 재게시를 막아서 되돌릴 수 없습니다
+    @State private var archiveTarget: StaffNoticeDTO?
     /// 전문 보기
     @State private var detailTarget: StaffNoticeDTO?
 
@@ -120,6 +122,22 @@ struct NoticeSettingView: View {
                 menuTarget = nil
             }
             Button("취소", role: .cancel) { menuTarget = nil }
+        }
+        .confirmationDialog(
+            "이 공지를 내릴까요?",
+            isPresented: Binding(
+                get: { archiveTarget != nil },
+                set: { if !$0 { archiveTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("공지 내리기", role: .destructive) {
+                if let target = archiveTarget { viewModel.toggleActive(target) }
+                archiveTarget = nil
+            }
+            Button("취소", role: .cancel) { archiveTarget = nil }
+        } message: {
+            Text("한 번 내린 공지는 다시 활성화할 수 없습니다. 관광객 홈에는 공지가 표시되지 않습니다")
         }
         .confirmationDialog(
             "이 공지를 삭제할까요?",
@@ -266,8 +284,13 @@ struct NoticeSettingView: View {
     }
 
     /// 활성 토글 — w44 h24, 노브 18
+    ///
+    /// 끄는 쪽은 되돌릴 수 없어(서버가 재게시를 막습니다) 한 번 확인합니다.
     private func activeToggle(_ notice: StaffNoticeDTO) -> some View {
-        Button { viewModel.toggleActive(notice) } label: {
+        Button {
+            if notice.isActive { archiveTarget = notice }
+            else { viewModel.toggleActive(notice) }
+        } label: {
             ZStack(alignment: notice.isActive ? .trailing : .leading) {
                 Capsule()
                     .fill(notice.isActive ? Color(hex: "#2563EB") : Color(hex: "#E5E7EB"))

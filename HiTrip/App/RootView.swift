@@ -9,7 +9,6 @@ import SwiftUI
 ///
 /// DI 흐름:
 /// - LoginView: AppDIContainer에서 LoginViewModel 생성하여 주입
-/// - SignUpFlowView: AppDIContainer에서 SignUpViewModel 생성하여 주입
 /// - HomeView, SplashView: 별도 주입 불필요 (EnvironmentObject로 router 사용)
 
 struct RootView: View {
@@ -23,20 +22,10 @@ struct RootView: View {
                 SplashView()
 
             case .login:
-                LoginView(
-                    viewModel: AppDIContainer.shared.makeLoginViewModel()
-                )
-
-            case .signUp:
-                SignUpFlowView(
-                    viewModel: AppDIContainer.shared.makeSignUpViewModel()
-                )
-
-            case .inviteLogin:
-                InviteLoginFlowView()
+                LoginView()
 
             case .agreement:
-                AgreementView()
+                AgreementView(userType: router.userType)
 
             case .home:
                 HomeView()

@@ -44,6 +44,12 @@ struct StaffTripDetailView: View {
 
     private enum TimeField { case start, end }
 
+    /// 제목·메모 입력 포커스
+    ///
+    /// 딤 위에 겹쳐 띄우는 시트라 TextField가 탭만으로는 포커스를 잡지 못했습니다.
+    /// 시트를 열 때 직접 포커스를 줍니다.
+    @FocusState private var isTextFocused: Bool
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
@@ -278,6 +284,7 @@ struct StaffTripDetailView: View {
                     .transition(.move(edge: .bottom))
             }
             .ignoresSafeArea(edges: .bottom)
+            .zIndex(1)
         }
     }
 
@@ -304,6 +311,7 @@ struct StaffTripDetailView: View {
                     .foregroundColor(Color(hex: "#6B7280"))
 
                 TextField(isMemoMode ? "메모를 입력하세요" : "예: 자유시간", text: $draftTitle)
+                    .focused($isTextFocused)
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: "#111827"))
                     .padding(.horizontal, 16)
@@ -451,6 +459,7 @@ struct StaffTripDetailView: View {
         draftEnd = Self.time(hour: 10)
         openPicker = nil
         showSheet = true
+        focusTextSoon()
     }
 
     private func openTimeSheet(_ item: StaffScheduleDTO) {
@@ -466,6 +475,12 @@ struct StaffTripDetailView: View {
         draftTitle = item.mainContent ?? ""
         openPicker = nil
         showSheet = true
+        focusTextSoon()
+    }
+
+    /// 시트가 올라온 뒤에 포커스를 줘야 키보드가 뜹니다
+    private func focusTextSoon() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { isTextFocused = true }
     }
 
     private func submit() {
@@ -487,6 +502,7 @@ struct StaffTripDetailView: View {
     }
 
     private func closeSheet() {
+        isTextFocused = false
         showSheet = false
         openPicker = nil
         draftTitle = ""

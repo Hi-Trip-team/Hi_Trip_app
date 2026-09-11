@@ -56,7 +56,7 @@ final class StaffHomeViewModel: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] trips in
                     guard let self else { return }
-                    guard let trip = trips.first else {
+                    guard let trip = trips.current else {
                         self.state = .noTrip
                         return
                     }
@@ -130,13 +130,8 @@ final class StaffHomeViewModel: ObservableObject {
         return "안내사 \(name)"
     }
 
-    /// 오늘이 며칠째인지 — 시작일로부터 계산합니다 (스태프 API에 today_day_number가 없습니다)
-    var todayDayNumber: Int? {
-        guard let start = Self.date(from: trip?.startDate) else { return nil }
-        let today = Calendar.current.startOfDay(for: Date())
-        let days = Calendar.current.dateComponents([.day], from: start, to: today).day ?? 0
-        return days >= 0 ? days + 1 : nil
-    }
+    /// 오늘이 며칠째인지 — 서버 today_day_number (여행 기간이 아니면 nil)
+    var todayDayNumber: Int? { trip?.todayDayNumber }
 
     var todaySchedules: [StaffScheduleDTO] {
         guard let day = todayDayNumber else { return [] }
@@ -177,10 +172,8 @@ final class StaffHomeViewModel: ObservableObject {
         return "전체 \(s.total)명 · 경고 \(s.warning) · 위험 \(s.danger) · 이탈 \(escapedCount)"
     }
 
-    /// 이탈 인원 — alerts의 location 유형으로 셉니다 (summary에 이탈 항목이 없습니다)
-    var escapedCount: Int {
-        alerts.filter { $0.alertType == "location" }.count
-    }
+    /// 이탈 인원 — 서버 요약(escaped)
+    var escapedCount: Int { summary?.escaped ?? 0 }
 
     /// 안전 관리 메뉴의 빨간 점 — 경고·위험 인원이 있으면 표시
     var hasSafetyIssue: Bool {
@@ -188,8 +181,8 @@ final class StaffHomeViewModel: ObservableObject {
         return s.warning > 0 || s.danger > 0 || escapedCount > 0
     }
 
-    /// 알림 종 뱃지 — 미확인 알림 수
-    var unreadAlertCount: Int { alerts.count }
+    /// 알림 종 뱃지 — 서버 기준 미확인(is_read=false) 알림 수
+    var unreadAlertCount: Int { alerts.filter { $0.isRead != true }.count }
 
     var unreadMessageBadgeText: String {
         unreadMessageCount > 99 ? "99+" : "\(unreadMessageCount)"

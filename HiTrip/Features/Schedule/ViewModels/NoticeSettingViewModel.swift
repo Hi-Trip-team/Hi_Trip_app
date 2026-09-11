@@ -45,7 +45,7 @@ final class NoticeSettingViewModel: ObservableObject {
         repository.fetchTrips()
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] trips in
-                self?.tripId = trips.first?.id
+                self?.tripId = trips.current?.id
                 self?.refresh()
             }, onFailure: { [weak self] error in
                 self?.state = .failed(Self.message(for: error))
@@ -58,12 +58,19 @@ final class NoticeSettingViewModel: ObservableObject {
             .observe(on: MainScheduler.instance)
             .subscribe(
                 onSuccess: { [weak self] list in
-                    // 활성 최상단 → 최신 작성순
-                    self?.notices = list.sorted { a, b in
+                    guard let self else { return }
+                    // 서버는 담당 여행 전체의 공지를 돌려줍니다.
+                    // 이 화면은 지금 보고 있는 여행의 공지만 다뤄야 활성 1건 규칙이 성립합니다.
+                    // (전사 공지 scope == "global"은 여행과 무관하므로 함께 보여줍니다)
+                    let mine = list.filter { notice in
+                        guard let tripId = self.tripId else { return true }
+                        return notice.trip == tripId || notice.scope == "global"
+                    }
+                    self.notices = mine.sorted { a, b in
                         if a.isActive != b.isActive { return a.isActive }
                         return a.createdAt > b.createdAt
                     }
-                    self?.state = .loaded
+                    self.state = .loaded
                 },
                 onFailure: { [weak self] error in
                     if self?.notices.isEmpty ?? true {
@@ -156,18 +163,10 @@ final class NoticeSettingViewModel: ObservableObject {
                     self?.toast = "공지를 삭제했어요"
                 },
                 onFailure: { [weak self] error in
-                    self?.saveError = Self.deleteMessage(for: error)
+                    self?.saveError = Self.message(for: error)
                 }
             )
             .disposed(by: disposeBag)
-    }
-
-    /// 서버가 아직 DELETE를 열어두지 않아 405가 오면 원인을 그대로 알려줍니다
-    private static func deleteMessage(for error: Error) -> String {
-        if let e = error as? HiTripError, case .httpError(let code, _) = e, code == 405 {
-            return "서버가 아직 공지 삭제를 지원하지 않아요"
-        }
-        return message(for: error)
     }
 
     func activate(id: Int) {
@@ -200,6 +199,8 @@ final class NoticeSettingViewModel: ObservableObject {
     private static func message(for error: Error) -> String {
         if let e = error as? HiTripError {
             switch e {
+            // 서버가 아카이브된 공지의 재게시를 막습니다
+            case .conflict:                 return "한 번 내린 공지는 다시 활성화할 수 없어요. 새로 작성해주세요"
             case .unauthorized, .forbidden: return "로그인이 필요합니다"
             case .noConnection:             return "연결을 확인해주세요"
             default:                        break

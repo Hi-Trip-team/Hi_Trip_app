@@ -37,7 +37,12 @@ final class KeychainManager {
         static let userType     = "com.hitrip.userType"
         static let userName     = "com.hitrip.userName"
         static let userEmail    = "com.hitrip.userEmail"
+        static let tokenExpiry  = "com.hitrip.tokenExpiry"
     }
+
+    /// 자동 로그인 체크 여부 — 민감정보가 아니라 UserDefaults에 둡니다.
+    /// 앱을 지웠다 깔면 UserDefaults만 사라지므로, 남은 Keychain 토큰도 자동 로그인하지 않습니다.
+    private static let autoLoginDefaultsKey = "com.hitrip.autoLogin"
 
     private init() {}
 
@@ -97,6 +102,27 @@ final class KeychainManager {
         load(key: Keys.userEmail)
     }
 
+    // MARK: - 토큰 만료 / 자동 로그인
+
+    /// 관광객 토큰 만료 시각 (서버 expires_at, ISO8601) — 여행 종료 + 3일
+    func saveTokenExpiry(_ iso8601: String) {
+        save(key: Keys.tokenExpiry, value: iso8601)
+    }
+
+    func getTokenExpiry() -> Date? {
+        guard let raw = load(key: Keys.tokenExpiry) else { return nil }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = f.date(from: raw) { return d }
+        f.formatOptions = [.withInternetDateTime]
+        return f.date(from: raw)
+    }
+
+    var isAutoLoginEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.autoLoginDefaultsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.autoLoginDefaultsKey) }
+    }
+
     // MARK: - 로그인 상태 확인
 
     /// Access Token 존재 여부로 로그인 상태 판단
@@ -109,7 +135,7 @@ final class KeychainManager {
     /// 저장된 모든 인증 정보 삭제
     func clearAll() {
         [Keys.accessToken, Keys.refreshToken, Keys.userId, Keys.userType,
-         Keys.userName, Keys.userEmail]
+         Keys.userName, Keys.userEmail, Keys.tokenExpiry]
             .forEach { delete(key: $0) }
     }
 

@@ -21,7 +21,7 @@ enum APIEnvironment {
 
     // MARK: - 현재 환경 (여기서 전환)
 
-    static let current: APIEnvironment = .mock
+    static let current: APIEnvironment = .remote
 
     // MARK: - Base URL
 
@@ -31,7 +31,7 @@ enum APIEnvironment {
         case .mock:
             return "https://api.hitrip.example.com"
         case .remote:
-            return "http://100.79.220.29:18080"
+            return "http://3.35.27.30:18080"
         }
     }
 

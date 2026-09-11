@@ -62,7 +62,7 @@ final class SafetyManagementViewModel: ObservableObject {
             .subscribe(
                 onSuccess: { [weak self] trips in
                     guard let self else { return }
-                    guard let trip = trips.first else {
+                    guard let trip = trips.current else {
                         self.state = .loaded
                         return
                     }
@@ -195,8 +195,8 @@ final class SafetyManagementViewModel: ObservableObject {
     var warningCount: Int { summary?.warning ?? participants.filter { $0.overallStatus == .warning }.count }
     var dangerCount: Int { summary?.danger ?? participants.filter { $0.overallStatus == .danger }.count }
 
-    /// 이탈 인원 — 요약에 항목이 없어 열린 지오펜스 사고로 셉니다
-    var escapedCount: Int { participants.filter { $0.geofenceIncident != nil }.count }
+    /// 이탈 인원 — 서버 요약(escaped)
+    var escapedCount: Int { summary?.escaped ?? participants.filter { $0.geofenceIncident != nil }.count }
 
     var isEmpty: Bool { participants.isEmpty && state == .loaded }
 
@@ -211,15 +211,12 @@ final class SafetyManagementViewModel: ObservableObject {
 
     // MARK: - 셀 값
 
-    /// 이탈 거리 — 사고 메시지에서 "1.2km"를 뽑습니다.
-    /// 서버가 거리 필드를 따로 주지 않아 메시지를 파싱합니다.
+    /// 이탈 거리 — 서버 distance_m (1km 이상은 "1.5km", 미만은 "850m")
     func escapeDistanceText(_ p: ParticipantLatestDTO) -> String? {
         guard let incident = p.geofenceIncident else { return nil }
-        let pattern = #"([0-9]+(?:\.[0-9]+)?)\s*(km|m)"#
-        guard let match = incident.message.range(of: pattern, options: .regularExpression) else {
-            return "이탈"
-        }
-        return String(incident.message[match]).replacingOccurrences(of: " ", with: "")
+        guard let meters = incident.distanceM else { return "이탈" }
+        if meters >= 1000 { return String(format: "%.1fkm", Double(meters) / 1000) }
+        return "\(meters)m"
     }
 
     func heartRateText(_ p: ParticipantLatestDTO) -> String {
@@ -231,23 +228,25 @@ final class SafetyManagementViewModel: ObservableObject {
         return String(Int(value.rounded()))
     }
 
-    /// 심박 단계 — 여행 임계값(heart_rate_min/max) 밖이면 경고, 20bpm 이상 벗어나면 위험
+    /// 심박 단계 — 서버 판정(heart_rate_status)을 그대로 씁니다
     func heartRateLevel(_ p: ParticipantLatestDTO) -> Level {
-        guard let hr = p.health?.heartRate else { return .unknown }
-        let min = trip?.heartRateMin ?? 50
-        let max = trip?.heartRateMax ?? 110
-
-        if hr >= min && hr <= max { return .normal }
-        let over = hr > max ? hr - max : min - hr
-        return over > 20 ? .danger : .warning
+        guard p.health?.heartRate != nil else { return .unknown }
+        return Self.level(p.health?.heartRateStatus)
     }
 
-    /// SpO₂ — 기획서 기준: 정상 ≥95 · 경고 90~94 · 위험 <90
+    /// SpO₂ 단계 — 서버 판정(spo2_status)을 그대로 씁니다
     func spo2Level(_ p: ParticipantLatestDTO) -> Level {
-        guard let raw = p.health?.spo2, let value = Double(raw) else { return .unknown }
-        if value < 90 { return .danger }
-        if value < 95 { return .warning }
-        return .normal
+        guard p.health?.spo2 != nil else { return .unknown }
+        return Self.level(p.health?.spo2Status)
+    }
+
+    private static func level(_ status: MonitoringStatus?) -> Level {
+        switch status {
+        case .normal?:  return .normal
+        case .warning?: return .warning
+        case .danger?:  return .danger
+        default:        return .unknown
+        }
     }
 
     private static func message(for error: Error) -> String {

@@ -176,7 +176,8 @@ struct StaffDashboardView: View {
 
     private func scheduleRow(_ item: StaffScheduleDTO, height: CGFloat, titleSize: CGFloat) -> some View {
         HStack {
-            Text(item.placeName)
+            // 장소가 없는 일정(앱에서 추가한 것)은 메모를 제목으로 씁니다
+            Text(item.placeName?.isEmpty == false ? (item.placeName ?? "") : (item.mainContent ?? "일정"))
                 .font(.system(size: titleSize, weight: .medium))
                 .foregroundColor(Color(hex: "#111827"))
             Spacer()

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - HiTrip Typography System
 /// Pretendard 기반 폰트 토큰
@@ -69,14 +70,19 @@ enum HiTripFont {
 // MARK: - Font + Weight Convenience (system fallback 직접 지정 시)
 
 extension Font {
-    /// Pretendard 미등록 환경에서 직접 사이즈+굵기로 생성
+    /// Pretendard로 그리되, 폰트 파일이 번들에 없으면 같은 굵기의 시스템 폰트로 대체합니다.
+    /// (Font.custom은 폰트가 없으면 굵기를 무시한 Regular로 떨어집니다)
     static func pretendard(_ weight: Font.Weight, size: CGFloat) -> Font {
         let name: String
         switch weight {
-        case .bold:       name = "Pretendard-Bold"
-        case .semibold:   name = "Pretendard-SemiBold"
-        case .medium:     name = "Pretendard-Medium"
-        default:          name = "Pretendard-Regular"
+        case .black, .heavy: name = "Pretendard-ExtraBold"
+        case .bold:          name = "Pretendard-Bold"
+        case .semibold:      name = "Pretendard-SemiBold"
+        case .medium:        name = "Pretendard-Medium"
+        default:             name = "Pretendard-Regular"
+        }
+        guard UIFont(name: name, size: size) != nil else {
+            return .system(size: size, weight: weight)
         }
         return .custom(name, size: size)
     }

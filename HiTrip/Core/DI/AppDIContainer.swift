@@ -102,7 +102,6 @@ final class AppDIContainer {
     // MARK: - UseCase Factory
 
     func makeLoginUseCase()     -> LoginUseCase     { LoginUseCase(repository: authRepository) }
-    func makeSignUpUseCase()    -> SignUpUseCase    { SignUpUseCase(repository: authRepository) }
     func makeChatUseCase()      -> ChatUseCase      { ChatUseCase(repository: chatRepository) }
     func makeEmergencyUseCase() -> EmergencyUseCase { EmergencyUseCase(repository: emergencyRepository) }
     func makeSpotUseCase()      -> SpotUseCase      { SpotUseCase(repository: spotRepository) }
@@ -110,7 +109,6 @@ final class AppDIContainer {
     // MARK: - ViewModel Factory
 
     func makeLoginViewModel()    -> LoginViewModel    { LoginViewModel(loginUseCase: makeLoginUseCase()) }
-    func makeSignUpViewModel()   -> SignUpViewModel   { SignUpViewModel(signUpUseCase: makeSignUpUseCase()) }
     func makeScheduleViewModel() -> ScheduleViewModel { ScheduleViewModel() }
     func makeChatViewModel()     -> ChatViewModel     { ChatViewModel(chatUseCase: makeChatUseCase()) }
     func makeEmergencyViewModel()-> EmergencyViewModel{ EmergencyViewModel(emergencyUseCase: makeEmergencyUseCase()) }

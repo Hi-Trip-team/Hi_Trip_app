@@ -79,7 +79,7 @@ final class NetworkService {
             let url = request.url?.absoluteString ?? ""
             print("🌐 [Network] \(method) \(url)")
             if let body = endpoint.body {
-                print("   📦 Body: \(body)")
+                print("   📦 Body: \(Self.redacted(body))")
             }
 
             let task = self.session.dataTask(with: request) { data, response, error in
@@ -99,7 +99,11 @@ final class NetworkService {
 
                 // 3) HTTP 상태코드 검증 — 서버 에러 body를 파싱하여 구체적인 에러 생성
                 guard (200...299).contains(httpResponse.statusCode) else {
-                    let hiTripError = HiTripError.from(statusCode: httpResponse.statusCode, data: data)
+                    let hiTripError = HiTripError.from(
+                        statusCode: httpResponse.statusCode,
+                        data: data,
+                        retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    )
                     print("❌ [Network] \(hiTripError.debugDescription) | URL: \(url)")
 
                     // 401 토큰 만료 시 자동 로그아웃 알림 (NotificationCenter)
@@ -128,7 +132,18 @@ final class NetworkService {
                     print("✅ [Network] HTTP \(httpResponse.statusCode) | URL: \(url) | Body: \(body.prefix(500))")
                 }
 
-                // 5) JSON 디코딩
+                // 5) 본문 없는 성공 응답 (204 No Content, DELETE 등)
+                //    빈 바디를 JSON으로 파싱하려 하면 실패하므로 여기서 끊습니다.
+                if data.isEmpty || httpResponse.statusCode == 204 {
+                    if let empty = EmptyResponse() as? T {
+                        single(.success(empty))
+                    } else {
+                        single(.failure(HiTripError.noData))
+                    }
+                    return
+                }
+
+                // 6) JSON 디코딩
                 do {
                     let decoder = JSONDecoder()
                     decoder.dateDecodingStrategy = .custom(NetworkService.flexibleDateDecoder)
@@ -174,7 +189,11 @@ final class NetworkService {
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            let hiTripError = HiTripError.from(statusCode: httpResponse.statusCode, data: data)
+            let hiTripError = HiTripError.from(
+                        statusCode: httpResponse.statusCode,
+                        data: data,
+                        retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    )
             if hiTripError.requiresReauth {
                 await MainActor.run {
                     NotificationCenter.default.post(name: .hiTripTokenExpired, object: nil)
@@ -260,7 +279,7 @@ final class NetworkService {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        if endpoint.method != .get, let csrf = NetworkService.csrfToken {
+        if endpoint.method != .get, let csrf = NetworkService.csrfToken ?? csrfCookieValue() {
             request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
             request.setValue(baseURL, forHTTPHeaderField: "Referer")
         }
@@ -271,6 +290,34 @@ final class NetworkService {
         }
 
         return request
+    }
+
+    /// 쿠키 저장소에 있는 csrftoken을 읽습니다.
+    ///
+    /// 정적 프로퍼티에만 담아두면 앱을 재시작했을 때 사라져서
+    /// 세션 쿠키는 살아 있는데 쓰기 요청만 "CSRF token missing"으로 막힙니다.
+    /// Django는 csrftoken 쿠키를 HttpOnly로 내리지 않으므로 여기서 읽을 수 있습니다.
+    /// 로그에 비밀번호·토큰이 남지 않도록 값을 가립니다
+    static func redacted(_ body: [String: Any]) -> [String: Any] {
+        body.reduce(into: [:]) { result, pair in
+            let key = pair.key.lowercased()
+            result[pair.key] = (key.contains("password") || key.contains("token")) ? "••••" : pair.value
+        }
+    }
+
+    /// 안내사 세션 쿠키·CSRF를 지웁니다 (로그아웃, 자동 로그인 해제 시)
+    static func clearSession() {
+        csrfToken = nil
+        let storage = HTTPCookieStorage.shared
+        guard let url = URL(string: APIEnvironment.current.baseURL),
+              let cookies = storage.cookies(for: url) else { return }
+        cookies.forEach(storage.deleteCookie)
+    }
+
+    private func csrfCookieValue() -> String? {
+        guard let url = URL(string: baseURL),
+              let cookies = HTTPCookieStorage.shared.cookies(for: url) else { return nil }
+        return cookies.first { $0.name == "csrftoken" }?.value
     }
 }
 

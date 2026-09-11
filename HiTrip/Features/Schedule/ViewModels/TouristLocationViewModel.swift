@@ -94,7 +94,7 @@ final class TouristLocationViewModel: NSObject, ObservableObject {
         repository.fetchTrips()
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] trips in
-                guard let self, let trip = trips.first else { return }
+                guard let self, let trip = trips.current else { return }
                 self.tripId = trip.id
                 self.loadGeofence(tripId: trip.id)
                 self.loadProfile(tripId: trip.id)

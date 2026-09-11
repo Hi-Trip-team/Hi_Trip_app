@@ -13,19 +13,25 @@ extension APIEndpoint {
 
     /// 여행객 로그인 (발급 계정 username + password)
     /// POST /api/v1/tourist/auth/login/
-    static func travelerLogin(username: String, password: String, tripId: Int? = nil) -> APIEndpoint {
+    static func travelerLogin(username: String, password: String, tripId: Int? = nil, force: Bool = false) -> APIEndpoint {
         var body: [String: Any] = ["username": username, "password": password]
         if let id = tripId { body["trip_id"] = id }
+        if force { body[APIEndpoint.forceLoginKey] = true }
         return APIEndpoint(path: "/api/v1/tourist/auth/login/", method: .post, body: body)
     }
 
     /// 여행객 최초 비밀번호 변경
     /// POST /api/v1/tourist/auth/change-initial-password/
-    static func travelerChangeInitialPassword(newPassword: String) -> APIEndpoint {
+    /// Bearer 토큰 없이 호출합니다 — 성공해도 토큰을 주지 않아 다시 로그인해야 합니다
+    static func travelerChangeInitialPassword(username: String, currentPassword: String, newPassword: String) -> APIEndpoint {
         APIEndpoint(
             path: "/api/v1/tourist/auth/change-initial-password/",
             method: .post,
-            body: ["new_password": newPassword]
+            body: [
+                "username": username,
+                "current_password": currentPassword,
+                "new_password": newPassword
+            ]
         )
     }
 
