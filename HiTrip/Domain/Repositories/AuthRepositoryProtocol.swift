@@ -22,6 +22,9 @@ protocol AuthRepositoryProtocol {
     /// Keychain에 저장된 토큰 조회 (자동 로그인 확인용)
     func getSavedToken() -> String?
 
+    /// 관광객 최초 비밀번호 변경 — 발급받은 임시 비밀번호로 처음 로그인하면 서버가 요구합니다
+    func changeInitialPassword(username: String, currentPassword: String, newPassword: String) -> Single<Void>
+
     /// 로그아웃 — 서버 세션 종료 + 로컬 인증 정보 삭제
     func logout()
 }

@@ -81,6 +81,9 @@ struct LoginView: View {
             guard let result = viewModel.result else { return }
             router.proceedAfterLogin(as: result.user.userType, requiresAgreement: result.requiresAgreement)
         }
+        .fullScreenCover(isPresented: $viewModel.showPasswordChange) {
+            InitialPasswordChangeView(viewModel: viewModel)
+        }
         .alert("동일한 아이디로 접속중인 기기가 있습니다.", isPresented: $viewModel.showConcurrentAlert) {
             Button("취소", role: .cancel) {}
             Button("확인") { viewModel.login(force: true) }

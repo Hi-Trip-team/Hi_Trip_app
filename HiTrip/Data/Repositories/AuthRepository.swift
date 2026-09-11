@@ -163,6 +163,8 @@ final class AuthRepository: AuthRepositoryProtocol {
                 ?? detail.numbers["lock_seconds"]
                 ?? LoginAttemptStore.defaultLockSeconds
             return LoginError.locked(seconds: seconds)
+        case .conflict(let detail) where detail.code == "PASSWORD_CHANGE_REQUIRED":
+            return LoginError.passwordChangeRequired
         case .conflict(let detail) where concurrentSessionCodes.contains(detail.code ?? ""):
             return LoginError.concurrentSession
         case .noConnection, .timeout, .networkFailure:
@@ -201,6 +203,31 @@ final class AuthRepository: AuthRepositoryProtocol {
 
     func getSavedToken() -> String? {
         keychain.getToken()
+    }
+
+    // MARK: - 최초 비밀번호 변경
+
+    /// 실패 시 서버의 new_password 오류 문구(비밀번호 규칙)를 그대로 전달합니다
+    func changeInitialPassword(username: String, currentPassword: String, newPassword: String) -> Single<Void> {
+        networkService.request(
+            .travelerChangeInitialPassword(username: username, currentPassword: currentPassword, newPassword: newPassword),
+            type: EmptyResponse.self
+        )
+        .map { _ in () }
+        .catch { error in
+            switch ErrorHandler.classify(error) {
+            case .validationFailed(let detail):
+                let message = detail.fieldErrors["new_password"]?.joined(separator: "\n")
+                    ?? detail.message ?? "사용할 수 없는 비밀번호예요."
+                throw PasswordChangeError.rejected(message)
+            case .unauthorized:
+                throw PasswordChangeError.rejected("임시 비밀번호가 맞지 않아요. 처음부터 다시 로그인해주세요.")
+            case .noConnection, .timeout, .networkFailure:
+                throw PasswordChangeError.rejected("네트워크 연결을 확인해주세요.")
+            case let other:
+                throw PasswordChangeError.rejected(other.localizedDescription)
+            }
+        }
     }
 
     // MARK: - 로그아웃

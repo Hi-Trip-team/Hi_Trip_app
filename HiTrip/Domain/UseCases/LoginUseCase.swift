@@ -33,6 +33,12 @@ final class LoginUseCase {
         repository.validateSession()
     }
 
+    // MARK: - 최초 비밀번호 변경
+
+    func changeInitialPassword(username: String, currentPassword: String, newPassword: String) -> Single<Void> {
+        repository.changeInitialPassword(username: username.trimmed, currentPassword: currentPassword, newPassword: newPassword)
+    }
+
     // MARK: - 로그아웃
 
     func logout() {
@@ -53,6 +59,8 @@ enum LoginError: LocalizedError, Equatable {
     case locked(seconds: Int)
     /// 같은 아이디로 접속 중인 기기가 있음
     case concurrentSession
+    /// 발급받은 임시 비밀번호 — 새 비밀번호로 바꿔야 로그인됩니다
+    case passwordChangeRequired
     /// 네트워크 연결 없음 / 서버 응답 없음
     case network
     /// 기타 서버 에러
@@ -65,8 +73,21 @@ enum LoginError: LocalizedError, Equatable {
         case .invalidCredentials: return "아이디 또는 비밀번호가 일치하지 않습니다."
         case .locked:             return "로그인이 일시적으로 잠겼습니다."
         case .concurrentSession:  return "동일한 아이디로 접속중인 기기가 있습니다."
+        case .passwordChangeRequired: return "처음 로그인하셨어요. 비밀번호를 변경해주세요."
         case .network:            return "네트워크 연결을 확인해주세요."
         case .serverError(let m): return m
+        }
+    }
+}
+
+// MARK: - PasswordChangeError
+/// 최초 비밀번호 변경 실패 — 화면에 그대로 보여줄 문구를 담습니다
+enum PasswordChangeError: LocalizedError {
+    case rejected(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .rejected(let message): return message
         }
     }
 }

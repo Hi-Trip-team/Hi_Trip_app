@@ -79,7 +79,7 @@ final class NetworkService {
             let url = request.url?.absoluteString ?? ""
             print("🌐 [Network] \(method) \(url)")
             if let body = endpoint.body {
-                print("   📦 Body: \(body)")
+                print("   📦 Body: \(Self.redacted(body))")
             }
 
             let task = self.session.dataTask(with: request) { data, response, error in
@@ -297,6 +297,14 @@ final class NetworkService {
     /// 정적 프로퍼티에만 담아두면 앱을 재시작했을 때 사라져서
     /// 세션 쿠키는 살아 있는데 쓰기 요청만 "CSRF token missing"으로 막힙니다.
     /// Django는 csrftoken 쿠키를 HttpOnly로 내리지 않으므로 여기서 읽을 수 있습니다.
+    /// 로그에 비밀번호·토큰이 남지 않도록 값을 가립니다
+    static func redacted(_ body: [String: Any]) -> [String: Any] {
+        body.reduce(into: [:]) { result, pair in
+            let key = pair.key.lowercased()
+            result[pair.key] = (key.contains("password") || key.contains("token")) ? "••••" : pair.value
+        }
+    }
+
     /// 안내사 세션 쿠키·CSRF를 지웁니다 (로그아웃, 자동 로그인 해제 시)
     static func clearSession() {
         csrfToken = nil

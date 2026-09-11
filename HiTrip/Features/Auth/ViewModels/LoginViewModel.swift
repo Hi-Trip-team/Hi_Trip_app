@@ -36,6 +36,10 @@ final class LoginViewModel: ObservableObject {
     /// 잠금 남은 초 (nil이면 잠금 아님)
     @Published private(set) var lockRemaining: Int?
     @Published var showConcurrentAlert = false
+    /// 최초 비밀번호 변경 화면 표시
+    @Published var showPasswordChange = false
+    @Published private(set) var isChangingPassword = false
+    @Published private(set) var passwordChangeError: String?
     @Published private(set) var result: LoginResponse?
 
     var isFormFilled: Bool { !id.trimmed.isEmpty && !password.isEmpty }
@@ -123,9 +127,46 @@ final class LoginViewModel: ObservableObject {
         case .concurrentSession?:
             showConcurrentAlert = true
 
+        case .passwordChangeRequired?:
+            // 임시 비밀번호는 맞았으니 실패 횟수로 세지 않습니다
+            LoginAttemptStore.reset(for: username)
+            passwordChangeError = nil
+            showPasswordChange = true
+
         default:
             credentialError = error.localizedDescription
         }
+    }
+
+    // MARK: - 최초 비밀번호 변경
+
+    /// 새 비밀번호로 바꾼 뒤 그 비밀번호로 바로 다시 로그인합니다
+    func changeInitialPassword(to newPassword: String) {
+        guard !isChangingPassword else { return }
+        isChangingPassword = true
+        passwordChangeError = nil
+
+        loginUseCase.changeInitialPassword(username: id, currentPassword: password, newPassword: newPassword)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in
+                    guard let self else { return }
+                    self.isChangingPassword = false
+                    self.showPasswordChange = false
+                    self.password = newPassword
+                    self.login()
+                },
+                onFailure: { [weak self] error in
+                    self?.isChangingPassword = false
+                    self?.passwordChangeError = error.localizedDescription
+                }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    func cancelPasswordChange() {
+        showPasswordChange = false
+        password = ""
     }
 
     private func clearInputErrors() {

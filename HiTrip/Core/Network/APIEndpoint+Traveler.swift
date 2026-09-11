@@ -22,11 +22,16 @@ extension APIEndpoint {
 
     /// 여행객 최초 비밀번호 변경
     /// POST /api/v1/tourist/auth/change-initial-password/
-    static func travelerChangeInitialPassword(newPassword: String) -> APIEndpoint {
+    /// Bearer 토큰 없이 호출합니다 — 성공해도 토큰을 주지 않아 다시 로그인해야 합니다
+    static func travelerChangeInitialPassword(username: String, currentPassword: String, newPassword: String) -> APIEndpoint {
         APIEndpoint(
             path: "/api/v1/tourist/auth/change-initial-password/",
             method: .post,
-            body: ["new_password": newPassword]
+            body: [
+                "username": username,
+                "current_password": currentPassword,
+                "new_password": newPassword
+            ]
         )
     }
 
