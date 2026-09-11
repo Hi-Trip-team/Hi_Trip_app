@@ -68,15 +68,7 @@ final class AppDIContainer {
     /// 안내사 화면들이 주입받는 저장소 (기본 인자용)
     var staffRepositoryForGuide: StaffRepositoryProtocol { staffRepository }
 
-    /// 로컬 긴급 연락처 (프리셋 + 개인 저장)
-    private lazy var emergencyRepository: EmergencyRepositoryProtocol = {
-        EmergencyRepository()
-    }()
 
-    /// TourAPI 관광지 검색
-    private lazy var spotRepository: SpotRepositoryProtocol = {
-        SpotRepository()
-    }()
 
     // MARK: - Init
 
@@ -103,18 +95,10 @@ final class AppDIContainer {
 
     func makeLoginUseCase()     -> LoginUseCase     { LoginUseCase(repository: authRepository) }
     func makeChatUseCase()      -> ChatUseCase      { ChatUseCase(repository: chatRepository) }
-    func makeEmergencyUseCase() -> EmergencyUseCase { EmergencyUseCase(repository: emergencyRepository) }
-    func makeSpotUseCase()      -> SpotUseCase      { SpotUseCase(repository: spotRepository) }
 
     // MARK: - ViewModel Factory
 
     func makeLoginViewModel()    -> LoginViewModel    { LoginViewModel(loginUseCase: makeLoginUseCase()) }
-    func makeScheduleViewModel() -> ScheduleViewModel { ScheduleViewModel() }
     func makeChatViewModel()     -> ChatViewModel     { ChatViewModel(chatUseCase: makeChatUseCase()) }
-    func makeEmergencyViewModel()-> EmergencyViewModel{ EmergencyViewModel(emergencyUseCase: makeEmergencyUseCase()) }
-    func makeSpotViewModel()     -> SpotViewModel     { SpotViewModel(spotUseCase: makeSpotUseCase()) }
 
-    func makeProfileViewModel() -> ProfileViewModel {
-        ProfileViewModel(repository: travelerRepository)
-    }
 }
