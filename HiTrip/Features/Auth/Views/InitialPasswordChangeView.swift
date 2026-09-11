@@ -89,6 +89,10 @@ struct InitialPasswordChangeView: View {
     private func field(_ placeholder: String, text: Binding<String>, field: Field, isError: Bool, message: String?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             SecureField("", text: text, prompt: Text(placeholder).foregroundColor(subGray))
+                // 영문·숫자·특수문자 모두 입력되도록 키보드를 고정합니다
+                .keyboardType(.asciiCapable)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
                 .textContentType(.newPassword)
                 .focused($focused, equals: field)
                 .submitLabel(field == .new ? .next : .done)

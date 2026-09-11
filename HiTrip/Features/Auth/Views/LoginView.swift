@@ -117,6 +117,9 @@ struct LoginView: View {
     private var passwordField: some View {
         VStack(alignment: .leading, spacing: 6) {
             SecureField("", text: $viewModel.password, prompt: placeholder("비밀번호"))
+                .keyboardType(.asciiCapable)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
                 .textContentType(.password)
                 .focused($focusedField, equals: .password)
                 .submitLabel(.done)
