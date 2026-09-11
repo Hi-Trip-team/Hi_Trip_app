@@ -35,7 +35,7 @@ final class NetworkService {
     /// - private으로 외부에서 직접 생성 방지
     private init() {
         self.baseURL = APIEnvironment.current.baseURL
-        self.session = .shared
+        self.session = URLSession(configuration: Self.defaultConfiguration)
     }
 
     /// 테스트용 초기화 — Mock URLSession 주입 가능
@@ -45,6 +45,39 @@ final class NetworkService {
     init(baseURL: String, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.session = session
+    }
+
+    // MARK: - 연결 정책
+
+    /// 응답 대기 15초 — 기본 60초면 서버가 멈췄을 때 사용자가 1분 동안 로딩만 보게 됩니다
+    private static let defaultConfiguration: URLSessionConfiguration = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 60
+        config.waitsForConnectivity = false
+        return config
+    }()
+
+    /// 조회(GET)만 자동 재시도 — 저장·전송은 성공 여부가 불분명할 때 반복하면 안 됩니다
+    private static let maxRetryCount = 2
+
+    /// 금방 실패하는 연결 오류만 재시도합니다. 응답 대기 초과(timeout)는 이미 15초를 기다렸으므로 재시도하지 않습니다.
+    private static func isTransient(_ error: Error) -> Bool {
+        switch error as? HiTripError {
+        case .noConnection?, .networkFailure?: return true
+        default: return false
+        }
+    }
+
+    private func retryingIfSafe<T>(_ single: Single<T>, method: APIEndpoint.HTTPMethod) -> Single<T> {
+        guard method == .get else { return single }
+        return single.retry(when: { errors in
+            errors.enumerated().flatMap { attempt, error -> Observable<Int> in
+                guard attempt < Self.maxRetryCount, Self.isTransient(error) else { return .error(error) }
+                // 1초 → 2초 간격
+                return Observable<Int>.timer(.seconds(attempt + 1), scheduler: MainScheduler.instance)
+            }
+        })
     }
 
     // MARK: - RxSwift 요청 (메인 API)
@@ -66,7 +99,7 @@ final class NetworkService {
         _ endpoint: APIEndpoint,
         type: T.Type
     ) -> Single<T> {
-        return Single.create { [weak self] single in
+        let base = Single<T>.create { [weak self] single in
             guard let self,
                   let request = self.buildRequest(endpoint) else {
                 print("❌ [Network] URL 생성 실패 | path: \(endpoint.path)")
@@ -161,6 +194,7 @@ final class NetworkService {
             // Disposable: 구독 해제 시 네트워크 요청 취소
             return Disposables.create { task.cancel() }
         }
+        return retryingIfSafe(base, method: endpoint.method)
     }
 
     // MARK: - async/await 요청 (Swift Concurrency)

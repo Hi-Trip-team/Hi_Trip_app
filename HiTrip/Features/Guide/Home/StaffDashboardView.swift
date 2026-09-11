@@ -287,13 +287,7 @@ struct StaffDashboardView: View {
     // MARK: - 상태 화면
 
     private var loadingView: some View {
-        VStack(spacing: AppSpacing.sm) {
-            ProgressView()
-            Text("여행 정보를 불러오는 중이에요")
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GuideHomeSkeleton()
     }
 
     /// 배정된 여행이 없을 때
@@ -311,24 +305,6 @@ struct StaffDashboardView: View {
     }
 
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: 14) {
-            Text("🧭").font(AppFont.emojiXL)
-            Text(message)
-                .font(AppFont.bodyMMedium)
-                .foregroundColor(AppColor.textPrimary)
-                .multilineTextAlignment(.center)
-            Button { viewModel.load() } label: {
-                Text("다시 시도")
-                    .font(AppFont.bodyBold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, AppSpacing.xl)
-                    .frame(height: 44)
-                    .background(AppColor.accent)
-                    .cornerRadius(AppRadius.md)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ErrorStateView(message: message) { viewModel.load() }
     }
 }
