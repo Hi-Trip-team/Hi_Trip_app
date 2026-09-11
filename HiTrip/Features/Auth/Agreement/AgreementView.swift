@@ -182,7 +182,7 @@ struct AgreementView: View {
 
     private var locationDeniedPopup: some View {
         ZStack {
-            Color.black.opacity(0.45).ignoresSafeArea()
+            DimmedBackground()
 
             VStack(spacing: 0) {
                 Text("위치 권한이 없으면 안전 서비스\n(위치 확인·이탈 보호)를 이용할 수 없습니다")

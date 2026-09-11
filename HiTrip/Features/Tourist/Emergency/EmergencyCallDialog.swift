@@ -45,9 +45,7 @@ struct EmergencyCallDialog: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-                .onTapGesture { isPresented = false }
+            DimmedBackground { isPresented = false }
 
             dialogCard
         }

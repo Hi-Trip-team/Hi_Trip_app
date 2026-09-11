@@ -69,7 +69,7 @@ struct ChatRoomView: View {
         } message: {
             Text("설정에서 사진·마이크 접근을 허용해주세요")
         }
-        .overlay(alignment: .bottom) { toastView }
+        .toast($viewModel.toast, inset: 90)
         .overlay(alignment: .top) { offlineBanner }
         .confirmationDialog(
             "전송하지 못한 메시지",
@@ -262,24 +262,6 @@ struct ChatRoomView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 32)
                 .background(AppColor.textSecondary)
-        }
-    }
-
-    @ViewBuilder
-    private var toastView: some View {
-        if let toast = viewModel.toast {
-            Text(toast)
-                .font(AppFont.labelMedium)
-                .foregroundColor(.white)
-                .padding(.horizontal, 18)
-                .frame(height: 44)
-                .background(AppColor.textPrimary.opacity(0.92))
-                .clipShape(Capsule())
-                .padding(.bottom, 90)
-                .task(id: toast) {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    viewModel.toast = nil
-                }
         }
     }
 

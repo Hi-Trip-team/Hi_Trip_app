@@ -150,7 +150,7 @@ struct SplashView: View {
 
     private var updatePopup: some View {
         ZStack {
-            Color.black.opacity(0.4).ignoresSafeArea()
+            DimmedBackground(opacity: 0.4)
 
             VStack(spacing: AppSpacing.sm) {
                 Text("업데이트가 필요합니다")

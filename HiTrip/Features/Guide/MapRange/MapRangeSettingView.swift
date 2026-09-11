@@ -33,7 +33,7 @@ struct MapRangeSettingView: View {
             }
             .ignoresSafeArea(edges: .bottom)
         }
-        .overlay(alignment: .top) { toastView }
+        .toast($viewModel.toast, alignment: .top, inset: 100)
         .background(AppColor.successSubtle)
         .navigationBarHidden(true)
         .task { viewModel.load() }
@@ -110,24 +110,7 @@ struct MapRangeSettingView: View {
     // MARK: - 헤더 / 일차 탭
 
     private var headerSection: some View {
-        ZStack {
-            Text("지도 범위 설정")
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-
-            HStack {
-                Button { requestLeave() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                        .frame(width: 24, height: 24)
-                }
-                Spacer()
-            }
-            .padding(.leading, AppSpacing.sm)
-        }
-        .frame(height: 24)
-        .padding(.top, AppSpacing.xs)
+        NavigationHeader(title: "지도 범위 설정", style: .compact) { requestLeave() }
     }
 
     private var dayTabs: some View {
@@ -267,21 +250,4 @@ struct MapRangeSettingView: View {
         }
     }
 
-    @ViewBuilder
-    private var toastView: some View {
-        if let toast = viewModel.toast {
-            Text(toast)
-                .font(AppFont.labelMedium)
-                .foregroundColor(.white)
-                .padding(.horizontal, 18)
-                .frame(height: 44)
-                .background(AppColor.textPrimary.opacity(0.92))
-                .clipShape(Capsule())
-                .padding(.top, 100)
-                .task(id: toast) {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    viewModel.toast = nil
-                }
-        }
-    }
 }

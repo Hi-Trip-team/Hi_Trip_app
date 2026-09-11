@@ -81,31 +81,10 @@ struct StaffChatListView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text("메시지 및 문의")
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                        .frame(width: 24, height: 24)
-                }
-                Spacer()
-                // 즉시 실행하지 않고 한 번 확인합니다
-                Button { showMarkAllConfirm = true } label: {
-                    Text("모두 확인")
-                        .font(AppFont.labelMedium)
-                        .foregroundColor(AppColor.accent)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, AppSpacing.sm)
+        NavigationHeader(title: "메시지 및 문의", style: .compact, onBack: { dismiss() }) {
+            // 즉시 실행하지 않고 한 번 확인합니다
+            HeaderTextButton("모두 확인") { showMarkAllConfirm = true }
         }
-        .frame(height: 24)
-        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 탭 필터
@@ -179,13 +158,7 @@ struct StaffChatListView: View {
                     .foregroundColor(AppColor.textSecondary)
 
                 if room.unreadCount > 0 {
-                    Text(room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
-                        .font(AppFont.captionBold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .frame(minWidth: 22, minHeight: 22)
-                        .background(AppColor.danger)
-                        .clipShape(Capsule())
+                    CountBadge(text: room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
                 } else {
                     Color.clear.frame(width: 0, height: 22)
                 }

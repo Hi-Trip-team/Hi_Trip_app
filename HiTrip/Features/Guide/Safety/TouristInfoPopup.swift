@@ -15,9 +15,7 @@ struct TouristInfoPopup: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-                .onTapGesture { onClose() }
+            DimmedBackground { onClose() }
 
             card
         }

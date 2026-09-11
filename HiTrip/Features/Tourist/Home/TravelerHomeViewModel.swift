@@ -15,13 +15,6 @@ import RxSwift
 @MainActor
 final class TravelerHomeViewModel: ObservableObject {
 
-    enum LoadState: Equatable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
-
     // MARK: - State
 
     @Published private(set) var state: LoadState = .idle

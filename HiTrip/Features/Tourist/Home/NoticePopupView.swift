@@ -39,9 +39,7 @@ struct NoticePopupView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.35)
-                .ignoresSafeArea()
-                .onTapGesture { isPresented = false }
+            DimmedBackground(opacity: 0.35) { isPresented = false }
 
             popupCard
                 .padding(.horizontal, AppSpacing.xl)

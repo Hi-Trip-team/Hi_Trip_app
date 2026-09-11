@@ -14,11 +14,6 @@ import RxSwift
 @MainActor
 final class SafetyManagementViewModel: ObservableObject {
 
-    enum LoadState: Equatable {
-        case idle, loading, loaded
-        case failed(String)
-    }
-
     /// 칩 필터 — 재탭하면 해제됩니다
     enum Filter: Equatable {
         case warning, danger, escaped

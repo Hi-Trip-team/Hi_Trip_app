@@ -70,7 +70,7 @@ struct StaffTripDetailView: View {
                 sheetOverlay
             }
         }
-        .overlay(alignment: .bottom) { toastView }
+        .toast($viewModel.toast)
         .animation(.easeInOut(duration: 0.2), value: showSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
@@ -109,24 +109,7 @@ struct StaffTripDetailView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text("전체 일정")
-                .font(AppFont.headlineBold)
-                .foregroundColor(.black)
-
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                        .frame(width: 24, height: 24)
-                }
-                Spacer()
-            }
-            .padding(.leading, AppSpacing.sm)
-        }
-        .frame(height: 24)
-        .padding(.top, AppSpacing.xs)
+        NavigationHeader(title: "전체 일정", style: .compact) { dismiss() }
     }
 
     // MARK: - 본문
@@ -274,9 +257,7 @@ struct StaffTripDetailView: View {
 
     private var sheetOverlay: some View {
         ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-                .onTapGesture { closeSheet() }
+            DimmedBackground { closeSheet() }
 
             VStack(spacing: 0) {
                 Spacer()
@@ -559,21 +540,4 @@ struct StaffTripDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    @ViewBuilder
-    private var toastView: some View {
-        if let toast = viewModel.toast {
-            Text(toast)
-                .font(AppFont.labelMedium)
-                .foregroundColor(.white)
-                .padding(.horizontal, 18)
-                .frame(height: 44)
-                .background(AppColor.textPrimary.opacity(0.92))
-                .clipShape(Capsule())
-                .padding(.bottom, 40)
-                .task(id: toast) {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    viewModel.toast = nil
-                }
-        }
-    }
 }

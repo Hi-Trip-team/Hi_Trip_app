@@ -22,9 +22,7 @@ struct NoticeEditorPopup: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-                .onTapGesture { requestCancel() }
+            DimmedBackground { requestCancel() }
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(isEditing ? "공지 수정" : "새 공지 작성")

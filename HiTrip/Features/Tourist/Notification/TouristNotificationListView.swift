@@ -36,22 +36,7 @@ struct TouristNotificationListView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text("알림")
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, AppSpacing.sm)
-        }
-        .frame(height: 44)
-        .padding(.top, AppSpacing.xs)
+        NavigationHeader(title: "알림") { dismiss() }
     }
 
     // MARK: - 빈 상태

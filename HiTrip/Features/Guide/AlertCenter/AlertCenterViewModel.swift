@@ -12,11 +12,6 @@ import RxSwift
 @MainActor
 final class AlertCenterViewModel: ObservableObject {
 
-    enum LoadState: Equatable {
-        case idle, loading, loaded
-        case failed(String)
-    }
-
     /// 필터 칩 — 기획의 5종
     enum Kind: String, CaseIterable, Identifiable {
         case all, danger, warning, escaped, normal

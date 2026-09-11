@@ -472,13 +472,7 @@ struct TripListView: View {
                 .buttonStyle(.plain)
 
                 if viewModel.hasUnreadMessage {
-                    Text(viewModel.unreadMessageBadgeText)
-                        .font(AppFont.captionBold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .background(AppColor.danger)
-                        .clipShape(Capsule())
+                    CountBadge(text: viewModel.unreadMessageBadgeText, diameter: 20)
                         .offset(x: -4, y: -4)
                 }
             }

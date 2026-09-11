@@ -61,9 +61,7 @@ struct TripDetailView: View {
             .background(Color.white)
 
             if showAddSheet {
-                Color.black.opacity(0.45)
-                    .ignoresSafeArea()
-                    .onTapGesture { requestCloseSheet() }
+                DimmedBackground { requestCloseSheet() }
 
                 VStack(spacing: 0) {
                     Spacer()
@@ -79,7 +77,7 @@ struct TripDetailView: View {
                 .ignoresSafeArea(edges: .bottom)
             }
         }
-        .overlay(alignment: .bottom) { toastView }
+        .toast($viewModel.toast)
         .animation(.easeInOut(duration: 0.25), value: showAddSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
@@ -132,44 +130,10 @@ struct TripDetailView: View {
 
     // MARK: - 토스트
 
-    @ViewBuilder
-    private var toastView: some View {
-        if let toast = viewModel.toast {
-            Text(toast)
-                .font(AppFont.labelMedium)
-                .foregroundColor(.white)
-                .padding(.horizontal, 18)
-                .frame(height: 44)
-                .background(AppColor.textPrimary.opacity(0.92))
-                .clipShape(Capsule())
-                .padding(.bottom, 40)
-                .transition(.opacity)
-                .task(id: toast) {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    viewModel.toast = nil
-                }
-        }
-    }
-
     // MARK: - Header
 
     private var headerSection: some View {
-        ZStack {
-            Text("여행 일정")
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, AppSpacing.sm)
-        }
-        .frame(height: 44)
-        .padding(.top, AppSpacing.xs)
+        NavigationHeader(title: "여행 일정") { dismiss() }
     }
 
     // MARK: - 로딩 / 에러

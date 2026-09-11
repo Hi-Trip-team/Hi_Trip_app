@@ -12,13 +12,6 @@ import RxSwift
 @MainActor
 final class LocalLanguageViewModel: NSObject, ObservableObject {
 
-    enum LoadState: Equatable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
-
     @Published private(set) var state: LoadState = .idle
     @Published private(set) var data: TravelerLocalPhrasesDTO?
     /// 지금 읽고 있는 표현 id — 버튼 모양(▶/■) 전환에 사용

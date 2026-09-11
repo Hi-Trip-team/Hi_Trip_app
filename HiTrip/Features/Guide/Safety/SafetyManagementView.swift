@@ -74,27 +74,10 @@ struct SafetyManagementView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text("안전 관리")
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-
-            HStack {
-                Button {
-                    onDismiss?()
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                        .frame(width: 24, height: 24)
-                }
-                Spacer()
-            }
-            .padding(.leading, AppSpacing.sm)
+        NavigationHeader(title: "안전 관리", style: .compact) {
+            onDismiss?()
+            dismiss()
         }
-        .frame(height: 24)
-        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 상태 요약 칩

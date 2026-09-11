@@ -39,11 +39,6 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         }
     }
 
-    enum LoadState: Equatable {
-        case idle, loading, loaded
-        case failed(String)
-    }
-
     // MARK: - State
 
     @Published private(set) var state: LoadState = .idle

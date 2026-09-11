@@ -17,13 +17,6 @@ import RxSwift
 @MainActor
 final class TripScheduleViewModel: ObservableObject {
 
-    enum LoadState: Equatable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
-
     /// 하루치 일정 — 공용/개인을 시간순으로 합쳐서 보여줍니다.
     struct DaySection: Identifiable {
         let id: Int              // dayNumber

@@ -15,11 +15,6 @@ import RxSwift
 @MainActor
 final class MapRangeSettingViewModel: NSObject, ObservableObject {
 
-    enum LoadState: Equatable {
-        case idle, loading, loaded
-        case failed(String)
-    }
-
     // MARK: - State
 
     @Published private(set) var state: LoadState = .idle

@@ -50,24 +50,7 @@ struct NotificationCenterView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text("알림")
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                        .frame(width: 24, height: 24)
-                }
-                Spacer()
-            }
-            .padding(.leading, AppSpacing.sm)
-        }
-        .frame(height: 24)
-        .padding(.top, AppSpacing.xs)
+        NavigationHeader(title: "알림", style: .compact) { dismiss() }
     }
 
     // MARK: - 필터 칩

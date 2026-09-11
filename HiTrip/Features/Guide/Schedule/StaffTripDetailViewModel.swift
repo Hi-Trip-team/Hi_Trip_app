@@ -14,11 +14,6 @@ import RxSwift
 @MainActor
 final class StaffTripDetailViewModel: ObservableObject {
 
-    enum LoadState: Equatable {
-        case idle, loading, loaded
-        case failed(String)
-    }
-
     struct DaySection: Identifiable {
         let dayNumber: Int
         let date: String

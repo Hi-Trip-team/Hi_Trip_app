@@ -62,28 +62,9 @@ struct TouristChatListView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text("메시지 및 문의")
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                }
-                Spacer()
-                Button { viewModel.markAllAsRead() } label: {
-                    Text("모두 확인")
-                        .font(AppFont.labelMedium)
-                        .foregroundColor(AppColor.accent)
-                }
-            }
-            .padding(.horizontal, AppSpacing.sm)
+        NavigationHeader(title: "메시지 및 문의", onBack: { dismiss() }) {
+            HeaderTextButton("모두 확인") { viewModel.markAllAsRead() }
         }
-        .frame(height: 44)
-        .padding(.top, AppSpacing.xs)
     }
 
     // MARK: - 검색바
@@ -159,13 +140,7 @@ struct TouristChatListView: View {
                     .foregroundColor(AppColor.textSecondary)
 
                 if room.unreadCount > 0 {
-                    Text(room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
-                        .font(AppFont.captionBold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .frame(minWidth: 22, minHeight: 22)
-                        .background(AppColor.danger)
-                        .clipShape(Capsule())
+                    CountBadge(text: room.unreadCount > 99 ? "99+" : "\(room.unreadCount)")
                 } else {
                     // 뱃지 자리를 비워 이름·시각 줄이 흔들리지 않게 합니다.
                     Color.clear.frame(width: 0, height: 22)

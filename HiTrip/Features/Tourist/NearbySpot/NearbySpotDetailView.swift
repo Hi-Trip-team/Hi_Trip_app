@@ -81,7 +81,7 @@ struct NearbySpotDetailView: View {
             bottomButton
         }
         .background(Color.white)
-        .overlay(alignment: .bottom) { toastView }
+        .toast($toast, inset: 90)
         .animation(.easeInOut(duration: 0.2), value: toast)
         .navigationBarHidden(true)
         .confirmationDialog("길찾기", isPresented: $showRouteOptions, titleVisibility: .visible) {
@@ -94,23 +94,7 @@ struct NearbySpotDetailView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text(name)
-                .font(AppFont.headlineBold)
-                .foregroundColor(AppColor.textPrimary)
-                .lineLimit(1)
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, AppSpacing.md)
-        }
-        .frame(height: 44)
-        .padding(.top, AppSpacing.xs)
+        NavigationHeader(title: name, horizontalInset: AppSpacing.md) { dismiss() }
     }
 
     // MARK: - 썸네일
@@ -351,24 +335,6 @@ struct NearbySpotDetailView: View {
 
     // MARK: - 토스트
 
-    @ViewBuilder
-    private var toastView: some View {
-        if let toast {
-            Text(toast)
-                .font(AppFont.labelMedium)
-                .foregroundColor(.white)
-                .padding(.horizontal, 18)
-                .frame(height: 44)
-                .background(AppColor.textPrimary.opacity(0.92))
-                .clipShape(Capsule())
-                .padding(.bottom, 90)
-                .transition(.opacity)
-                .task(id: toast) {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    self.toast = nil
-                }
-        }
-    }
 }
 
 private struct NearbyPin: Identifiable {

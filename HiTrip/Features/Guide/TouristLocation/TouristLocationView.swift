@@ -109,24 +109,10 @@ struct TouristLocationView: View {
 
     private var headerSection: some View {
         VStack(spacing: 0) {
-            ZStack {
-                Text("\(viewModel.touristName.isEmpty ? touristName : viewModel.touristName) 님의 현재 위치")
-                    .font(AppFont.headlineBold)
-                    .foregroundColor(AppColor.textPrimary)
-
-                HStack {
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(AppFont.title3Medium)
-                            .foregroundColor(.black)
-                            .frame(width: 24, height: 24)
-                    }
-                    Spacer()
-                }
-                .padding(.leading, AppSpacing.sm)
-            }
-            .frame(height: 24)
-            .padding(.top, AppSpacing.xs)
+            NavigationHeader(
+                title: "\(viewModel.touristName.isEmpty ? touristName : viewModel.touristName) 님의 현재 위치",
+                style: .compact
+            ) { dismiss() }
 
             HStack(alignment: .firstTextBaseline) {
                 Text("주소: \(viewModel.address.isEmpty ? "확인 중" : viewModel.address)")
@@ -251,13 +237,7 @@ struct TouristLocationView: View {
     // MARK: - 복귀 토스트
 
     private var returnedToast: some View {
-        Text("범위 내로 복귀했어요")
-            .font(AppFont.labelMedium)
-            .foregroundColor(.white)
-            .padding(.horizontal, 18)
-            .frame(height: 44)
-            .background(AppColor.textPrimary.opacity(0.92))
-            .clipShape(Capsule())
+        ToastView(message: "범위 내로 복귀했어요")
             .padding(.top, 120)
             .task(id: viewModel.returnedNotice) {
                 try? await Task.sleep(nanoseconds: 2_500_000_000)

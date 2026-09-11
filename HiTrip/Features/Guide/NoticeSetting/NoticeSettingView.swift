@@ -81,7 +81,7 @@ struct NoticeSettingView: View {
                 noticeDetailPopup(notice)
             }
         }
-        .overlay(alignment: .bottom) { toastView }
+        .toast($viewModel.toast)
         .animation(.easeInOut(duration: 0.2), value: showEditor)
         .navigationBarHidden(true)
         .task { viewModel.load() }
@@ -193,24 +193,7 @@ struct NoticeSettingView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        ZStack {
-            Text("공지 설정")
-                .font(AppFont.headlineBold)
-                .foregroundColor(.black)
-
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.title3Medium)
-                        .foregroundColor(.black)
-                        .frame(width: 24, height: 24)
-                }
-                Spacer()
-            }
-            .padding(.leading, AppSpacing.sm)
-        }
-        .frame(height: 24)
-        .padding(.top, AppSpacing.xs)
+        NavigationHeader(title: "공지 설정", style: .compact) { dismiss() }
     }
 
     // MARK: - 목록
@@ -309,9 +292,7 @@ struct NoticeSettingView: View {
 
     private func noticeDetailPopup(_ notice: StaffNoticeDTO) -> some View {
         ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-                .onTapGesture { detailTarget = nil }
+            DimmedBackground { detailTarget = nil }
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
@@ -382,23 +363,6 @@ struct NoticeSettingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    @ViewBuilder
-    private var toastView: some View {
-        if let toast = viewModel.toast {
-            Text(toast)
-                .font(AppFont.labelMedium)
-                .foregroundColor(.white)
-                .padding(.horizontal, 18)
-                .frame(height: 44)
-                .background(AppColor.textPrimary.opacity(0.92))
-                .clipShape(Capsule())
-                .padding(.bottom, 40)
-                .task(id: toast) {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    viewModel.toast = nil
-                }
-        }
-    }
 }
 
 // MARK: - 공지 작성 팝업
