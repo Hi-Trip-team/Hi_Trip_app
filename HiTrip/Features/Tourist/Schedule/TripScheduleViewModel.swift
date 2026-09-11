@@ -226,11 +226,11 @@ final class TripScheduleViewModel: ObservableObject {
     /// 입력 중 겹침 경고 — 저장 전에 공용 일정과 시간이 겹치는지 미리 봅니다.
     /// 서버도 저장 시 overlap_warning을 돌려주지만, 기획상 경고는 입력 중에 떠야 합니다.
     func overlapsSharedSchedule(dayNumber: Int, start: String, end: String) -> Bool {
-        guard let s = Self.minutes(start), let e = Self.minutes(end), s < e else { return false }
+        guard let s = AppDate.minutes(start), let e = AppDate.minutes(end), s < e else { return false }
         return shared
             .filter { $0.dayNumber == dayNumber }
             .contains { item in
-                guard let ss = Self.minutes(item.startTime), let se = Self.minutes(item.endTime) else { return false }
+                guard let ss = AppDate.minutes(item.startTime), let se = AppDate.minutes(item.endTime) else { return false }
                 return s < se && ss < e
             }
     }
@@ -280,35 +280,24 @@ final class TripScheduleViewModel: ObservableObject {
 
     /// 지금 진행 중인 일정. 없으면 다음 예정 일정, 오늘 일정이 끝났으면 nil.
     var todayCurrentSchedule: TravelerScheduleDTO? {
-        let now = Self.minutesNow()
+        let now = AppDate.minutesNow
         if let ongoing = todaySchedules.first(where: { s in
-            guard let st = Self.minutes(s.startTime), let et = Self.minutes(s.endTime) else { return false }
+            guard let st = AppDate.minutes(s.startTime), let et = AppDate.minutes(s.endTime) else { return false }
             return st <= now && now < et
         }) {
             return ongoing
         }
         return todaySchedules
-            .filter { (Self.minutes($0.startTime) ?? 0) > now }
-            .min { (Self.minutes($0.startTime) ?? 0) < (Self.minutes($1.startTime) ?? 0) }
+            .filter { (AppDate.minutes($0.startTime) ?? 0) > now }
+            .min { (AppDate.minutes($0.startTime) ?? 0) < (AppDate.minutes($1.startTime) ?? 0) }
     }
 
     /// 오늘 일정 전체 구간에서 지금까지의 경과 비율 (0...1)
     var todayProgress: Double {
-        let starts = todaySchedules.compactMap { Self.minutes($0.startTime) }
-        let ends   = todaySchedules.compactMap { Self.minutes($0.endTime) }
+        let starts = todaySchedules.compactMap { AppDate.minutes($0.startTime) }
+        let ends   = todaySchedules.compactMap { AppDate.minutes($0.endTime) }
         guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
-        return min(max(Double(Self.minutesNow() - first) / Double(last - first), 0), 1)
-    }
-
-    private static func minutes(_ time: String) -> Int? {
-        let p = time.split(separator: ":").compactMap { Int($0) }
-        guard p.count >= 2 else { return nil }
-        return p[0] * 60 + p[1]
-    }
-
-    private static func minutesNow() -> Int {
-        let c = Calendar.current.dateComponents([.hour, .minute], from: Date())
-        return (c.hour ?? 0) * 60 + (c.minute ?? 0)
+        return min(max(Double(AppDate.minutesNow - first) / Double(last - first), 0), 1)
     }
 
     /// "1일차 2025.04.24" 헤더용
@@ -318,12 +307,8 @@ final class TripScheduleViewModel: ObservableObject {
             : "\(section.dayNumber)일차  \(section.date.replacingOccurrences(of: "-", with: "."))"
     }
 
-    static func hhmm(_ time: String) -> String {
-        time.split(separator: ":").prefix(2).joined(separator: ":")
-    }
-
     static func timeRange(_ start: String, _ end: String) -> String {
-        "\(hhmm(start)) - \(hhmm(end))"
+        "\(AppDate.hhmm(start)) - \(AppDate.hhmm(end))"
     }
 
     // MARK: - Private
@@ -341,7 +326,7 @@ final class TripScheduleViewModel: ObservableObject {
             .filter { personal.overlapWithSharedScheduleIds.contains($0.id) }
             .compactMap { s -> String? in
                 guard let name = s.placeName ?? s.mainContent else { return nil }
-                return "\(hhmm(s.startTime)) \(name)"
+                return "\(AppDate.hhmm(s.startTime)) \(name)"
             }
         return names.isEmpty
             ? "공용 일정과 시간이 겹칩니다"

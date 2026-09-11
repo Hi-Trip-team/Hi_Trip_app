@@ -180,15 +180,7 @@ final class NoticeSettingViewModel: ObservableObject {
 
     /// "04.24 10:20"
     func dateText(_ notice: StaffNoticeDTO) -> String {
-        let raw = notice.publishedAt ?? notice.createdAt
-        let parser = ISO8601DateFormatter()
-        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let date = parser.date(from: raw) ?? ISO8601DateFormatter().date(from: raw) else { return "" }
-
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "MM.dd HH:mm"
-        return f.string(from: date)
+        AppDate.string(iso: notice.publishedAt ?? notice.createdAt, "MM.dd HH:mm")
     }
 
     private static func message(for error: Error) -> String {

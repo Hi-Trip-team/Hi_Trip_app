@@ -10,8 +10,8 @@ struct TripDetailView: View {
     @State private var addTitle = ""
     @State private var addMemo = ""
     /// 휠 피커가 다루는 값. 문자열 addStart/addEnd는 여기서 파생됩니다.
-    @State private var startDate = TripDetailView.defaultTime(hour: 20)
-    @State private var endDate   = TripDetailView.defaultTime(hour: 21)
+    @State private var startDate = AppDate.today(hour: 20)
+    @State private var endDate   = AppDate.today(hour: 21)
     /// 수정 중인 개인 일정 id — nil이면 새로 추가
     @State private var editingId: Int?
 
@@ -718,8 +718,8 @@ struct TripDetailView: View {
     // MARK: - 동작
 
     /// "HH:mm"
-    private var addStart: String { Self.hhmm(startDate) }
-    private var addEnd:   String { Self.hhmm(endDate) }
+    private var addStart: String { AppDate.hhmm(startDate) }
+    private var addEnd:   String { AppDate.hhmm(endDate) }
 
     private var isEndBeforeStart: Bool { addEnd <= addStart }
 
@@ -727,24 +727,6 @@ struct TripDetailView: View {
     private var overlapsShared: Bool {
         guard let day = addDayNumber, !isEndBeforeStart else { return false }
         return viewModel.overlapsSharedSchedule(dayNumber: day, start: addStart, end: addEnd)
-    }
-
-    private static func defaultTime(hour: Int) -> Date {
-        Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
-    }
-
-    private static func hhmm(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "HH:mm"
-        return f.string(from: date)
-    }
-
-    private static func date(fromHHmm text: String) -> Date {
-        let parts = text.split(separator: ":")
-        let h = parts.count == 2 ? Int(parts[0]) ?? 0 : 0
-        let m = parts.count == 2 ? Int(parts[1]) ?? 0 : 0
-        return Calendar.current.date(bySettingHour: h, minute: m, second: 0, of: Date()) ?? Date()
     }
 
     private var isTitleOverLimit: Bool { addTitle.count > titleLimit }
@@ -782,8 +764,8 @@ struct TripDetailView: View {
         addDayNumber = dayNumber
         addTitle = p.title
         addMemo = p.memo ?? ""
-        startDate = Self.date(fromHHmm: TripScheduleViewModel.hhmm(p.startTime))
-        endDate   = Self.date(fromHHmm: TripScheduleViewModel.hhmm(p.endTime))
+        startDate = AppDate.today(hhmm: AppDate.hhmm(p.startTime))
+        endDate   = AppDate.today(hhmm: AppDate.hhmm(p.endTime))
         swipedId = nil
         showAddSheet = true
     }
@@ -803,8 +785,8 @@ struct TripDetailView: View {
         openPicker = nil
         addTitle = ""
         addMemo = ""
-        startDate = Self.defaultTime(hour: 20)
-        endDate = Self.defaultTime(hour: 21)
+        startDate = AppDate.today(hour: 20)
+        endDate = AppDate.today(hour: 21)
     }
 }
 

@@ -1,27 +1,17 @@
 import SwiftUI
-import RxSwift
 
 // MARK: - SplashView
 /// 스플래시 화면
 ///
-/// 1. 로고를 최소 1.5초 보여줍니다.
-/// 2. 네트워크가 없으면 「네트워크 연결을 확인해주세요」 + [재시도]
-/// 3. 최소 지원 버전 미달이면 「업데이트가 필요합니다」 팝업 (닫기 불가)
-/// 4. 자동 로그인이 켜져 있고 세션이 유효하면 역할별 홈(약관 필요 시 약관), 아니면 로그인
+/// 판단 로직은 SplashViewModel이 맡고, 이 View는 로고·재시도·업데이트 팝업만 그립니다.
 
 struct SplashView: View {
 
     @EnvironmentObject var router: AppRouter
 
+    @StateObject private var viewModel = SplashViewModel()
     @State private var isAnimating = false
-    @State private var phase: Phase = .launching
     @State private var attempt = 0
-    @State private var disposeBag = DisposeBag()
-
-    private let loginUseCase = AppDIContainer.shared.makeLoginUseCase()
-    private static let minimumDisplay: TimeInterval = 1.5
-
-    enum Phase { case launching, offline, updateRequired }
 
     var body: some View {
         ZStack {
@@ -43,83 +33,28 @@ struct SplashView: View {
                     .padding(.bottom, AppSpacing.xs)
             }
 
-            if phase == .offline {
+            if viewModel.phase == .offline {
                 offlineSection
             }
 
-            if phase == .updateRequired {
+            if viewModel.phase == .updateRequired {
                 updatePopup
             }
         }
         .onAppear {
             withAnimation(.easeOut(duration: 0.8)) { isAnimating = true }
         }
-        .task(id: attempt) { await start() }
-    }
-
-    // MARK: - 흐름
-
-    private func start() async {
-        let startedAt = Date()
-
-        guard await NetworkReachability.isConnected() else {
-            await waitMinimumDisplay(since: startedAt)
-            phase = .offline
-            return
+        .task(id: attempt) { await viewModel.start() }
+        .onChange(of: viewModel.route) { route in
+            switch route {
+            case .login?:
+                router.navigateToLogin()
+            case let .home(type, requiresAgreement)?:
+                router.proceedAfterLogin(as: type, requiresAgreement: requiresAgreement)
+            case nil:
+                break
+            }
         }
-        if await AppVersionChecker.isUpdateRequired() {
-            phase = .updateRequired
-            return
-        }
-        await waitMinimumDisplay(since: startedAt)
-        route()
-    }
-
-    private func waitMinimumDisplay(since start: Date) async {
-        let remaining = Self.minimumDisplay - Date().timeIntervalSince(start)
-        guard remaining > 0 else { return }
-        try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
-    }
-
-    private func route() {
-        let keychain = KeychainManager.shared
-
-        if APIEnvironment.current.useMock {
-            keychain.clearAll()
-            router.navigateToLogin()
-            return
-        }
-
-        // 자동 로그인을 끄고 로그인했던 경우 — 이번 실행에서는 세션을 버립니다.
-        guard keychain.isLoggedIn, keychain.isAutoLoginEnabled else {
-            clearSavedSession()
-            router.navigateToLogin()
-            return
-        }
-
-        loginUseCase.validateSession()
-            .observe(on: MainScheduler.instance)
-            .subscribe(
-                onSuccess: { state in
-                    router.proceedAfterLogin(as: state.userType, requiresAgreement: state.requiresAgreement)
-                },
-                onFailure: { error in
-                    switch ErrorHandler.classify(error) {
-                    case .noConnection, .timeout, .networkFailure:
-                        phase = .offline
-                    default:
-                        // 만료(여행 종료+3일 경과 후 서버 파기 포함) → 로그인 화면
-                        clearSavedSession()
-                        router.navigateToLogin()
-                    }
-                }
-            )
-            .disposed(by: disposeBag)
-    }
-
-    private func clearSavedSession() {
-        KeychainManager.shared.clearAll()
-        NetworkService.clearSession()
     }
 
     // MARK: - 네트워크 미연결
@@ -131,7 +66,7 @@ struct SplashView: View {
                 .font(AppFont.bodyLSemiBold)
                 .foregroundColor(.white)
             Button {
-                phase = .launching
+                viewModel.retry()
                 attempt += 1
             } label: {
                 Text("재시도")

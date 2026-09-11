@@ -198,14 +198,7 @@ struct ChatRoomView: View {
            cal.isDate(chatMessages[index - 1].sentAt, inSameDayAs: current) {
             return nil
         }
-        if cal.isDateInToday(current)     { return "오늘" }
-        if cal.isDateInYesterday(current) { return "어제" }
-
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = cal.isDate(current, equalTo: Date(), toGranularity: .year)
-            ? "M월 d일 EEEE" : "yyyy년 M월 d일"
-        return f.string(from: current)
+        return AppDate.chatDaySeparator(current)
     }
 
     // MARK: - 첨부 / 녹음

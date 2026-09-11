@@ -140,20 +140,20 @@ final class StaffHomeViewModel: ObservableObject {
 
     /// 진행률 — 당일 첫 일정 시작 ~ 마지막 일정 종료 대비 현재 시각 (여행객 홈과 같은 규칙)
     var todayProgress: Double {
-        let starts = todaySchedules.compactMap { Self.minutes($0.startTime) }
-        let ends   = todaySchedules.compactMap { Self.minutes($0.endTime) }
+        let starts = todaySchedules.compactMap { AppDate.minutes($0.startTime) }
+        let ends   = todaySchedules.compactMap { AppDate.minutes($0.endTime) }
         guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
-        return min(max(Double(Self.minutesNow() - first) / Double(last - first), 0), 1)
+        return min(max(Double(AppDate.minutesNow - first) / Double(last - first), 0), 1)
     }
 
     /// 지금 진행 중이거나 다음에 올 일정
     var currentSchedule: StaffScheduleDTO? {
-        let now = Self.minutesNow()
+        let now = AppDate.minutesNow
         if let ongoing = todaySchedules.first(where: {
-            guard let s = Self.minutes($0.startTime), let e = Self.minutes($0.endTime) else { return false }
+            guard let s = AppDate.minutes($0.startTime), let e = AppDate.minutes($0.endTime) else { return false }
             return s <= now && now < e
         }) { return ongoing }
-        return todaySchedules.first { (Self.minutes($0.startTime) ?? 0) > now }
+        return todaySchedules.first { (AppDate.minutes($0.startTime) ?? 0) > now }
     }
 
     /// 그다음 일정 — 현재와 같으면 숨깁니다
@@ -191,30 +191,7 @@ final class StaffHomeViewModel: ObservableObject {
     // MARK: - 헬퍼
 
     static func timeRange(_ start: String, _ end: String) -> String {
-        "\(hhmm(start)) - \(hhmm(end))"
-    }
-
-    static func hhmm(_ time: String) -> String {
-        String(time.prefix(5))
-    }
-
-    private static func minutes(_ time: String) -> Int? {
-        let parts = time.split(separator: ":")
-        guard parts.count >= 2, let h = Int(parts[0]), let m = Int(parts[1]) else { return nil }
-        return h * 60 + m
-    }
-
-    private static func minutesNow() -> Int {
-        let now = Calendar.current.dateComponents([.hour, .minute], from: Date())
-        return (now.hour ?? 0) * 60 + (now.minute ?? 0)
-    }
-
-    private static func date(from string: String?) -> Date? {
-        guard let string else { return nil }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: string)
+        "\(AppDate.hhmm(start)) - \(AppDate.hhmm(end))"
     }
 
     private static func message(for error: Error) -> String {

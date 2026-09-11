@@ -198,10 +198,7 @@ final class SafetyManagementViewModel: ObservableObject {
     /// "10:24 기준 · 30초마다 갱신"
     var updatedText: String {
         guard let updatedAt else { return "갱신 대기 중 · 30초마다 갱신" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "HH:mm"
-        return "\(f.string(from: updatedAt)) 기준 · 30초마다 갱신"
+        return "\(AppDate.string(updatedAt, "HH:mm")) 기준 · 30초마다 갱신"
     }
 
     // MARK: - 셀 값

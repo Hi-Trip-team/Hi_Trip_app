@@ -18,15 +18,7 @@ struct NoticePopupView: View {
 
     /// "2025.04.24 10:20"
     private var dateText: String {
-        guard let raw = notice.publishedAt ?? notice.createdAt else { return "" }
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let date = iso.date(from: raw) ?? ISO8601DateFormatter().date(from: raw) else { return "" }
-
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "yyyy.MM.dd HH:mm"
-        return f.string(from: date)
+        AppDate.string(iso: notice.publishedAt ?? notice.createdAt, "yyyy.MM.dd HH:mm")
     }
 
     /// 본문을 빈 줄 기준으로 문단으로 나눕니다

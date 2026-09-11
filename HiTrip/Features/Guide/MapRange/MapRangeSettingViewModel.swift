@@ -101,8 +101,8 @@ final class MapRangeSettingViewModel: NSObject, ObservableObject {
 
     var totalDays: Int {
         guard let trip,
-              let start = Self.date(from: trip.startDate),
-              let end = Self.date(from: trip.endDate),
+              let start = AppDate.day(trip.startDate),
+              let end = AppDate.day(trip.endDate),
               let days = Calendar.current.dateComponents([.day], from: start, to: end).day
         else { return 1 }
         return max(days + 1, 1)
@@ -110,7 +110,7 @@ final class MapRangeSettingViewModel: NSObject, ObservableObject {
 
     /// 스태프 API에 today_day_number가 없어 시작일로 계산합니다
     var todayDayNumber: Int? {
-        guard let start = Self.date(from: trip?.startDate) else { return nil }
+        guard let start = AppDate.day(trip?.startDate) else { return nil }
         let today = Calendar.current.startOfDay(for: Date())
         let days = Calendar.current.dateComponents([.day], from: start, to: today).day ?? 0
         return days >= 0 ? days + 1 : nil
@@ -249,14 +249,6 @@ final class MapRangeSettingViewModel: NSObject, ObservableObject {
     private static func coordinate(_ fence: GeofenceDTO) -> CLLocationCoordinate2D? {
         guard let lat = Double(fence.centerLat), let lng = Double(fence.centerLng) else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lng)
-    }
-
-    private static func date(from string: String?) -> Date? {
-        guard let string else { return nil }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: string)
     }
 
     private static func message(for error: Error) -> String {

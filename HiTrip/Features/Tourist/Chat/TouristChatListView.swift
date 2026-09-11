@@ -135,7 +135,7 @@ struct TouristChatListView: View {
             Spacer(minLength: 8)
 
             VStack(alignment: .trailing, spacing: 6) {
-                Text(formatTime(room.lastMessageDate))
+                Text(AppDate.chatListTime(room.lastMessageDate, showsWeekday: false))
                     .font(AppFont.caption2)
                     .foregroundColor(AppColor.textSecondary)
 
@@ -175,14 +175,4 @@ struct TouristChatListView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 오늘=HH:mm, 어제="어제", 그 이전=M.D
-    private func formatTime(_ date: Date) -> String {
-        let cal = Calendar.current
-        if cal.isDateInYesterday(date) { return "어제" }
-
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = cal.isDateInToday(date) ? "HH:mm" : "M.d"
-        return f.string(from: date)
-    }
 }

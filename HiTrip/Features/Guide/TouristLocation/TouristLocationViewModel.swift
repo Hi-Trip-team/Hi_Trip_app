@@ -137,7 +137,7 @@ final class TouristLocationViewModel: NSObject, ObservableObject {
                 else { return }
 
                 self.participant = target
-                self.measuredAt = Self.date(from: target.location?.measuredAt)
+                self.measuredAt = AppDate.iso(target.location?.measuredAt)
                 self.updateGeocodeIfNeeded()
                 self.checkReturned(target)
             }, onFailure: { _ in })
@@ -203,12 +203,6 @@ final class TouristLocationViewModel: NSObject, ObservableObject {
         }
     }
 
-    private static func date(from iso: String?) -> Date? {
-        guard let iso else { return nil }
-        let parser = ISO8601DateFormatter()
-        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return parser.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
-    }
 }
 
 // MARK: - CLLocationManagerDelegate

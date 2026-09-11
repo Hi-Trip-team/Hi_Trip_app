@@ -309,8 +309,8 @@ struct StaffTripDetailView: View {
                     .foregroundColor(AppColor.textSecondary)
 
                 HStack(spacing: AppSpacing.sm) {
-                    timeField("시작", value: hhmm(draftStart), field: .start)
-                    timeField("종료", value: hhmm(draftEnd), field: .end)
+                    timeField("시작", value: AppDate.hhmm(draftStart), field: .start)
+                    timeField("종료", value: AppDate.hhmm(draftEnd), field: .end)
                 }
                 .padding(.top, 6)
 
@@ -401,17 +401,17 @@ struct StaffTripDetailView: View {
     private var needsTitleField: Bool { if case .time = sheetMode { return false }; return true }
     private var needsTimeFields: Bool { if case .memo = sheetMode { return false }; return true }
 
-    private var isEndBeforeStart: Bool { hhmm(draftEnd) <= hhmm(draftStart) }
+    private var isEndBeforeStart: Bool { AppDate.hhmm(draftEnd) <= AppDate.hhmm(draftStart) }
 
     private var hasOverlap: Bool {
         guard needsTimeFields, !isEndBeforeStart else { return false }
         switch sheetMode {
         case .add(let day):
-            return viewModel.overlaps(dayNumber: day, start: hhmm(draftStart), end: hhmm(draftEnd))
+            return viewModel.overlaps(dayNumber: day, start: AppDate.hhmm(draftStart), end: AppDate.hhmm(draftEnd))
         case .time(let item):
             return viewModel.overlaps(
                 dayNumber: item.dayNumber,
-                start: hhmm(draftStart), end: hhmm(draftEnd),
+                start: AppDate.hhmm(draftStart), end: AppDate.hhmm(draftEnd),
                 excluding: item.id
             )
         case .memo:
@@ -436,8 +436,8 @@ struct StaffTripDetailView: View {
     private func openAddSheet(day: Int) {
         sheetMode = .add(day: day)
         draftTitle = ""
-        draftStart = Self.time(hour: 9)
-        draftEnd = Self.time(hour: 10)
+        draftStart = AppDate.today(hour: 9)
+        draftEnd = AppDate.today(hour: 10)
         openPicker = nil
         showSheet = true
         focusTextSoon()
@@ -445,8 +445,8 @@ struct StaffTripDetailView: View {
 
     private func openTimeSheet(_ item: StaffScheduleDTO) {
         sheetMode = .time(item)
-        draftStart = Self.time(from: item.startTime)
-        draftEnd = Self.time(from: item.endTime)
+        draftStart = AppDate.today(hhmm: item.startTime, fallbackHour: 9)
+        draftEnd = AppDate.today(hhmm: item.endTime, fallbackHour: 9)
         openPicker = nil
         showSheet = true
     }
@@ -471,11 +471,11 @@ struct StaffTripDetailView: View {
             viewModel.addSchedule(
                 dayNumber: day,
                 title: draftTitle.trimmingCharacters(in: .whitespaces),
-                start: hhmm(draftStart), end: hhmm(draftEnd)
+                start: AppDate.hhmm(draftStart), end: AppDate.hhmm(draftEnd)
             ) { closeSheet() }
 
         case .time(let item):
-            viewModel.updateTime(item, start: hhmm(draftStart), end: hhmm(draftEnd)) { closeSheet() }
+            viewModel.updateTime(item, start: AppDate.hhmm(draftStart), end: AppDate.hhmm(draftEnd)) { closeSheet() }
 
         case .memo(let item):
             viewModel.updateMemo(item, content: draftTitle) { closeSheet() }
@@ -490,24 +490,6 @@ struct StaffTripDetailView: View {
     }
 
     // MARK: - 시각 헬퍼
-
-    private func hhmm(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "HH:mm"
-        return f.string(from: date)
-    }
-
-    private static func time(hour: Int) -> Date {
-        Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
-    }
-
-    private static func time(from text: String) -> Date {
-        let parts = text.split(separator: ":")
-        let h = parts.count >= 2 ? Int(parts[0]) ?? 9 : 9
-        let m = parts.count >= 2 ? Int(parts[1]) ?? 0 : 0
-        return Calendar.current.date(bySettingHour: h, minute: m, second: 0, of: Date()) ?? Date()
-    }
 
     // MARK: - 상태 화면
 

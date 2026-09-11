@@ -114,14 +114,11 @@ final class StaffTripDetailViewModel: ObservableObject {
 
     /// 일차 헤더의 날짜 — 시작일 + (일차 - 1)
     private func dateText(for dayNumber: Int) -> String {
-        guard let start = Self.date(from: trip?.startDate),
+        guard let start = AppDate.day(trip?.startDate),
               let date = Calendar.current.date(byAdding: .day, value: dayNumber - 1, to: start)
         else { return "" }
 
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "yyyy.MM.dd"
-        return f.string(from: date)
+        return AppDate.string(date, "yyyy.MM.dd")
     }
 
     func toggle(day: Int) {
@@ -132,11 +129,11 @@ final class StaffTripDetailViewModel: ObservableObject {
 
     /// 기존 일정과 시간이 겹치는지 — 추가·시간 변경 전에 경고합니다
     func overlaps(dayNumber: Int, start: String, end: String, excluding id: Int? = nil) -> Bool {
-        guard let s = Self.minutes(start), let e = Self.minutes(end), s < e else { return false }
+        guard let s = AppDate.minutes(start), let e = AppDate.minutes(end), s < e else { return false }
         return schedules
             .filter { $0.dayNumber == dayNumber && $0.id != id }
             .contains { item in
-                guard let ss = Self.minutes(item.startTime), let ee = Self.minutes(item.endTime) else { return false }
+                guard let ss = AppDate.minutes(item.startTime), let ee = AppDate.minutes(item.endTime) else { return false }
                 return s < ee && ss < e
             }
     }
@@ -229,27 +226,11 @@ final class StaffTripDetailViewModel: ObservableObject {
     }
 
     static func timeRange(_ start: String, _ end: String) -> String {
-        "\(hhmm(start)) - \(hhmm(end))"
+        "\(AppDate.hhmm(start)) - \(AppDate.hhmm(end))"
     }
-
-    static func hhmm(_ time: String) -> String { String(time.prefix(5)) }
 
     private static func withSeconds(_ hhmm: String) -> String {
         hhmm.count == 5 ? "\(hhmm):00" : hhmm
-    }
-
-    private static func minutes(_ time: String) -> Int? {
-        let parts = time.split(separator: ":")
-        guard parts.count >= 2, let h = Int(parts[0]), let m = Int(parts[1]) else { return nil }
-        return h * 60 + m
-    }
-
-    private static func date(from string: String?) -> Date? {
-        guard let string else { return nil }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: string)
     }
 
     private static func message(for error: Error) -> String {

@@ -138,7 +138,7 @@ final class AlertCenterViewModel: ObservableObject {
 
     /// "10:24 · 탭하여 위치 확인"
     func metaText(_ alert: MonitoringAlertDTO) -> String {
-        var parts = [Self.hhmm(alert.snapshotTime)]
+        var parts = [AppDate.string(iso: alert.snapshotTime, "HH:mm")]
         if alert.alertType == "location" { parts.append("탭하여 위치 확인") }
         return parts.joined(separator: " · ")
     }
@@ -167,18 +167,6 @@ final class AlertCenterViewModel: ObservableObject {
                            self?.acknowledgedIds.remove(alert.id)
                        })
             .disposed(by: disposeBag)
-    }
-
-    private static func hhmm(_ iso: String) -> String {
-        let parser = ISO8601DateFormatter()
-        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let date = parser.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
-        guard let date else { return "" }
-
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "HH:mm"
-        return f.string(from: date)
     }
 
     private static func message(for error: Error) -> String {

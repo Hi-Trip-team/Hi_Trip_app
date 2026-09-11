@@ -153,7 +153,7 @@ struct StaffChatListView: View {
             Spacer(minLength: 8)
 
             VStack(alignment: .trailing, spacing: 6) {
-                Text(Self.timeText(room.lastMessageDate))
+                Text(AppDate.chatListTime(room.lastMessageDate, showsWeekday: true))
                     .font(AppFont.caption2)
                     .foregroundColor(AppColor.textSecondary)
 
@@ -185,21 +185,4 @@ struct StaffChatListView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 오늘=HH:mm, 어제="어제", 이번 주=요일+시각("일 12:40"), 그 이전=M.D
-    private static func timeText(_ date: Date) -> String {
-        let cal = Calendar.current
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-
-        if cal.isDateInToday(date) {
-            f.dateFormat = "HH:mm"
-        } else if cal.isDateInYesterday(date) {
-            return "어제"
-        } else if let days = cal.dateComponents([.day], from: date, to: Date()).day, days < 7 {
-            f.dateFormat = "E HH:mm"
-        } else {
-            f.dateFormat = "M.d"
-        }
-        return f.string(from: date)
-    }
 }

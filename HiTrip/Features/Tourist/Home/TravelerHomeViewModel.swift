@@ -135,7 +135,7 @@ final class TravelerHomeViewModel: ObservableObject {
 
     var phase: TripPhase {
         if dDay > 0 { return .before }
-        if let end = Self.date(from: home?.trip.endDate),
+        if let end = AppDate.day(home?.trip.endDate),
            Calendar.current.startOfDay(for: Date()) > end {
             return .finished
         }
@@ -152,20 +152,9 @@ final class TravelerHomeViewModel: ObservableObject {
 
     /// 여행 종료 후 계정이 파기되는 날 (종료일 + 3일)
     var dataPurgeDateText: String {
-        guard let end = Self.date(from: home?.trip.endDate),
+        guard let end = AppDate.day(home?.trip.endDate),
               let purge = Calendar.current.date(byAdding: .day, value: 3, to: end) else { return "" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "yyyy.MM.dd"
-        return f.string(from: purge)
-    }
-
-    private static func date(from string: String?) -> Date? {
-        guard let string else { return nil }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: string)
+        return AppDate.string(purge, "yyyy.MM.dd")
     }
 
     // MARK: - 오늘의 일정
@@ -195,10 +184,10 @@ final class TravelerHomeViewModel: ObservableObject {
 
     var todayState: TodayState {
         guard !todaySchedules.isEmpty else { return .none }
-        let now = Self.minutesNow()
+        let now = AppDate.minutesNow
 
         if let ongoing = todaySchedules.first(where: { s in
-            guard let st = Self.minutes(s.startTime), let et = Self.minutes(s.endTime) else { return false }
+            guard let st = AppDate.minutes(s.startTime), let et = AppDate.minutes(s.endTime) else { return false }
             return st <= now && now < et
         }) {
             return .ongoing(ongoing)
@@ -206,8 +195,8 @@ final class TravelerHomeViewModel: ObservableObject {
 
         // 진행 중인 게 없으면 아직 시작 안 한 것 중 가장 이른 것
         let upcoming = todaySchedules
-            .filter { (Self.minutes($0.startTime) ?? 0) > now }
-            .min { (Self.minutes($0.startTime) ?? 0) < (Self.minutes($1.startTime) ?? 0) }
+            .filter { (AppDate.minutes($0.startTime) ?? 0) > now }
+            .min { (AppDate.minutes($0.startTime) ?? 0) < (AppDate.minutes($1.startTime) ?? 0) }
 
         return upcoming.map { .upcoming($0) } ?? .finished
     }
@@ -254,10 +243,10 @@ final class TravelerHomeViewModel: ObservableObject {
     /// 여행지 현지 시각이 기준이어야 하지만 API가 여행의 시간대를 주지 않아
     /// 기기 시각으로 계산합니다 (국내 여행은 동일).
     var todayProgress: Double {
-        let starts = todaySchedules.compactMap { Self.minutes($0.startTime) }
-        let ends   = todaySchedules.compactMap { Self.minutes($0.endTime) }
+        let starts = todaySchedules.compactMap { AppDate.minutes($0.startTime) }
+        let ends   = todaySchedules.compactMap { AppDate.minutes($0.endTime) }
         guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
-        let now = Self.minutesNow()
+        let now = AppDate.minutesNow
         return min(max(Double(now - first) / Double(last - first), 0), 1)
     }
 
@@ -310,11 +299,7 @@ final class TravelerHomeViewModel: ObservableObject {
 
     /// "15:00:00" + "16:00:00" → "15:00 - 16:00"
     static func timeRange(_ start: String, _ end: String) -> String {
-        "\(hhmm(start)) - \(hhmm(end))"
-    }
-
-    static func hhmm(_ time: String) -> String {
-        time.split(separator: ":").prefix(2).joined(separator: ":")
+        "\(AppDate.hhmm(start)) - \(AppDate.hhmm(end))"
     }
 
     /// 일정 제목 — 장소명 우선, 없으면 주요 내용
@@ -329,14 +314,4 @@ final class TravelerHomeViewModel: ObservableObject {
         ymd.replacingOccurrences(of: "-", with: ".")
     }
 
-    private static func minutes(_ time: String) -> Int? {
-        let p = time.split(separator: ":").compactMap { Int($0) }
-        guard p.count >= 2 else { return nil }
-        return p[0] * 60 + p[1]
-    }
-
-    private static func minutesNow() -> Int {
-        let c = Calendar.current.dateComponents([.hour, .minute], from: Date())
-        return (c.hour ?? 0) * 60 + (c.minute ?? 0)
-    }
 }
