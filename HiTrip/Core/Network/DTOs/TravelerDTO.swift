@@ -2,12 +2,6 @@ import Foundation
 
 // MARK: - Auth
 
-struct TravelerLoginRequest: Encodable {
-    let username: String
-    let password: String
-    let tripId: Int?
-}
-
 struct TravelerAuthResponseDTO: Decodable {
     let token: String
     let expiresAt: String?
@@ -75,12 +69,6 @@ struct TravelerAgreementDTO: Decodable {
     let acceptedAt: String?
     let updatedAt: String?
     let requiresAgreement: Bool
-}
-
-struct TravelerAgreementUpdateRequest: Encodable {
-    let termsAccepted: Bool
-    let locationPermissionAccepted: Bool?
-    let notificationPermissionAccepted: Bool?
 }
 
 // MARK: - Home
@@ -210,11 +198,6 @@ struct LocalPhraseDTO: Decodable, Identifiable {
 
 // MARK: - Calendar
 
-struct TravelerCalendarDTO: Decodable {
-    let trip: TravelerTripDTO
-    let days: [TravelerCalendarDayDTO]
-}
-
 struct TravelerCalendarDayDTO: Decodable {
     let date: String            // "yyyy-MM-dd"
     let dayNumber: Int
@@ -242,10 +225,6 @@ struct TravelerChecklistItemDTO: Decodable, Identifiable {
     let displayOrder: Int
     let isChecked: Bool
     let checkedAt: String?      // ISO8601 datetime
-}
-
-struct TravelerChecklistStatusUpdateRequest: Encodable {
-    let isChecked: Bool
 }
 
 // MARK: - Notices
@@ -285,15 +264,6 @@ struct TravelerMessageDTO: Decodable, Identifiable {
     let staffSenderName: String?
     let body: String
     let createdAt: String?
-}
-
-struct TravelerMessageThreadCreateRequest: Encodable {
-    let subject: String
-    let body: String
-}
-
-struct TravelerMessageCreateRequest: Encodable {
-    let body: String
 }
 
 // MARK: - Spots (Popular / Recommended)
@@ -337,18 +307,7 @@ struct TravelerMapPlaceDTO: Decodable, Identifiable {
 
 // MARK: - Manager Contact
 
-struct TravelerManagerContactDTO: Decodable {
-    let manager: [String: String]?
-}
-
 // MARK: - Emergency Request
-
-struct TravelerEmergencyRequestCreateRequest: Encodable {
-    let message: String
-    let latitude: String?
-    let longitude: String?
-    let accuracyM: String?
-}
 
 struct TravelerEmergencyRequestDTO: Decodable, Identifiable {
     let id: Int
@@ -364,17 +323,6 @@ struct TravelerEmergencyRequestDTO: Decodable, Identifiable {
 }
 
 // MARK: - Profile Update
-
-struct TravelerProfileUpdateRequest: Encodable {
-    let lastNameKr: String?
-    let firstNameKr: String?
-    let firstNameEn: String?
-    let lastNameEn: String?
-    let phone: String?
-    let email: String?
-    let address: String?
-    let country: String?
-}
 
 // MARK: - DTO → Domain Model Conversions
 
@@ -491,21 +439,9 @@ struct ChatUploadIntentDTO: Decodable {
     let requiredHeaders: [String: String]?
 }
 
-struct ChatUploadCompleteDTO: Decodable {
-    let attachmentId: Int
-    let status: String?
-    let size: Int?
-}
-
 struct ChatMessagePageDTO: Decodable {
     let results: [ChatMessageV1DTO]
     let nextCursor: Int?
-}
-
-struct ChatMessageCreateRequest: Encodable {
-    let body: String
-    let messageType: String
-    let clientMessageId: String?
 }
 
 // AnyCodable helper for heterogeneous JSON values
@@ -593,7 +529,6 @@ extension ChatMessageV1DTO {
         )
     }
 }
-
 
 // MARK: - 주변 스팟 (상황별 검색)
 

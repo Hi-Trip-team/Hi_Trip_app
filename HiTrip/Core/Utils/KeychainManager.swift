@@ -58,16 +58,6 @@ final class KeychainManager {
         load(key: Keys.accessToken)
     }
 
-    /// Refresh Token 저장
-    func saveRefreshToken(_ token: String) {
-        save(key: Keys.refreshToken, value: token)
-    }
-
-    /// Refresh Token 조회
-    func getRefreshToken() -> String? {
-        load(key: Keys.refreshToken)
-    }
-
     // MARK: - User Info
 
     func saveUserId(_ id: String) {
@@ -96,10 +86,6 @@ final class KeychainManager {
 
     func saveUserEmail(_ email: String) {
         save(key: Keys.userEmail, value: email)
-    }
-
-    func getUserEmail() -> String? {
-        load(key: Keys.userEmail)
     }
 
     // MARK: - 토큰 만료 / 자동 로그인

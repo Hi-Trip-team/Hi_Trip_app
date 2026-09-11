@@ -25,8 +25,6 @@ final class MockAuthRepository: AuthRepositoryProtocol {
         return .just(SessionState(userType: type, requiresAgreement: false))
     }
 
-    func getSavedToken() -> String? { savedToken }
-
     func changeInitialPassword(username: String, currentPassword: String, newPassword: String) -> Single<Void> {
         .just(())
     }

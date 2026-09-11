@@ -18,20 +18,14 @@ protocol TravelerRepositoryProtocol {
 
     // MARK: - Profile
     func fetchMe() -> Single<TravelerMeDTO>
-    func updateMe(_ request: TravelerProfileUpdateRequest) -> Single<TravelerPublicDTO>
 
-    // MARK: - Agreements
-    func fetchAgreements() -> Single<TravelerAgreementDTO>
     func updateAgreements(
         termsAccepted: Bool,
         locationAccepted: Bool?,
         notificationAccepted: Bool?
     ) -> Single<TravelerAgreementDTO>
 
-    // MARK: - Trip & Home
-    func fetchTrip() -> Single<TravelerTripDTO>
     func fetchHome() -> Single<TravelerHomeDTO>
-    func fetchCalendar() -> Single<TravelerCalendarDTO>
 
     // MARK: - Schedules
     // MARK: - 개인 일정
@@ -52,27 +46,15 @@ protocol TravelerRepositoryProtocol {
     func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO>
 
     func fetchSchedules() -> Single<[TravelerScheduleDTO]>
-    func fetchSchedule(id: Int) -> Single<TravelerScheduleDTO>
 
     // MARK: - Notices
     func fetchNotices() -> Single<[TravelerNoticeDTO]>
-    func fetchNotice(id: Int) -> Single<TravelerNoticeDTO>
 
     /// 공지 읽음 처리 — 홈의 빨간 점을 없애는 기준
     func markNoticeRead(id: Int) -> Single<Void>
 
-    // MARK: - Checklist
-    func fetchChecklists() -> Single<[TravelerChecklistItemDTO]>
-    func toggleChecklist(itemId: Int, isChecked: Bool) -> Single<TravelerChecklistItemDTO>
-
-    // MARK: - Spots
-    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]>
     func fetchPopularSpots() -> Single<[TravelerSpotDTO]>
-    func fetchSpot(id: Int) -> Single<TravelerSpotDTO>
 
-    // MARK: - Map & Manager
-    func fetchMapPlaces() -> Single<[TravelerMapPlaceDTO]>
-    func fetchManagerContact() -> Single<TravelerManagerContactDTO>
     // MARK: - 주변 스팟 / 안전
 
     /// 상황별 검색 — 카테고리는 서버 enum (restaurant/accessibility/pet/convenience/mart)

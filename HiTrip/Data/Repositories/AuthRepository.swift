@@ -201,10 +201,6 @@ final class AuthRepository: AuthRepositoryProtocol {
             }
     }
 
-    func getSavedToken() -> String? {
-        keychain.getToken()
-    }
-
     // MARK: - 최초 비밀번호 변경
 
     /// 실패 시 서버의 new_password 오류 문구(비밀번호 규칙)를 그대로 전달합니다

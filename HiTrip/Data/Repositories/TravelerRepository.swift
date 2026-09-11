@@ -34,15 +34,7 @@ final class TravelerRepository: TravelerRepositoryProtocol {
         networkService.request(.travelerMe(), type: TravelerMeDTO.self)
     }
 
-    func updateMe(_ request: TravelerProfileUpdateRequest) -> Single<TravelerPublicDTO> {
-        networkService.request(.travelerMeUpdate(body: request.asDictionary()), type: TravelerPublicDTO.self)
-    }
-
     // MARK: - Agreements
-
-    func fetchAgreements() -> Single<TravelerAgreementDTO> {
-        networkService.request(.travelerAgreements(), type: TravelerAgreementDTO.self)
-    }
 
     func updateAgreements(
         termsAccepted: Bool,
@@ -61,16 +53,8 @@ final class TravelerRepository: TravelerRepositoryProtocol {
 
     // MARK: - Trip & Home
 
-    func fetchTrip() -> Single<TravelerTripDTO> {
-        networkService.request(.travelerTrip(), type: TravelerTripDTO.self)
-    }
-
     func fetchHome() -> Single<TravelerHomeDTO> {
         networkService.request(.travelerHome(), type: TravelerHomeDTO.self)
-    }
-
-    func fetchCalendar() -> Single<TravelerCalendarDTO> {
-        networkService.request(.travelerCalendar(), type: TravelerCalendarDTO.self)
     }
 
     // MARK: - Schedules
@@ -108,18 +92,10 @@ final class TravelerRepository: TravelerRepositoryProtocol {
         networkService.request(.travelerSchedules(), type: [TravelerScheduleDTO].self)
     }
 
-    func fetchSchedule(id: Int) -> Single<TravelerScheduleDTO> {
-        networkService.request(.travelerSchedule(id: id), type: TravelerScheduleDTO.self)
-    }
-
     // MARK: - Notices
 
     func fetchNotices() -> Single<[TravelerNoticeDTO]> {
         networkService.request(.travelerNotices(), type: [TravelerNoticeDTO].self)
-    }
-
-    func fetchNotice(id: Int) -> Single<TravelerNoticeDTO> {
-        networkService.request(.travelerNotice(id: id), type: TravelerNoticeDTO.self)
     }
 
     func markNoticeRead(id: Int) -> Single<Void> {
@@ -129,40 +105,13 @@ final class TravelerRepository: TravelerRepositoryProtocol {
 
     // MARK: - Checklist
 
-    func fetchChecklists() -> Single<[TravelerChecklistItemDTO]> {
-        networkService.request(.travelerChecklists(), type: [TravelerChecklistItemDTO].self)
-    }
-
-    func toggleChecklist(itemId: Int, isChecked: Bool) -> Single<TravelerChecklistItemDTO> {
-        networkService.request(
-            .travelerChecklistUpdate(itemId: itemId, isChecked: isChecked),
-            type: TravelerChecklistItemDTO.self
-        )
-    }
-
     // MARK: - Spots
-
-    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]> {
-        networkService.request(.travelerRecommendedSpots(), type: [TravelerSpotDTO].self)
-    }
 
     func fetchPopularSpots() -> Single<[TravelerSpotDTO]> {
         networkService.request(.travelerPopularSpots(), type: [TravelerSpotDTO].self)
     }
 
-    func fetchSpot(id: Int) -> Single<TravelerSpotDTO> {
-        networkService.request(.travelerSpot(id: id), type: TravelerSpotDTO.self)
-    }
-
     // MARK: - Map & Manager
-
-    func fetchMapPlaces() -> Single<[TravelerMapPlaceDTO]> {
-        networkService.request(.travelerMapPlaces(), type: [TravelerMapPlaceDTO].self)
-    }
-
-    func fetchManagerContact() -> Single<TravelerManagerContactDTO> {
-        networkService.request(.travelerManagerContact(), type: TravelerManagerContactDTO.self)
-    }
 
     // MARK: - 주변 스팟 / 안전
 

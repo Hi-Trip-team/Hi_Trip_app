@@ -71,12 +71,6 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/tourist/trip/")
     }
 
-    /// 내 여행 목록
-    /// GET /api/v1/tourist/trips/
-    static func travelerTrips() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/trips/")
-    }
-
     // MARK: - Schedule
 
     /// 여행 일정 목록
@@ -103,12 +97,6 @@ extension APIEndpoint {
     /// POST /api/v1/tourist/personal-schedules/
     static func travelerPersonalScheduleCreate(body: [String: Any]) -> APIEndpoint {
         APIEndpoint(path: "/api/v1/tourist/personal-schedules/", method: .post, body: body)
-    }
-
-    /// 개인 일정 단건 조회
-    /// GET /api/v1/tourist/personal-schedules/{personal_schedule_id}/
-    static func travelerPersonalSchedule(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/personal-schedules/\(id)/")
     }
 
     /// 개인 일정 수정
@@ -171,38 +159,6 @@ extension APIEndpoint {
 
     // MARK: - Messages (스레드 기반 문의)
 
-    /// 문의 스레드 목록
-    /// GET /api/v1/tourist/messages/threads/
-    static func travelerMessageThreads() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/messages/threads/")
-    }
-
-    /// 문의 스레드 생성
-    /// POST /api/v1/tourist/messages/threads/
-    static func travelerMessageThreadCreate(subject: String, body: String) -> APIEndpoint {
-        APIEndpoint(
-            path: "/api/v1/tourist/messages/threads/",
-            method: .post,
-            body: ["subject": subject, "body": body]
-        )
-    }
-
-    /// 스레드 내 메시지 목록
-    /// GET /api/v1/tourist/messages/threads/{thread_id}/messages/
-    static func travelerMessages(threadId: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/messages/threads/\(threadId)/messages/")
-    }
-
-    /// 스레드에 메시지 전송
-    /// POST /api/v1/tourist/messages/threads/{thread_id}/messages/
-    static func travelerMessageCreate(threadId: Int, body: String) -> APIEndpoint {
-        APIEndpoint(
-            path: "/api/v1/tourist/messages/threads/\(threadId)/messages/",
-            method: .post,
-            body: ["body": body]
-        )
-    }
-
     // MARK: - Spots
 
     /// 인기 여행지
@@ -264,18 +220,6 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/tourist/safety/location/", method: .post, body: body)
     }
 
-    /// 안전 확인 요청 목록
-    /// GET /api/v1/tourist/safety/prompts/active/
-    static func travelerSafetyPromptsActive() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/safety/prompts/active/")
-    }
-
-    /// 안전 확인 응답
-    /// POST /api/v1/tourist/safety/prompts/{incident_id}/respond/
-    static func travelerSafetyPromptRespond(incidentId: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/safety/prompts/\(incidentId)/respond/", method: .post, body: body)
-    }
-
     /// 안전 요약 조회
     /// GET /api/v1/tourist/safety/summary/
     static func travelerSafetySummary() -> APIEndpoint {
@@ -313,25 +257,7 @@ extension APIEndpoint {
 
     // MARK: - Audio Guides
 
-    /// 오디오 가이드 목록
-    /// GET /api/v1/tourist/audio-guides/
-    static func travelerAudioGuides() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/audio-guides/")
-    }
-
     // MARK: - Feedback
-
-    /// 만족도 조회
-    /// GET /api/v1/tourist/feedback/
-    static func travelerFeedback() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/feedback/")
-    }
-
-    /// 만족도 제출
-    /// POST /api/v1/tourist/feedback/
-    static func travelerFeedbackCreate(body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/feedback/", method: .post, body: body)
-    }
 
     // MARK: - Chat 첨부 업로드
 
@@ -365,11 +291,6 @@ extension APIEndpoint {
 
     // MARK: - Nearby Tours
 
-    /// 주변 관광지
-    /// GET /api/v1/tourist/nearby-tours/
-    static func travelerNearbyTours() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/nearby-tours/")
-    }
 }
 
 // MARK: - Chat Endpoints (v1)
@@ -419,9 +340,4 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/chat/rooms/\(roomId)/messages/", method: .post, body: body)
     }
 
-    /// 메시지 삭제
-    /// DELETE /api/v1/chat/rooms/{room_id}/messages/{message_id}/
-    static func chatMessageDelete(roomId: String, messageId: String) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/chat/rooms/\(roomId)/messages/\(messageId)/", method: .delete)
-    }
 }

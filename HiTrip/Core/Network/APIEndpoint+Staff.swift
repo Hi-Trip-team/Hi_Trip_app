@@ -108,18 +108,6 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/monitoring/trips/\(tripId)/alerts/")
     }
 
-    /// 안전 사고 목록
-    /// GET /api/monitoring/trips/{id}/incidents/
-    static func monitoringIncidents(tripId: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/monitoring/trips/\(tripId)/incidents/")
-    }
-
-    /// 안전 사고 단건
-    /// GET /api/monitoring/trips/{id}/incidents/{incident_id}/
-    static func monitoringIncident(tripId: Int, incidentId: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/monitoring/trips/\(tripId)/incidents/\(incidentId)/")
-    }
-
     /// 사고 확인 처리 — 알림 센터 "확인" 버튼
     /// POST /api/monitoring/trips/{id}/incidents/{incident_id}/acknowledge/
     static func monitoringIncidentAcknowledge(tripId: Int, incidentId: Int) -> APIEndpoint {
@@ -167,12 +155,6 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/notices/\(id)/archive/", method: .post)
     }
 
-    /// 공지 읽음 현황
-    /// GET /api/v1/notices/{id}/read-summary/
-    static func staffNoticeReadSummary(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/notices/\(id)/read-summary/")
-    }
-
     // MARK: - Geofences (지도 범위 설정)
 
     /// 일차별 안전 구역 목록
@@ -201,39 +183,6 @@ extension APIEndpoint {
 
     // MARK: - 문의 스레드 (고객 관리)
 
-    /// 여행객 문의 스레드 목록
-    /// GET /api/trips/{trip_pk}/traveler-message-threads/
-    static func staffMessageThreads(tripId: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/trips/\(tripId)/traveler-message-threads/")
-    }
-
-    /// 스레드 메시지 목록
-    /// GET /api/trips/{trip_pk}/traveler-message-threads/{thread_pk}/messages/
-    static func staffThreadMessages(tripId: Int, threadId: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/trips/\(tripId)/traveler-message-threads/\(threadId)/messages/")
-    }
-
-    /// 스레드에 답장
-    /// POST /api/trips/{trip_pk}/traveler-message-threads/{thread_pk}/messages/
-    static func staffThreadMessageSend(tripId: Int, threadId: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(
-            path: "/api/trips/\(tripId)/traveler-message-threads/\(threadId)/messages/",
-            method: .post,
-            body: body
-        )
-    }
-
     // MARK: - 긴급 요청
 
-    /// 여행객 긴급 요청 목록
-    /// GET /api/trips/{trip_pk}/emergency-requests/
-    static func staffEmergencyRequests(tripId: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/trips/\(tripId)/emergency-requests/")
-    }
-
-    /// 긴급 요청 상태 변경
-    /// PATCH /api/trips/{trip_pk}/emergency-requests/{id}/
-    static func staffEmergencyRequestUpdate(tripId: Int, id: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/trips/\(tripId)/emergency-requests/\(id)/", method: .patch, body: body)
-    }
 }

@@ -39,15 +39,7 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         .just(TravelerMeDTO(traveler: mockTravelerPublic, trip: mockTravelerTrip))
     }
 
-    func updateMe(_ request: TravelerProfileUpdateRequest) -> Single<TravelerPublicDTO> {
-        .just(mockTravelerPublic)
-    }
-
     // MARK: - Agreements
-
-    func fetchAgreements() -> Single<TravelerAgreementDTO> {
-        .just(mockAgreement)
-    }
 
     func updateAgreements(termsAccepted: Bool, locationAccepted: Bool?, notificationAccepted: Bool?) -> Single<TravelerAgreementDTO> {
         .just(TravelerAgreementDTO(
@@ -61,10 +53,6 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
     }
 
     // MARK: - Trip & Home
-
-    func fetchTrip() -> Single<TravelerTripDTO> {
-        .just(mockTravelerTrip)
-    }
 
     func fetchHome() -> Single<TravelerHomeDTO> {
         .just(TravelerHomeDTO(
@@ -210,22 +198,10 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         ))
     }
 
-    func fetchCalendar() -> Single<TravelerCalendarDTO> {
-        let days = makeMockCalendarDays()
-        return .just(TravelerCalendarDTO(trip: mockTravelerTrip, days: days))
-    }
-
     // MARK: - Schedules
 
     func fetchSchedules() -> Single<[TravelerScheduleDTO]> {
         .just(mockSchedules)
-    }
-
-    func fetchSchedule(id: Int) -> Single<TravelerScheduleDTO> {
-        if let found = mockSchedules.first(where: { $0.id == id }) {
-            return .just(found)
-        }
-        return .error(HiTripError.notFound(.empty(statusCode: 404)))
     }
 
     // MARK: - Notices
@@ -239,59 +215,15 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         return .just(())
     }
 
-    func fetchNotice(id: Int) -> Single<TravelerNoticeDTO> {
-        if let found = mockNotices.first(where: { $0.id == id }) {
-            return .just(found)
-        }
-        return .error(HiTripError.notFound(.empty(statusCode: 404)))
-    }
-
     // MARK: - Checklist
 
-    func fetchChecklists() -> Single<[TravelerChecklistItemDTO]> {
-        .just(mockChecklists)
-    }
-
-    func toggleChecklist(itemId: Int, isChecked: Bool) -> Single<TravelerChecklistItemDTO> {
-        if let found = mockChecklists.first(where: { $0.id == itemId }) {
-            let updated = TravelerChecklistItemDTO(
-                id: found.id,
-                title: found.title,
-                description: found.description,
-                displayOrder: found.displayOrder,
-                isChecked: isChecked,
-                checkedAt: isChecked ? isoNow() : nil
-            )
-            return .just(updated)
-        }
-        return .error(HiTripError.notFound(.empty(statusCode: 404)))
-    }
-
     // MARK: - Spots
-
-    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]> {
-        .just(mockRecommendedSpots)
-    }
 
     func fetchPopularSpots() -> Single<[TravelerSpotDTO]> {
         .just(mockPopularSpots)
     }
 
-    func fetchSpot(id: Int) -> Single<TravelerSpotDTO> {
-        let all = mockRecommendedSpots + mockPopularSpots
-        if let found = all.first(where: { $0.id == id }) { return .just(found) }
-        return .error(HiTripError.notFound(.empty(statusCode: 404)))
-    }
-
     // MARK: - Map & Manager
-
-    func fetchMapPlaces() -> Single<[TravelerMapPlaceDTO]> {
-        .just(mockMapPlaces)
-    }
-
-    func fetchManagerContact() -> Single<TravelerManagerContactDTO> {
-        .just(TravelerManagerContactDTO(manager: ["phone": "010-1234-5678", "name": "김담당 매니저"]))
-    }
 
     // MARK: - 주변 스팟 / 안전
 

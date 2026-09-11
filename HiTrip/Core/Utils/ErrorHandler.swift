@@ -89,23 +89,6 @@ final class ErrorHandler: ObservableObject {
         )
     }
 
-    /// 에러를 조용히 처리 (사용자에게 표시하지 않음, 로깅만)
-    func handleSilently(_ error: Error, context: String? = nil) {
-        let hiTripError = Self.classify(error)
-        if let context {
-            print("🔇 [ErrorHandler] \(context): \(hiTripError.debugDescription)")
-        } else {
-            print("🔇 [ErrorHandler] \(hiTripError.debugDescription)")
-        }
-        errorDetail.accept(hiTripError)
-    }
-
-    /// Alert 닫기
-    func dismissAlert() {
-        alertItem = nil
-        hasError = false
-    }
-
     // MARK: - Static Helpers
 
     /// 임의의 Error를 HiTripError로 분류

@@ -12,7 +12,6 @@ protocol StaffRepositoryProtocol {
 
     // 담당 여행
     func fetchTrips() -> Single<[StaffTripDTO]>
-    func fetchTrip(id: Int) -> Single<StaffTripDTO>
 
     /// 참가자 명부 — 연락처·국가·여권번호
     func fetchParticipants(tripId: Int) -> Single<[TripParticipantDTO]>
@@ -110,10 +109,6 @@ final class StaffRepository: StaffRepositoryProtocol {
 
     func fetchTrips() -> Single<[StaffTripDTO]> {
         networkService.request(.staffTrips(), type: [StaffTripDTO].self)
-    }
-
-    func fetchTrip(id: Int) -> Single<StaffTripDTO> {
-        networkService.request(.staffTrip(id: id), type: StaffTripDTO.self)
     }
 
     // MARK: - 일정

@@ -48,8 +48,6 @@ final class MockStaffRepository: StaffRepositoryProtocol {
 
     func fetchTrips() -> Single<[StaffTripDTO]> { .just([Self.mockTrip]) }
 
-    func fetchTrip(id: Int) -> Single<StaffTripDTO> { .just(Self.mockTrip) }
-
     private static var mockTrip: StaffTripDTO {
         StaffTripDTO(
             id: 1,

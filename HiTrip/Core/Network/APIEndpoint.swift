@@ -77,69 +77,10 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/staff/auth/me/")
     }
 
-    /// 스태프 프로필 수정
-    /// PATCH /api/v1/staff/auth/me/
-    static func profileUpdate(body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/auth/me/", method: .patch, body: body)
-    }
-
     // MARK: - Staff CRUD
-
-    /// 스태프 목록 조회
-    /// GET /api/v1/staff/
-    static func staffList() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/")
-    }
-
-    /// 스태프 계정 생성
-    /// POST /api/v1/staff/
-    static func staffCreate(body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/", method: .post, body: body)
-    }
-
-    /// 스태프 상세 조회
-    /// GET /api/v1/staff/{id}/
-    static func staffRetrieve(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/\(id)/")
-    }
-
-    /// 스태프 전체 수정
-    /// PUT /api/v1/staff/{id}/
-    static func staffUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/\(id)/", method: .put, body: body)
-    }
-
-    /// 스태프 일부 수정
-    /// PATCH /api/v1/staff/{id}/
-    static func staffPartialUpdate(id: Int, body: [String: Any]) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/\(id)/", method: .patch, body: body)
-    }
-
-    /// 스태프 삭제
-    /// DELETE /api/v1/staff/{id}/
-    static func staffDestroy(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/\(id)/", method: .delete)
-    }
-
-    /// 스태프 승인
-    /// POST /api/v1/staff/{id}/approve/
-    static func staffApprove(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/staff/\(id)/approve/", method: .post)
-    }
 
     // MARK: - Tourists (매니저측 관광객 관리)
 
-    /// 여행객 목록 조회
-    /// GET /api/auth/travelers/
-    static func travelersList() -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/travelers/")
-    }
-
-    /// 여행객 상세 조회
-    /// GET /api/auth/travelers/{id}/
-    static func travelersRetrieve(id: Int) -> APIEndpoint {
-        APIEndpoint(path: "/api/auth/travelers/\(id)/")
-    }
 }
 
 // MARK: - Phase별 Endpoint 확장 가이드

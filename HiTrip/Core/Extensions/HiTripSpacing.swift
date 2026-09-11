@@ -64,12 +64,3 @@ enum HiTripRadius {
     static let circle:  CGFloat = 999
 }
 
-enum HiTripShadow {
-    /// 카드 그림자 반경
-    static let cardRadius:  CGFloat = 8
-    /// 카드 그림자 Y 오프셋
-    static let cardY:       CGFloat = 2
-    /// 버튼/컨트롤 그림자 반경
-    static let controlRadius: CGFloat = 6
-    static let controlY:      CGFloat = 2
-}
