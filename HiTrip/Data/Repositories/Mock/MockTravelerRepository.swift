@@ -604,3 +604,10 @@ private extension MockTravelerRepository {
         return (ep[0] * 60 + ep[1]) - (sp[0] * 60 + sp[1])
     }
 }
+
+// MARK: - 실시간
+
+extension MockTravelerRepository {
+    /// Mock은 실시간 연결이 없습니다
+    func observeNoticeEvents() -> Observable<Void> { .empty() }
+}

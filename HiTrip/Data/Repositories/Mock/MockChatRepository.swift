@@ -170,3 +170,10 @@ final class MockChatRepository: ChatRepositoryProtocol {
         return .just(())
     }
 }
+
+// MARK: - 실시간
+
+extension MockChatRepository {
+    /// Mock은 실시간 연결이 없습니다
+    func observeMessages(chatRoomId: UUID) -> Observable<Message> { .empty() }
+}

@@ -81,4 +81,7 @@ protocol TravelerRepositoryProtocol {
         longitude: String?,
         accuracyM: String?
     ) -> Single<TravelerEmergencyRequestDTO>
+
+    /// 공지 변경 알림 — 이벤트가 오면 REST로 공지를 다시 불러옵니다
+    func observeNoticeEvents() -> Observable<Void>
 }

@@ -403,7 +403,8 @@ struct ChatMessageV1DTO: Decodable {
     let metadata: [String: AnyCodable]?
     let replyTo: Int?
     let attachments: [ChatAttachmentDTO]?
-    let isDeleted: Bool
+    /// WebSocket 이벤트에는 빠질 수 있어 선택값으로 둡니다
+    let isDeleted: Bool?
     let createdAt: String?
 }
 
