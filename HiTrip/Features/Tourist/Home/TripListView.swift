@@ -55,7 +55,8 @@ struct TripListView: View {
                 if showEmergency {
                     EmergencyCallDialog(
                         isPresented: $showEmergency,
-                        phoneNumber: viewModel.managerPhone,
+                        // 통역 센터 번호 확정 전에는 담당 안내사 번호로 연결합니다
+                        phoneNumber: AppLinks.supportPhone ?? viewModel.managerPhone,
                         onMessageGuide: { showChat = true }
                     )
                 }

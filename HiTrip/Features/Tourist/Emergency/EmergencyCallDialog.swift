@@ -8,8 +8,8 @@ import SwiftUI
 ///
 /// 판단·전송·전화 연결은 EmergencyCallViewModel이 맡습니다.
 ///
-/// 통역 센터 번호와 운영시간은 아직 확정 전이라, 번호는 홈 응답의
-/// manager_contact를, 운영시간은 아래 기본값을 씁니다.
+/// 연결 기관은 주식회사 픽토리얼, 번호는 AppLinks.supportPhone입니다.
+/// 번호가 비어 있으면 홈 응답의 manager_contact로 연결합니다. 운영시간은 아래 기본값을 씁니다.
 
 struct EmergencyCallDialog: View {
 
