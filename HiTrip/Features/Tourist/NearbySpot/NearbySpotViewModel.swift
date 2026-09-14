@@ -108,8 +108,13 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
     private func loadGeofence() {
         repository.fetchSafetySummary()
             .observe(on: MainScheduler.instance)
-            .subscribe(onSuccess: { [weak self] summary in self?.geofence = summary.geofence },
-                       onFailure: { _ in })
+            .subscribe(onSuccess: { [weak self] summary in
+                guard let self else { return }
+                self.geofence = summary.geofence
+                // 아직 현재 위치가 없으면(권한 대기·시뮬레이터 등) 허용 범위 중심으로 먼저 불러옵니다.
+                // 위치를 받으면 그때 다시 불러옵니다.
+                if self.currentLocation == nil, self.state == .idle { self.loadSpots() }
+            }, onFailure: { _ in })
             .disposed(by: disposeBag)
     }
 
@@ -197,15 +202,16 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         .disposed(by: disposeBag)
     }
 
+    /// 실패 사유를 서버 문구·상태 코드와 함께 보여줍니다 — "못 불러왔어요"만으로는 원인을 알 수 없습니다
     private static func message(for error: Error) -> String {
-        if let e = error as? HiTripError {
-            switch e {
-            case .noConnection: return "연결을 확인해주세요"
-            case .timeout:      return "서버 응답이 없습니다"
-            default:            break
-            }
+        guard let e = error as? HiTripError else { return "정보를 불러오지 못했어요" }
+        switch e {
+        case .noConnection: return "연결을 확인해주세요"
+        case .timeout:      return "서버 응답이 없습니다"
+        default:
+            let reason = e.errorDescription ?? "정보를 불러오지 못했어요"
+            return e.statusCode.map { "\(reason) (\($0))" } ?? reason
         }
-        return "정보를 불러오지 못했어요"
     }
 }
 
