@@ -313,14 +313,12 @@ struct NearbySpotDetailView: View {
                 .font(AppFont.bodyBold)
                 .foregroundColor(AppColor.textPrimary)
 
-            // 미리보기 전용 — 조작은 막고 스팟 위치만 보여줍니다
-            KakaoMapView(
-                pins: [MapPin(id: "spot", coordinate: coordinate, color: UIColor(AppColor.accent))],
-                initialCenter: coordinate
-            )
-            .frame(height: 150)
-            .cornerRadius(AppRadius.lg)
-            .allowsHitTesting(false)
+            // 미리보기 전용 — 지도를 새로 띄우지 않고 정적 이미지로 그립니다
+            // (카카오 지도를 겹쳐 띄우면 가끔 타일이 안 그려짐)
+            StaticMapPreview(coordinate: coordinate)
+                .frame(height: 150)
+                .cornerRadius(AppRadius.lg)
+                .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         }
