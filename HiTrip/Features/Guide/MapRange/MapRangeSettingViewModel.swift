@@ -108,8 +108,9 @@ final class MapRangeSettingViewModel: NSObject, ObservableObject {
         return max(days + 1, 1)
     }
 
-    /// 스태프 API에 today_day_number가 없어 시작일로 계산합니다
+    /// 오늘이 며칠째인지 — 서버 today_day_number, 값이 없으면 시작일로 계산합니다
     var todayDayNumber: Int? {
+        if let serverDay = trip?.todayDayNumber { return serverDay }
         guard let start = AppDate.day(trip?.startDate) else { return nil }
         let today = Calendar.current.startOfDay(for: Date())
         let days = Calendar.current.dateComponents([.day], from: start, to: today).day ?? 0

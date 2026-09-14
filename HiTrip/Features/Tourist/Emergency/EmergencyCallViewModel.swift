@@ -51,7 +51,7 @@ final class EmergencyCallViewModel: ObservableObject {
 
     var guideText: String {
         if !isWithinOperatingHours { return "통역 센터 운영시간이 아닙니다" }
-        return canCall ? "통역사에게 바로 전화를 연결할까요?" : "연결할 수 있는 번호가 없습니다"
+        return canCall ? "\(AppLinks.supportOrganization) 통역사에게\n바로 전화를 연결할까요?" : "연결할 수 있는 번호가 없습니다"
     }
 
     var operatingHoursText: String {
@@ -76,8 +76,7 @@ final class EmergencyCallViewModel: ObservableObject {
 
     private func dial(_ number: String, onFinish: () -> Void) {
         isSending = false
-        let digits = number.filter { $0.isNumber || $0 == "+" }
-        if let url = URL(string: "tel://\(digits)"), UIApplication.shared.canOpenURL(url) {
+        if let url = AppLinks.telURL(number), UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
         }
         onFinish()

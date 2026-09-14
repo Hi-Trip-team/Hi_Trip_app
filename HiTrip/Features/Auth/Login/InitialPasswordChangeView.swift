@@ -23,10 +23,21 @@ struct InitialPasswordChangeView: View {
     private let errorRed = AppColor.danger
     private let brandBlue = AppColor.brand
 
-    private var isTooShort: Bool { !newPassword.isEmpty && newPassword.count < minLength }
+    /// 비밀번호 규칙 (기획 확정 2026-09-14): 8자 이상 + 대문자·숫자·특수문자 각 1개 이상
+    private var ruleViolation: String? {
+        guard !newPassword.isEmpty else { return nil }
+        if newPassword.count < minLength { return "\(minLength)자 이상 입력해주세요." }
+        if !newPassword.contains(where: \.isUppercase) { return "대문자를 1개 이상 포함해주세요." }
+        if !newPassword.contains(where: \.isNumber) { return "숫자를 1개 이상 포함해주세요." }
+        if !newPassword.contains(where: { !$0.isLetter && !$0.isNumber && !$0.isWhitespace }) {
+            return "특수문자를 1개 이상 포함해주세요."
+        }
+        return nil
+    }
+    private var isRuleError: Bool { ruleViolation != nil }
     private var isMismatch: Bool { !confirmPassword.isEmpty && confirmPassword != newPassword }
     private var canSubmit: Bool {
-        newPassword.count >= minLength && confirmPassword == newPassword && !viewModel.isChangingPassword
+        !newPassword.isEmpty && !isRuleError && confirmPassword == newPassword && !viewModel.isChangingPassword
     }
 
     var body: some View {
@@ -48,11 +59,11 @@ struct InitialPasswordChangeView: View {
 
                 VStack(alignment: .leading, spacing: AppSpacing.lg) {
                     field(
-                        "새 비밀번호 (\(minLength)자 이상)",
+                        "대문자·숫자·특수문자 포함 \(minLength)자 이상",
                         text: $newPassword,
                         field: .new,
-                        isError: isTooShort,
-                        message: isTooShort ? "\(minLength)자 이상 입력해주세요." : nil
+                        isError: isRuleError,
+                        message: ruleViolation
                     )
                     field(
                         "새 비밀번호 확인",
