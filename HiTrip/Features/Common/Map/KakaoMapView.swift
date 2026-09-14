@@ -180,6 +180,14 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
         map.viewRect = view.bounds
     }
 
+    /// 화면 전환이 끝난 뒤 한 번 더 켭니다.
+    /// 지도 화면 위에 지도가 있는 화면(스팟 상세)을 올리면, 아래 화면의 viewWillDisappear가
+    /// 새 화면의 viewWillAppear보다 늦게 불려 엔진을 멈춰 버립니다 → 새 지도가 회색으로 남음.
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        controller?.activateEngine()
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         controller?.pauseEngine()
@@ -306,22 +314,41 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
     private func drawCircles(on map: KakaoMap) {
         let shapes = map.getShapeManager()
         shapes.removeShapeLayer(layerID: Self.shapeLayerID)
-        guard !circles.isEmpty,
-              let layer = shapes.addShapeLayer(layerID: Self.shapeLayerID, zOrder: 1) else { return }
+        guard !circles.isEmpty else { return }
+        // zOrder가 낮으면 기본 지도 타일 아래에 깔려 보이지 않습니다 — 카카오 예제와 같은 10001
+        guard let layer = shapes.addShapeLayer(layerID: Self.shapeLayerID, zOrder: 10001) else {
+            #if DEBUG
+            print("🗺️ [KakaoMap] shape layer 생성 실패 — 원 \(circles.count)개를 그리지 못함")
+            #endif
+            return
+        }
 
         for circle in circles {
             let styleID = "circle_\(circle.fill.styleKey)_\(circle.stroke.styleKey)"
             if !registeredStyleIDs.contains(styleID) {
-                let style = PerLevelPolygonStyle(color: circle.fill, strokeWidth: 2, strokeColor: circle.stroke, level: 0)
+                // SwiftUI Color에서 만든 UIColor는 색 공간이 달라 카카오 렌더러가 투명으로 그립니다 → sRGB로 변환
+                let style = PerLevelPolygonStyle(
+                    color: circle.fill.sRGB, strokeWidth: 3, strokeColor: circle.stroke.sRGB, level: 0
+                )
                 shapes.addPolygonStyleSet(PolygonStyleSet(styleSetID: styleID, styles: [PolygonStyle(styles: [style])]))
                 registeredStyleIDs.insert(styleID)
             }
 
-            let ring = KakaoMapView.circlePoints(center: circle.center, radiusM: circle.radiusM).map(\.mapPoint)
+            // 원 둘레 좌표는 SDK 함수로 만듭니다 — 폴리곤 링 방향(cw)을 SDK 규칙에 맞추기 위함
+            let ring = Primitives.getCirclePoints(
+                radius: circle.radiusM, numPoints: 64, cw: true, center: circle.center.mapPoint
+            )
             let option = MapPolygonShapeOptions(shapeID: circle.id, styleID: styleID, zOrder: 0)
             option.polygons = [MapPolygon(exteriorRing: ring, hole: nil, styleIndex: 0)]
-            layer.addMapPolygonShape(option)?.show()
+            let shape = layer.addMapPolygonShape(option)
+            shape?.show()
+            #if DEBUG
+            print("🗺️ [KakaoMap] circle \(circle.id) r=\(Int(circle.radiusM))m points=\(ring.count) shape=\(shape == nil ? "nil" : "ok")")
+            #endif
         }
+        // addMapPolygonShape는 도형을 비동기로 만들어 반환값이 nil일 수 있습니다.
+        // 반환값에 show()를 부르면 원이 영영 안 보이므로, 레이어 단위로 표시합니다.
+        layer.showAllPolygonShapes()
     }
 
     private func move(_ map: KakaoMap, with command: MapCameraCommand) {
@@ -378,6 +405,13 @@ private extension MapPoint {
 }
 
 private extension UIColor {
+    /// 카카오 렌더러가 읽을 수 있는 단순 sRGB 색
+    var sRGB: UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        return UIColor(red: min(max(r, 0), 1), green: min(max(g, 0), 1), blue: min(max(b, 0), 1), alpha: a)
+    }
+
     /// 스타일 ID용 색 키 (RGBA 16진수)
     var styleKey: String {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
