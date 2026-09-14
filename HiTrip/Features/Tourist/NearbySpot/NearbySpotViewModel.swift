@@ -106,7 +106,12 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
     }
 
     private func loadGeofence() {
-        repository.fetchSafetySummary()
+        // 일차를 직접 정해 보냅니다. 비워 보내면 서버가 "오늘"로 판단하는데,
+        // 여행 시작 전·종료 후에는 오늘이 없어 실패하고 경계선이 사라집니다.
+        repository.fetchHome()
+            .map { Self.geofenceDay(for: $0) }
+            .catchAndReturn(nil)
+            .flatMap { [repository] day in repository.fetchSafetySummary(dayNumber: day) }
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] summary in
                 guard let self else { return }
@@ -203,6 +208,14 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
     }
 
     /// 실패 사유를 서버 문구·상태 코드와 함께 보여줍니다 — "못 불러왔어요"만으로는 원인을 알 수 없습니다
+    /// 경계선을 보여줄 일차 — 여행 중이면 오늘, 시작 전이면 1일차, 끝났으면 마지막 날
+    private static func geofenceDay(for home: TravelerHomeDTO) -> Int? {
+        if let today = home.todayDayNumber { return today }
+        guard let start = AppDate.day(home.trip.startDate) else { return nil }
+        let today = Calendar.current.startOfDay(for: Date())
+        return today < start ? 1 : max(home.trip.durationDays, 1)
+    }
+
     private static func message(for error: Error) -> String {
         guard let e = error as? HiTripError else { return "정보를 불러오지 못했어요" }
         switch e {

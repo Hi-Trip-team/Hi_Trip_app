@@ -222,8 +222,12 @@ extension APIEndpoint {
 
     /// 안전 요약 조회
     /// GET /api/v1/tourist/safety/summary/
-    static func travelerSafetySummary() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/safety/summary/")
+    /// - Parameter dayNumber: 몇 일차 기준인지 — nil이면 서버가 오늘로 판단합니다
+    static func travelerSafetySummary(dayNumber: Int? = nil) -> APIEndpoint {
+        APIEndpoint(
+            path: "/api/v1/tourist/safety/summary/",
+            queryItems: dayNumber.map { [URLQueryItem(name: "day_number", value: String($0))] }
+        )
     }
 
     // MARK: - Agreements

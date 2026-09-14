@@ -236,7 +236,7 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         .just(Self.mockNearbySpots(category: category, lat: lat, lng: lng))
     }
 
-    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO> {
+    func fetchSafetySummary(dayNumber: Int?) -> Single<TravelerSafetySummaryDTO> {
         // 목에서는 현재 위치를 모르므로 제주 시내를 중심으로 잡습니다
         .just(TravelerSafetySummaryDTO(
             tripId: 1,
