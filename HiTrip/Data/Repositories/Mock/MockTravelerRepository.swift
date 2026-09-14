@@ -277,8 +277,8 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
                 roadAddress: nil,
                 placeUrl: nil,
                 distanceM: 300 + index * 250,
-                lat: String(lat + Double(index + 1) * 0.004),
-                lng: String(lng + Double(index % 2 == 0 ? 1 : -1) * 0.005),
+                lat: FlexibleDouble(lat + Double(index + 1) * 0.004),
+                lng: FlexibleDouble(lng + Double(index % 2 == 0 ? 1 : -1) * 0.005),
                 isSponsored: index == 0,
                 imageUrl: nil,
                 description: "목 데이터"

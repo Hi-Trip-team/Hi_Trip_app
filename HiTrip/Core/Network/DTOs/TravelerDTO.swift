@@ -565,16 +565,17 @@ struct TravelerNearbySpotDTO: Decodable, Identifiable, Hashable {
     let roadAddress: String?
     let placeUrl: String?
     let distanceM: Int?
-    let lat: String?
-    let lng: String?
+    /// 서버 명세는 문자열이지만 실제로는 숫자로 옵니다 — 둘 다 받습니다
+    let lat: FlexibleDouble?
+    let lng: FlexibleDouble?
     let isSponsored: Bool?
     let imageUrl: String?
     let description: String?
 
     var id: String { providerObjectId }
 
-    var latitude: Double? { lat.flatMap(Double.init) }
-    var longitude: Double? { lng.flatMap(Double.init) }
+    var latitude: Double? { lat?.value }
+    var longitude: Double? { lng?.value }
 
     /// "0.4km" — 1km 미만은 m로 보여줍니다
     var distanceText: String? {
@@ -594,12 +595,44 @@ struct TravelerSafetySummaryDTO: Decodable {
 }
 
 struct TravelerGeofenceDTO: Decodable {
-    let centerLat: String?
-    let centerLng: String?
-    let radiusKm: String?
+    /// 명세는 문자열 — 주변 스팟처럼 숫자로 올 수도 있어 둘 다 받습니다
+    let centerLat: FlexibleDouble?
+    let centerLng: FlexibleDouble?
+    let radiusKm: FlexibleDouble?
 
-    var latitude: Double? { centerLat.flatMap(Double.init) }
-    var longitude: Double? { centerLng.flatMap(Double.init) }
+    var latitude: Double? { centerLat?.value }
+    var longitude: Double? { centerLng?.value }
     /// 미터
-    var radiusM: Double? { radiusKm.flatMap(Double.init).map { $0 * 1000 } }
+    var radiusM: Double? { radiusKm?.value.map { $0 * 1000 } }
+}
+
+// MARK: - FlexibleDouble
+
+/// 숫자·문자열 어느 쪽으로 와도 받는 실수
+///
+/// 서버 명세상 좌표·반경은 문자열(decimal)인데, 주변 스팟 응답은 실제로 숫자(37.5665…)를 줍니다.
+/// 한쪽 형식만 받으면 목록 전체가 해석에 실패하므로 둘 다 허용합니다. 해석할 수 없으면 nil.
+struct FlexibleDouble: Decodable, Hashable, ExpressibleByStringLiteral {
+    let value: Double?
+
+    /// Mock 데이터에서 `"33.499621"`처럼 문자열로 바로 만들 수 있게 합니다
+    init(stringLiteral text: String) {
+        value = Double(text)
+    }
+
+    /// Mock에서 계산한 좌표를 그대로 넣을 때
+    init(_ number: Double) {
+        value = number
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let number = try? container.decode(Double.self) {
+            value = number
+        } else if let text = try? container.decode(String.self) {
+            value = Double(text.trimmingCharacters(in: .whitespaces))
+        } else {
+            value = nil
+        }
+    }
 }
