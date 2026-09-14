@@ -236,7 +236,7 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
         .just(Self.mockNearbySpots(category: category, lat: lat, lng: lng))
     }
 
-    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO> {
+    func fetchSafetySummary(dayNumber: Int?) -> Single<TravelerSafetySummaryDTO> {
         // 목에서는 현재 위치를 모르므로 제주 시내를 중심으로 잡습니다
         .just(TravelerSafetySummaryDTO(
             tripId: 1,
@@ -277,8 +277,8 @@ final class MockTravelerRepository: TravelerRepositoryProtocol {
                 roadAddress: nil,
                 placeUrl: nil,
                 distanceM: 300 + index * 250,
-                lat: String(lat + Double(index + 1) * 0.004),
-                lng: String(lng + Double(index % 2 == 0 ? 1 : -1) * 0.005),
+                lat: FlexibleDouble(lat + Double(index + 1) * 0.004),
+                lng: FlexibleDouble(lng + Double(index % 2 == 0 ? 1 : -1) * 0.005),
                 isSponsored: index == 0,
                 imageUrl: nil,
                 description: "목 데이터"

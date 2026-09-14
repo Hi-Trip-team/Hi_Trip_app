@@ -129,8 +129,8 @@ final class TravelerRepository: TravelerRepositoryProtocol {
         .map(\.results)
     }
 
-    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO> {
-        networkService.request(.travelerSafetySummary(), type: TravelerSafetySummaryDTO.self)
+    func fetchSafetySummary(dayNumber: Int?) -> Single<TravelerSafetySummaryDTO> {
+        networkService.request(.travelerSafetySummary(dayNumber: dayNumber), type: TravelerSafetySummaryDTO.self)
     }
 
     func sendLocationSnapshot(

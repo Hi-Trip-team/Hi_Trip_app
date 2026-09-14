@@ -69,7 +69,9 @@ protocol TravelerRepositoryProtocol {
     ) -> Single<[TravelerNearbySpotDTO]>
 
     /// 안전 요약 — 지도에 그릴 지오펜스(허용 반경)를 포함합니다
-    func fetchSafetySummary() -> Single<TravelerSafetySummaryDTO>
+    /// - Parameter dayNumber: 몇 일차의 허용 범위인지. nil이면 서버가 오늘로 판단합니다
+    ///   (여행 기간 밖이면 서버가 판단하지 못하고 실패합니다)
+    func fetchSafetySummary(dayNumber: Int?) -> Single<TravelerSafetySummaryDTO>
 
     /// 위치 스냅샷 전송 — 이탈 판정은 서버가 합니다
     func sendLocationSnapshot(
