@@ -17,7 +17,7 @@ struct SpotImageView: View {
     var body: some View {
         ZStack {
             if let url = validURL {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFill()
@@ -39,9 +39,9 @@ struct SpotImageView: View {
         .clipped()
     }
 
+    /// 장소 목록은 `/media/...`처럼 도메인 없는 경로를 주므로 서버 주소를 붙여 완성합니다
     private var validURL: URL? {
-        guard let imageUrl, !imageUrl.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
-        return URL(string: imageUrl)
+        RemoteImageCache.resolve(imageUrl)
     }
 
     // MARK: - 대체 화면
