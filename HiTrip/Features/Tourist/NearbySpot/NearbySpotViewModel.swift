@@ -108,8 +108,13 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
     private func loadGeofence() {
         repository.fetchSafetySummary()
             .observe(on: MainScheduler.instance)
-            .subscribe(onSuccess: { [weak self] summary in self?.geofence = summary.geofence },
-                       onFailure: { _ in })
+            .subscribe(onSuccess: { [weak self] summary in
+                guard let self else { return }
+                self.geofence = summary.geofence
+                // 아직 현재 위치가 없으면(권한 대기·시뮬레이터 등) 허용 범위 중심으로 먼저 불러옵니다.
+                // 위치를 받으면 그때 다시 불러옵니다.
+                if self.currentLocation == nil, self.state == .idle { self.loadSpots() }
+            }, onFailure: { _ in })
             .disposed(by: disposeBag)
     }
 

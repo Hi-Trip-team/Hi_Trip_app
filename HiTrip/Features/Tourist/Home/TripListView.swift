@@ -106,22 +106,12 @@ struct TripListView: View {
                 .font(AppFont.headlineBold)
                 .foregroundColor(.black)
             Spacer()
-            ZStack(alignment: .topTrailing) {
-                Text("🔔")
-                    .font(AppFont.title3)
-                if viewModel.hasUnreadNotice {
-                    ZStack {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 18, height: 18)
-                        Text("\(viewModel.unreadNoticeCount)")
-                            .font(AppFont.caption2Bold)
-                            .foregroundColor(.white)
-                    }
-                    .offset(x: 6, y: -4)
-                }
-            }
-            .onTapGesture { showNotificationList = true }
+            // 종은 알림함(개별 알림)으로 갑니다. 안 읽은 "공지"는 공지 카드의 빨간 점으로 따로 보여주므로
+            // 여기에 공지 수를 달면 알림함을 열었을 때 비어 있어 혼란스럽습니다.
+            // 알림 목록 API가 생기면 그 안 읽음 수로 뱃지를 붙입니다.
+            Text("🔔")
+                .font(AppFont.title3)
+                .onTapGesture { showNotificationList = true }
         }
         .padding(.horizontal, AppSpacing.xl)
         .padding(.top, AppSpacing.md)

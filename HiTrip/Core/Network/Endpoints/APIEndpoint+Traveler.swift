@@ -281,8 +281,9 @@ extension APIEndpoint {
     ) -> APIEndpoint {
         var items = [
             URLQueryItem(name: "category", value: category),
-            URLQueryItem(name: "lat", value: String(lat)),
-            URLQueryItem(name: "lng", value: String(lng)),
+            // 서버는 소수점 6자리까지만 받습니다(초과 시 400). String(lat)은 10자리 넘게 나옵니다.
+            URLQueryItem(name: "lat", value: String(format: "%.6f", lat)),
+            URLQueryItem(name: "lng", value: String(format: "%.6f", lng)),
         ]
         if let radius { items.append(URLQueryItem(name: "radius", value: String(radius))) }
         if let size   { items.append(URLQueryItem(name: "size", value: String(size))) }
