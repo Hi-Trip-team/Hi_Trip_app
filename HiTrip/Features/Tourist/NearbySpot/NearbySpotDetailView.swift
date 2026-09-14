@@ -11,6 +11,7 @@ import UIKit
 struct NearbySpotDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     var name: String
     var address: String?
@@ -30,6 +31,12 @@ struct NearbySpotDetailView: View {
     var tags: [String] = []
     /// 이미지가 없을 때 보여줄 대체 아이콘 선택에 사용
     var categoryName: String?
+    /// 전화번호 — 카카오 장소 검색 결과에 있으면 탭해서 전화
+    var phone: String?
+    /// 카카오맵 장소 페이지 — 사진·리뷰·영업시간은 여기서 봅니다
+    var placeUrl: String?
+    /// 안내사 추천 이유 — 추천 스팟에만 있음
+    var reason: String?
 
     /// 좌표가 없으면 지도 섹션을 숨깁니다.
     private var coordinate: CLLocationCoordinate2D? {
@@ -177,6 +184,63 @@ struct NearbySpotDetailView: View {
                 }
             }
 
+            // 카테고리 — "음식점 > 구내식당"처럼 오면 마지막 단계만
+            if let category = categoryName?.components(separatedBy: ">").last?
+                .trimmingCharacters(in: .whitespaces), !category.isEmpty {
+                infoChip(icon: "tag", text: category, color: AppColor.textSecondary)
+            }
+
+            // 전화 — 번호가 있을 때만
+            if let phone, let url = AppLinks.telURL(phone) {
+                Button { openURL(url) } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "phone")
+                            .font(AppFont.caption)
+                        Text(phone)
+                            .font(AppFont.caption)
+                    }
+                    .foregroundColor(AppColor.accent)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 안내사 추천 이유 — 추천 스팟에만 있음
+            if let reason, !reason.isEmpty {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "hand.thumbsup")
+                        .font(AppFont.caption)
+                        .foregroundColor(AppColor.accent)
+                    Text(reason)
+                        .font(AppFont.label)
+                        .foregroundColor(AppColor.textDark)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(AppSpacing.sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColor.accentSubtle)
+                .cornerRadius(AppRadius.md)
+            }
+
+            // 카카오맵 장소 페이지 — 사진·리뷰·영업시간을 앱이 받지 못해 여기로 연결합니다
+            if let placeUrl, let url = URL(string: placeUrl), !placeUrl.isEmpty {
+                Button { openURL(url) } label: {
+                    HStack(spacing: 6) {
+                        Text("카카오맵에서 사진·리뷰 보기")
+                            .font(AppFont.labelMedium)
+                        Image(systemName: "arrow.up.right")
+                            .font(AppFont.caption2)
+                    }
+                    .foregroundColor(AppColor.accent)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.md)
+                            .stroke(AppColor.accent.opacity(0.4), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
             if hours != nil || distance != nil {
                 HStack(spacing: AppSpacing.sm) {
                     if let hours {
@@ -249,14 +313,12 @@ struct NearbySpotDetailView: View {
                 .font(AppFont.bodyBold)
                 .foregroundColor(AppColor.textPrimary)
 
-            // 미리보기 전용 — 조작은 막고 스팟 위치만 보여줍니다
-            KakaoMapView(
-                pins: [MapPin(id: "spot", coordinate: coordinate, color: UIColor(AppColor.accent))],
-                initialCenter: coordinate
-            )
-            .frame(height: 150)
-            .cornerRadius(AppRadius.lg)
-            .allowsHitTesting(false)
+            // 미리보기 전용 — 지도를 새로 띄우지 않고 정적 이미지로 그립니다
+            // (카카오 지도를 겹쳐 띄우면 가끔 타일이 안 그려짐)
+            StaticMapPreview(coordinate: coordinate)
+                .frame(height: 150)
+                .cornerRadius(AppRadius.lg)
+                .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         }

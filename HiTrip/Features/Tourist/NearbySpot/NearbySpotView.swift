@@ -57,7 +57,9 @@ struct NearbySpotView: View {
                 isSponsored: spot.isSponsored == true,
                 latitude: spot.latitude,
                 longitude: spot.longitude,
-                categoryName: spot.categoryName
+                categoryName: spot.categoryName,
+                phone: spot.phone,
+                placeUrl: spot.placeUrl
             )
         }
     }
