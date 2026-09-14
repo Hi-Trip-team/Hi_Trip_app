@@ -202,15 +202,16 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         .disposed(by: disposeBag)
     }
 
+    /// 실패 사유를 서버 문구·상태 코드와 함께 보여줍니다 — "못 불러왔어요"만으로는 원인을 알 수 없습니다
     private static func message(for error: Error) -> String {
-        if let e = error as? HiTripError {
-            switch e {
-            case .noConnection: return "연결을 확인해주세요"
-            case .timeout:      return "서버 응답이 없습니다"
-            default:            break
-            }
+        guard let e = error as? HiTripError else { return "정보를 불러오지 못했어요" }
+        switch e {
+        case .noConnection: return "연결을 확인해주세요"
+        case .timeout:      return "서버 응답이 없습니다"
+        default:
+            let reason = e.errorDescription ?? "정보를 불러오지 못했어요"
+            return e.statusCode.map { "\(reason) (\($0))" } ?? reason
         }
-        return "정보를 불러오지 못했어요"
     }
 }
 
