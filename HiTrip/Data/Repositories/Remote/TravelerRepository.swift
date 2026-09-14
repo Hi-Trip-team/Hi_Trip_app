@@ -179,3 +179,14 @@ extension TravelerRepository {
             .map { _ in () }
     }
 }
+
+// MARK: - 추천 스팟
+
+extension TravelerRepository {
+
+    /// GET /api/v1/tourist/recommended-spots/ — 인기 스팟과 같은 {status, results} 형식입니다
+    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]> {
+        networkService.request(.travelerRecommendedSpots(), type: TravelerSpotCollectionDTO.self)
+            .map(\.results)
+    }
+}

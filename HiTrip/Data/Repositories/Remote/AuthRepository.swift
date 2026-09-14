@@ -161,7 +161,7 @@ final class AuthRepository: AuthRepositoryProtocol {
             let seconds = detail.retryAfter
                 ?? detail.numbers["retry_after"]
                 ?? detail.numbers["lock_seconds"]
-                ?? LoginAttemptStore.defaultLockSeconds
+                ?? 0
             return LoginError.locked(seconds: seconds)
         case .conflict(let detail) where detail.code == "PASSWORD_CHANGE_REQUIRED":
             return LoginError.passwordChangeRequired

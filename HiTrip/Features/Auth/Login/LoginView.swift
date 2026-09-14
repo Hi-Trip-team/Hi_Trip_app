@@ -84,12 +84,6 @@ struct LoginView: View {
         .fullScreenCover(isPresented: $viewModel.showPasswordChange) {
             InitialPasswordChangeView(viewModel: viewModel)
         }
-        .alert("동일한 아이디로 접속중인 기기가 있습니다.", isPresented: $viewModel.showConcurrentAlert) {
-            Button("취소", role: .cancel) {}
-            Button("확인") { viewModel.login(force: true) }
-        } message: {
-            Text("차단하고 로그인하시겠습니까?")
-        }
     }
 
     // MARK: - ID
@@ -172,7 +166,7 @@ struct LoginView: View {
     // MARK: - Login Button
 
     private var isButtonActive: Bool {
-        viewModel.isFormFilled && !viewModel.isLocked
+        viewModel.isFormFilled
     }
 
     private var loginButton: some View {
@@ -195,8 +189,8 @@ struct LoginView: View {
             .clipShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
-        // 요청 중 중복 탭 방지 / 잠금 중 비활성
-        .disabled(viewModel.isLoading || viewModel.isLocked)
+        // 요청 중 중복 탭 방지
+        .disabled(viewModel.isLoading)
     }
 
     // MARK: - 문의하기

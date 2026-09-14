@@ -611,3 +611,12 @@ extension MockTravelerRepository {
     /// Mock은 실시간 연결이 없습니다
     func observeNoticeEvents() -> Observable<Void> { .empty() }
 }
+
+// MARK: - 추천 스팟
+
+extension MockTravelerRepository {
+    /// Mock 스팟 목록 중 추천 유형만
+    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]> {
+        fetchPopularSpots().map { $0.filter { $0.spotType == "recommended" } }
+    }
+}
