@@ -22,9 +22,8 @@ final class AgreementViewModel: ObservableObject {
     init(userType: UserType, repository: TravelerRepositoryProtocol = AppDIContainer.shared.makeTravelerRepository()) {
         self.userType = userType
         self.repository = repository
-        self.items = userType == .tourist
-            ? [.service, .privacy, .location, .health, .push]
-            : [.service, .privacy, .location, .push]
+        // 건강정보 동의는 1차 출시에서 건강 데이터 수집을 빼면서 함께 제외했습니다 (관광객·안내사 동일)
+        self.items = [.service, .privacy, .location, .push]
     }
 
     func isRequired(_ kind: TermsKind) -> Bool { kind != .push }
@@ -62,11 +61,8 @@ final class AgreementViewModel: ObservableObject {
             }
         }
 
-        // ② 알림  ③ 헬스(관광객) — 거부해도 진행
+        // ② 알림 — 거부해도 진행
         let notification = await permissions.requestNotification()
-        if userType == .tourist {
-            _ = await permissions.requestHealth()
-        }
 
         // 동의 이력 저장
         let locationGranted = location == .authorizedWhenInUse || location == .authorizedAlways
