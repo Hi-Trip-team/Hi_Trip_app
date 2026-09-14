@@ -1,5 +1,5 @@
 import SwiftUI
-import MapKit
+import CoreLocation
 
 // MARK: - MapRangeSettingView
 /// 지도 범위 설정 (지오펜스) — Figma 12380:1051
@@ -12,7 +12,7 @@ struct MapRangeSettingView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = MapRangeSettingViewModel()
 
-    @State private var camera: MapCameraPosition = .automatic
+    @State private var camera: MapCameraCommand?
     @State private var showLeaveConfirm = false
 
     var body: some View {
@@ -61,50 +61,28 @@ struct MapRangeSettingView: View {
     // MARK: - 지도
 
     private var mapLayer: some View {
-        MapReader { proxy in
-            Map(position: $camera) {
-                if let center = viewModel.centerCoordinate {
-                    MapCircle(center: center, radius: Double(viewModel.radiusKm) * 1000)
-                        .foregroundStyle(AppColor.accent.opacity(0.10))
-                        .stroke(AppColor.accent, lineWidth: 2)
-
-                    Annotation("", coordinate: center) {
-                        ZStack {
-                            Circle()
-                                .fill(AppColor.brand)
-                                .frame(width: 26, height: 26)
-                            Image(systemName: "mappin")
-                                .font(AppFont.captionBold)
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-            }
+        KakaoMapView(
+            pins: viewModel.centerCoordinate.map {
+                [MapPin(id: "center", coordinate: $0, color: UIColor(AppColor.brand))]
+            } ?? [],
+            circles: viewModel.centerCoordinate.map {
+                [MapCircleOverlay(
+                    id: "range", center: $0, radiusM: Double(viewModel.radiusKm) * 1000,
+                    fill: UIColor(AppColor.accent).withAlphaComponent(0.10),
+                    stroke: UIColor(AppColor.accent)
+                )]
+            } ?? [],
+            camera: camera,
             // 지도 롱프레스로도 중심을 지정할 수 있습니다
-            .onLongPressGesture(minimumDuration: 0.4) { } onPressingChanged: { _ in }
-            .gesture(
-                LongPressGesture(minimumDuration: 0.4)
-                    .sequenced(before: DragGesture(minimumDistance: 0))
-                    .onEnded { value in
-                        if case .second(_, let drag?) = value,
-                           let coordinate = proxy.convert(drag.location, from: .local) {
-                            viewModel.setCenter(coordinate)
-                        }
-                    }
-            )
-        }
+            onLongPress: { viewModel.setCenter($0) }
+        )
     }
 
     private func focusCenter() {
         guard let center = viewModel.centerCoordinate else { return }
-        // 반경이 화면에 들어오도록 여유를 둡니다
-        let span = Double(viewModel.radiusKm) / 111.0 * 2.6
-        withAnimation {
-            camera = .region(MKCoordinateRegion(
-                center: center,
-                span: MKCoordinateSpan(latitudeDelta: span, longitudeDelta: span)
-            ))
-        }
+        // 원 전체와 하단 시트에 가리는 몫까지 들어오도록 반경보다 넓게 맞춥니다
+        let margin = Double(viewModel.radiusKm) * 1000 * 1.6
+        camera = .fit(KakaoMapView.circlePoints(center: center, radiusM: margin, count: 8))
     }
 
     // MARK: - 헤더 / 일차 탭
