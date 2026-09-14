@@ -62,11 +62,14 @@ struct NearbySpotDetailView: View {
                     Divider()
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.vertical, AppSpacing.md)
-                    descriptionSection
-                        .padding(.horizontal, AppSpacing.lg)
-                    Divider()
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.vertical, AppSpacing.md)
+                    // 소개글이 없으면(카카오 검색 장소는 대부분 없음) 구분선도 함께 숨깁니다
+                    if let description, !description.isEmpty {
+                        descriptionSection
+                            .padding(.horizontal, AppSpacing.lg)
+                        Divider()
+                            .padding(.horizontal, AppSpacing.lg)
+                            .padding(.vertical, AppSpacing.md)
+                    }
                     mapPreviewSection
                         .padding(.horizontal, AppSpacing.lg)
                     Spacer().frame(height: 32)

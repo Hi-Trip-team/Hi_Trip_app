@@ -171,6 +171,15 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
         controller?.activateEngine()
     }
 
+    /// 스크롤 화면 안의 작은 지도는 준비 시점에 크기가 0이라 타일이 그려지지 않습니다.
+    /// 배치가 끝날 때마다 실제 크기로 맞춥니다.
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        guard isReady, view.bounds.width > 0, view.bounds.height > 0,
+              let map, map.viewRect.size != view.bounds.size else { return }
+        map.viewRect = view.bounds
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         controller?.pauseEngine()
