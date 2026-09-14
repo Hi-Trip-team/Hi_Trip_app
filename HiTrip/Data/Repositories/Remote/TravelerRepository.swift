@@ -108,7 +108,8 @@ final class TravelerRepository: TravelerRepositoryProtocol {
     // MARK: - Spots
 
     func fetchPopularSpots() -> Single<[TravelerSpotDTO]> {
-        networkService.request(.travelerPopularSpots(), type: [TravelerSpotDTO].self)
+        networkService.request(.travelerPopularSpots(), type: TravelerSpotCollectionDTO.self)
+            .map(\.results)
     }
 
     // MARK: - Map & Manager

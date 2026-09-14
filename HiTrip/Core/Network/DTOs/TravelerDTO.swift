@@ -283,6 +283,17 @@ struct TravelerSpotDTO: Decodable, Identifiable, Hashable {
     let updatedAt: String?
 }
 
+/// GET /api/v1/tourist/popular-spots/, /recommended-spots/ 응답
+///
+/// 서버가 배열 대신 수신 상태를 함께 담아 줍니다.
+/// status: fresh(정상) · fallback(이전 정상 데이터) · empty(결과 없음) · unavailable(이용 불가)
+struct TravelerSpotCollectionDTO: Decodable {
+    let status: String?
+    let fallbackUsed: Bool?
+    let count: Int?
+    let results: [TravelerSpotDTO]
+}
+
 struct TripSpotPlaceDTO: Decodable, Hashable {
     let id: Int
     let name: String
