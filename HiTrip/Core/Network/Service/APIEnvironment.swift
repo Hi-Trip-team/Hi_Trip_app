@@ -31,7 +31,7 @@ enum APIEnvironment {
         case .mock:
             return "https://api.hitrip.example.com"
         case .remote:
-            return "http://3.35.27.30:18080"
+            return "https://hitrip-api.mwkang.tech"
         }
     }
 
