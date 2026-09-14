@@ -89,6 +89,21 @@ final class TravelerHomeViewModel: ObservableObject {
                 self?.unreadMessageCount = rooms.reduce(0) { $0 + $1.unreadCount }
             }, onFailure: { _ in })
             .disposed(by: disposeBag)
+
+        listenForNotices()
+    }
+
+    /// 공지 실시간 수신 — 안내사가 공지를 올리거나 바꾸면 목록·뱃지를 다시 불러옵니다.
+    /// 홈이 살아 있는 동안 한 번만 연결합니다 (disposeBag과 함께 해제).
+    private var isListeningNotices = false
+
+    private func listenForNotices() {
+        guard !isListeningNotices else { return }
+        isListeningNotices = true
+        repository.observeNoticeEvents()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] in self?.reloadNotices() })
+            .disposed(by: disposeBag)
     }
 
     var hasUnreadMessage: Bool { unreadMessageCount > 0 }

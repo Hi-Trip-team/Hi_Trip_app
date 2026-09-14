@@ -106,7 +106,7 @@ final class ChatRepository: ChatRepositoryProtocol {
         )
         .map { [weak self] page in
             let messages = page.results
-                .filter { !$0.isDeleted }
+                .filter { $0.isDeleted != true }
                 .map { $0.toMessage(chatRoomId: chatRoomId, currentUserId: userId, currentRole: role) }
                 .sorted { $0.sentAt < $1.sentAt }
 
@@ -238,4 +238,48 @@ final class ChatRepository: ChatRepositoryProtocol {
 private struct ChatReadResponseDTO: Decodable {
     let roomId: Int?
     let messageId: Int?
+}
+
+// MARK: - 실시간 (WebSocket /ws/v1/chat/{room_id}/)
+
+extension ChatRepository {
+
+    func observeMessages(chatRoomId: UUID) -> Observable<Message> {
+        guard let serverId = resolveServerId(for: chatRoomId) else { return .empty() }
+        let userId = keychain.getUserId() ?? ""
+        let role = currentRole
+
+        return RealtimeSocket.events(path: "/ws/v1/chat/\(serverId)/")
+            .compactMap { [weak self] event -> Message? in
+                guard let dto = Self.chatMessage(from: event),
+                      dto.room == serverId, dto.isDeleted != true else { return nil }
+
+                // 새 메시지가 곧 읽음 기준점입니다
+                let prev = self?.lastSeenMessageId[chatRoomId] ?? 0
+                self?.lastSeenMessageId[chatRoomId] = max(prev, dto.id)
+
+                let message = dto.toMessage(chatRoomId: chatRoomId, currentUserId: userId, currentRole: role)
+                // 로컬 id를 client_message_id로 맞춰야 전송 중인 내 말풍선과 겹치지 않습니다
+                guard let clientId = dto.clientMessageId.flatMap(UUID.init(uuidString:)) else { return message }
+                return Message(
+                    id: clientId, serverId: message.serverId, senderType: message.senderType,
+                    chatRoomId: chatRoomId, senderId: message.senderId, senderName: message.senderName,
+                    content: message.content, sentAt: message.sentAt, sendStatus: .sent,
+                    attachments: message.attachments
+                )
+            }
+    }
+
+    /// 이벤트에서 메시지 본문을 찾습니다.
+    /// 서버가 메시지를 `message`·`data`·`payload` 아래에 두거나 최상위에 그대로 줄 수 있어 모두 봅니다.
+    /// connected·error 같은 제어 이벤트는 id·body가 없어 걸러집니다.
+    private static func chatMessage(from event: [String: Any]) -> ChatMessageV1DTO? {
+        let candidates = [event["message"], event["data"], event["payload"], event]
+            .compactMap { $0 as? [String: Any] }
+        guard let raw = candidates.first(where: { $0["id"] != nil && $0["body"] != nil }),
+              let data = try? JSONSerialization.data(withJSONObject: raw) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try? decoder.decode(ChatMessageV1DTO.self, from: data)
+    }
 }

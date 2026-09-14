@@ -59,4 +59,10 @@ protocol ChatRepositoryProtocol {
 
     /// 첨부가 붙은 메시지 전송
     func sendMessage(message: Message, attachmentIds: [Int]) -> Single<Message>
+
+    // MARK: - 실시간
+
+    /// 방에 새로 올라온 메시지 — 구독하는 동안 WebSocket을 유지합니다.
+    /// 내가 보낸 메시지도 오며, Message.id가 client_message_id라 전송 중인 말풍선과 맞출 수 있습니다.
+    func observeMessages(chatRoomId: UUID) -> Observable<Message>
 }

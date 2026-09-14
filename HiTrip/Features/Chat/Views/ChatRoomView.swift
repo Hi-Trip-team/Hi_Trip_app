@@ -92,7 +92,9 @@ struct ChatRoomView: View {
         .onAppear {
             viewModel.fetchMessages(chatRoomId: chatRoom.id)
             viewModel.markAsRead(chatRoomId: chatRoom.id)
+            viewModel.startRealtime(chatRoomId: chatRoom.id)
         }
+        .onDisappear { viewModel.stopRealtime() }
     }
 
     /// 구분선 — Figma는 #F7F7F9 1.5pt입니다.

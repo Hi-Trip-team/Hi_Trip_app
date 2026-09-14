@@ -360,6 +360,38 @@ final class ChatViewModel: ObservableObject {
             .disposed(by: disposeBag)
     }
 
+    // MARK: - 실시간 (WebSocket)
+
+    /// 채팅방에 들어와 있는 동안의 실시간 연결 — 화면을 나가면 끊습니다
+    private var realtimeDisposable: Disposable?
+
+    func startRealtime(chatRoomId: UUID) {
+        realtimeDisposable?.dispose()
+        realtimeDisposable = chatUseCase.observeMessages(chatRoomId: chatRoomId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] in self?.receive($0) })
+    }
+
+    func stopRealtime() {
+        realtimeDisposable?.dispose()
+        realtimeDisposable = nil
+    }
+
+    /// 실시간으로 받은 메시지를 목록에 합칩니다.
+    /// 내가 보낸 메시지는 로컬 id(= client_message_id)가 같아 새로 붙이지 않고 전송 완료로만 바꿉니다.
+    private func receive(_ incoming: Message) {
+        if let idx = messages.firstIndex(where: {
+            $0.id == incoming.id || ($0.serverId != nil && $0.serverId == incoming.serverId)
+        }) {
+            messages[idx].serverId = incoming.serverId
+            messages[idx].sendStatus = .sent
+            return
+        }
+        messages.append(incoming)
+        // 보고 있는 방이므로 바로 읽음 처리합니다
+        markAsRead(chatRoomId: incoming.chatRoomId)
+    }
+
     /// 메시지 읽음 처리
     func markAsRead(chatRoomId: UUID) {
         chatUseCase.markAsRead(chatRoomId: chatRoomId)

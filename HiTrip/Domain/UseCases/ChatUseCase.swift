@@ -127,3 +127,12 @@ enum ChatError: LocalizedError, Equatable {
         }
     }
 }
+
+// MARK: - 실시간
+
+extension ChatUseCase {
+    /// 방에 새로 올라온 메시지 (WebSocket)
+    func observeMessages(chatRoomId: UUID) -> Observable<Message> {
+        repository.observeMessages(chatRoomId: chatRoomId)
+    }
+}

@@ -166,3 +166,15 @@ final class TravelerRepository: TravelerRepositoryProtocol {
         )
     }
 }
+
+// MARK: - 실시간 (WebSocket /ws/v1/notices/)
+
+extension TravelerRepository {
+
+    /// notice.* 이벤트만 넘깁니다. 내용은 REST로 다시 조회하는 것이 서버 안내입니다.
+    func observeNoticeEvents() -> Observable<Void> {
+        RealtimeSocket.events(path: "/ws/v1/notices/")
+            .filter { ($0["type"] as? String)?.hasPrefix("notice") == true }
+            .map { _ in () }
+    }
+}
