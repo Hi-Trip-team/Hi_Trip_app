@@ -93,10 +93,13 @@ struct ChatBubbleView: View {
     @ViewBuilder
     private func attachmentView(_ attachment: MessageAttachment) -> some View {
         if attachment.isPhoto {
-            AsyncImage(url: attachment.downloadUrl.flatMap(URL.init)) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Rectangle().fill(AppColor.divider)
+            // 다운로드 주소는 도메인 없는 경로이고 로그인이 필요해 RemoteImage로 받습니다
+            RemoteImage(url: RemoteImageCache.resolve(attachment.downloadUrl)) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFill()
+                } else {
+                    Rectangle().fill(AppColor.divider)
+                }
             }
             .frame(width: 180, height: 180)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
