@@ -48,11 +48,6 @@ struct NearbySpotDetailView: View {
         return []
     }
 
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 35.1588, longitude: 129.1603),
-        span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006)
-    )
-
 
     var body: some View {
         VStack(spacing: 0) {
@@ -245,42 +240,23 @@ struct NearbySpotDetailView: View {
 
     @ViewBuilder
     private var mapPreviewSection: some View {
-        if coordinate != nil {
+        if let coordinate {
         VStack(alignment: .leading, spacing: 10) {
             Text("위치")
                 .font(AppFont.bodyBold)
                 .foregroundColor(AppColor.textPrimary)
 
-            Map(coordinateRegion: $region, annotationItems: [nearbyPin]) { pin in
-                MapAnnotation(coordinate: pin.coordinate) {
-                    ZStack {
-                        Circle()
-                            .fill(AppColor.accent)
-                            .frame(width: 28, height: 28)
-                        Image(systemName: "mappin")
-                            .font(AppFont.captionBold)
-                            .foregroundColor(.white)
-                    }
-                }
-            }
+            // 미리보기 전용 — 조작은 막고 스팟 위치만 보여줍니다
+            KakaoMapView(
+                pins: [MapPin(id: "spot", coordinate: coordinate, color: UIColor(AppColor.accent))],
+                initialCenter: coordinate
+            )
             .frame(height: 150)
             .cornerRadius(AppRadius.lg)
-            .disabled(true)
+            .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onAppear {
-            if let coordinate {
-                region = MKCoordinateRegion(
-                    center: coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006)
-                )
-            }
         }
-        }
-    }
-
-    private var nearbyPin: NearbyPin {
-        NearbyPin(coordinate: coordinate ?? region.center)
     }
 
     // MARK: - 하단 버튼
@@ -337,7 +313,3 @@ struct NearbySpotDetailView: View {
 
 }
 
-private struct NearbyPin: Identifiable {
-    let id = UUID()
-    let coordinate: CLLocationCoordinate2D
-}

@@ -12,7 +12,7 @@ struct NearbySpotView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = NearbySpotViewModel()
 
-    @State private var camera: MapCameraPosition = .automatic
+    @State private var camera: MapCameraCommand?
     @State private var selectedSpot: TravelerNearbySpotDTO?
 
     var body: some View {
@@ -65,31 +65,48 @@ struct NearbySpotView: View {
     // MARK: - 지도
 
     private var mapLayer: some View {
-        Map(position: $camera, selection: $viewModel.focusedSpotId) {
-            UserAnnotation()
-
-            // 안내사가 설정한 허용 반경 — 빨간 경계선
-            if let lat = viewModel.geofence?.latitude,
-               let lng = viewModel.geofence?.longitude,
-               let radius = viewModel.geofence?.radiusM {
-                MapCircle(
-                    center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
-                    radius: radius
-                )
-                .foregroundStyle(AppColor.dangerSoft.opacity(0.08))
-                .stroke(AppColor.dangerSoft, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+        KakaoMapView(
+            pins: mapPins,
+            circles: mapCircles,
+            camera: camera,
+            // 핀을 누르면 아래 카드가 그 스팟으로 이동합니다
+            onPinTap: { id in
+                guard id != Self.myLocationPinID else { return }
+                viewModel.focusedSpotId = id
             }
+        )
+    }
 
-            ForEach(viewModel.spots) { spot in
-                if let lat = spot.latitude, let lng = spot.longitude {
-                    Marker(spot.name, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng))
-                        .tint(spot.id == viewModel.focusedSpotId
-                              ? AppColor.accent : AppColor.textSecondary)
-                        .tag(spot.id)
-                }
-            }
+    private static let myLocationPinID = "__me"
+
+    /// 내 위치(파랑) + 스팟 핀 — 선택된 스팟은 강조색
+    private var mapPins: [MapPin] {
+        var pins: [MapPin] = viewModel.spots.compactMap { spot in
+            guard let lat = spot.latitude, let lng = spot.longitude else { return nil }
+            return MapPin(
+                id: spot.id,
+                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                color: UIColor(spot.id == viewModel.focusedSpotId ? AppColor.accent : AppColor.textSecondary)
+            )
         }
-        .mapControls { MapCompass() }
+        if let me = viewModel.currentLocation {
+            pins.append(MapPin(id: Self.myLocationPinID, coordinate: me, color: UIColor(AppColor.brand)))
+        }
+        return pins
+    }
+
+    /// 안내사가 설정한 허용 반경 — 빨간 경계선 (카카오 도형은 점선을 지원하지 않아 실선)
+    private var mapCircles: [MapCircleOverlay] {
+        guard let lat = viewModel.geofence?.latitude,
+              let lng = viewModel.geofence?.longitude,
+              let radius = viewModel.geofence?.radiusM else { return [] }
+        return [MapCircleOverlay(
+            id: "geofence",
+            center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+            radiusM: radius,
+            fill: UIColor(AppColor.dangerSoft).withAlphaComponent(0.08),
+            stroke: UIColor(AppColor.dangerSoft)
+        )]
     }
 
     // MARK: - 헤더
@@ -178,12 +195,7 @@ struct NearbySpotView: View {
 
     private func moveToCurrentLocation() {
         guard let coordinate = viewModel.currentLocation else { return }
-        withAnimation {
-            camera = .region(MKCoordinateRegion(
-                center: coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
-            ))
-        }
+        camera = .center(coordinate, level: 15)
     }
 
     // MARK: - 스팟 카드
