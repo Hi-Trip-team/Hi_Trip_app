@@ -45,7 +45,8 @@ struct StaffTripDTO: Decodable {
     let destination: String
     let startDate: String
     let endDate: String
-    let managerName: String
+    /// 담당자 미배정 여행은 서버가 null을 줍니다 — 필수로 두면 여행 목록 전체가 해석에 실패합니다
+    let managerName: String?
     let participantCount: Int
     /// 오늘이 몇 일차인지 — 여행 기간이 아니면 nil
     var todayDayNumber: Int? = nil
