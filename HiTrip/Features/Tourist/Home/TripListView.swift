@@ -82,7 +82,8 @@ struct TripListView: View {
                     isSponsored: spot.isSponsored == true,
                     latitude: spot.place.latitude.flatMap(Double.init),
                     longitude: spot.place.longitude.flatMap(Double.init),
-                    categoryName: spot.place.categoryName
+                    categoryName: spot.place.categoryName,
+                    reason: spot.reason
                 )
             }
         }
