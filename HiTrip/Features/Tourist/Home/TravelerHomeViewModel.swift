@@ -21,6 +21,8 @@ final class TravelerHomeViewModel: ObservableObject {
     @Published private(set) var home: TravelerHomeDTO?
     @Published private(set) var notices: [TravelerNoticeDTO] = []
     @Published private(set) var popularSpots: [TravelerSpotDTO] = []
+    /// 스팟 요청이 한 번이라도 끝났는지 — 로딩 중(자리 표시)과 결과 없음(안내 문구)을 구분합니다
+    @Published private(set) var isSpotsLoaded = false
     @Published private(set) var unreadMessageCount: Int = 0
 
     private let repository: TravelerRepositoryProtocol
@@ -87,6 +89,7 @@ final class TravelerHomeViewModel: ObservableObject {
         .subscribe(onSuccess: { [weak self] recommended, popular in
             var seen = Set<Int>()
             self?.popularSpots = (recommended + popular).filter { seen.insert($0.id).inserted }
+            self?.isSpotsLoaded = true
         })
         .disposed(by: disposeBag)
 

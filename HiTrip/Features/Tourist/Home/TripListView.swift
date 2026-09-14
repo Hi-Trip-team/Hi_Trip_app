@@ -279,25 +279,15 @@ struct TripListView: View {
 
     // MARK: - 주변 인기 스팟
 
-    @ViewBuilder
+    /// 섹션은 항상 보입니다 — 스팟이 없어도 사라지지 않고 로딩/없음 상태를 알려줍니다
     private var nearbySpotSection: some View {
-        // 스팟이 없으면 섹션째 숨깁니다
-        if !viewModel.popularSpots.isEmpty {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Text("주변 인기 스팟")
                 .font(AppFont.bodyLBold)
                 .foregroundColor(AppColor.textPrimary)
                 .padding(.horizontal, AppSpacing.xl)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.sm) {
-                    ForEach(viewModel.popularSpots) { spot in
-                        spotCard(spot)
-                            .onTapGesture { selectedSpot = spot }
-                    }
-                }
-                .padding(.horizontal, AppSpacing.xl)
-            }
+            spotContent
 
             Button { showNearbySpot = true } label: {
                 Text("가이드의 추천 스팟 더보기  >")
@@ -309,7 +299,54 @@ struct TripListView: View {
             .padding(.top, 2)
             .padding(.bottom, AppSpacing.lg)
         }
+    }
+
+    @ViewBuilder
+    private var spotContent: some View {
+        if !viewModel.popularSpots.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: AppSpacing.sm) {
+                    ForEach(viewModel.popularSpots) { spot in
+                        spotCard(spot)
+                            .onTapGesture { selectedSpot = spot }
+                    }
+                }
+                .padding(.horizontal, AppSpacing.xl)
+            }
+        } else if !viewModel.isSpotsLoaded {
+            // 불러오는 중 — 카드 자리만 회색으로
+            HStack(spacing: AppSpacing.sm) {
+                ForEach(0..<2, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: AppRadius.lg)
+                        .fill(AppColor.surface)
+                        .frame(width: 150, height: 150)
+                }
+            }
+            .padding(.horizontal, AppSpacing.xl)
+        } else {
+            spotEmptyState
         }
+    }
+
+    /// 서버가 준 스팟이 없을 때 — 지도에서 주변 장소를 찾도록 안내합니다
+    private var spotEmptyState: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "mappin.slash")
+                .font(AppFont.title3)
+                .foregroundColor(AppColor.textTertiary)
+            Text("아직 등록된 스팟이 없어요")
+                .font(AppFont.labelMedium)
+                .foregroundColor(AppColor.textBody)
+            Text("아래 더보기에서 지도로 주변 장소를 찾아볼 수 있어요")
+                .font(AppFont.caption)
+                .foregroundColor(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, AppSpacing.lg)
+        .background(AppColor.surface)
+        .cornerRadius(AppRadius.lg)
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     private func spotCard(_ spot: TravelerSpotDTO) -> some View {
