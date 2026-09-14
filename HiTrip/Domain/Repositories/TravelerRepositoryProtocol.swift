@@ -55,6 +55,9 @@ protocol TravelerRepositoryProtocol {
 
     func fetchPopularSpots() -> Single<[TravelerSpotDTO]>
 
+    /// 안내사(여행사)가 여행에 등록한 추천 스팟
+    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]>
+
     // MARK: - 주변 스팟 / 안전
 
     /// 상황별 검색 — 카테고리는 서버 enum (restaurant/accessibility/pet/convenience/mart)

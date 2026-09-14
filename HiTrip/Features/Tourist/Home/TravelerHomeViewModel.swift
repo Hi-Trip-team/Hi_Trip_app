@@ -21,6 +21,8 @@ final class TravelerHomeViewModel: ObservableObject {
     @Published private(set) var home: TravelerHomeDTO?
     @Published private(set) var notices: [TravelerNoticeDTO] = []
     @Published private(set) var popularSpots: [TravelerSpotDTO] = []
+    /// 스팟 요청이 한 번이라도 끝났는지 — 로딩 중(자리 표시)과 결과 없음(안내 문구)을 구분합니다
+    @Published private(set) var isSpotsLoaded = false
     @Published private(set) var unreadMessageCount: Int = 0
 
     private let repository: TravelerRepositoryProtocol
@@ -76,11 +78,20 @@ final class TravelerHomeViewModel: ObservableObject {
                        onFailure: { _ in })
             .disposed(by: disposeBag)
 
-        repository.fetchPopularSpots()
-            .observe(on: MainScheduler.instance)
-            .subscribe(onSuccess: { [weak self] in self?.popularSpots = $0 },
-                       onFailure: { _ in })
-            .disposed(by: disposeBag)
+        // 안내사가 등록한 추천 스팟을 앞에, 외부 데이터 인기 스팟을 뒤에 붙입니다.
+        // 현재 서버 여행 데이터는 추천(recommended)만 있고 인기(popular)는 비어 있습니다.
+        // 한쪽이 실패해도 다른 쪽은 보여주도록 각각 빈 목록으로 대체합니다.
+        Single.zip(
+            repository.fetchRecommendedSpots().catchAndReturn([]),
+            repository.fetchPopularSpots().catchAndReturn([])
+        )
+        .observe(on: MainScheduler.instance)
+        .subscribe(onSuccess: { [weak self] recommended, popular in
+            var seen = Set<Int>()
+            self?.popularSpots = (recommended + popular).filter { seen.insert($0.id).inserted }
+            self?.isSpotsLoaded = true
+        })
+        .disposed(by: disposeBag)
 
         // 하단 "메시지 및 문의" 뱃지 — 전체 채팅방의 안 읽음 합계
         chatRepository.fetchAllRooms()
