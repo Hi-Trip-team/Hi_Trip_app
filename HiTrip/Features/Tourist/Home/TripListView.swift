@@ -73,6 +73,10 @@ struct TripListView: View {
             .navigationBarHidden(true)
             .task { viewModel.load() }
             .navigationDestination(isPresented: $showTripDetail) { TripDetailView(focusDay: tripDetailFocusDay) }
+            // 일정 화면에서 개인 일정을 추가·수정·삭제하고 돌아오면 홈 일정 칸도 바로 반영합니다
+            .onChange(of: showTripDetail) { isShown in
+                if !isShown { viewModel.reloadPersonalSchedules() }
+            }
             .navigationDestination(isPresented: $showLocalLanguage) { LocalLanguageView() }
             .navigationDestination(isPresented: $showChat) {
                 TouristChatListView(viewModel: chatViewModel)
@@ -193,30 +197,15 @@ struct TripListView: View {
 
     private var inTripSchedule: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 지금 진행 중인 일정 — 없으면 안내 문구 (예정 일정은 아래 "다음 일정"에만)
-            if let current = viewModel.currentSchedule {
-                HStack {
-                    Text(TravelerHomeViewModel.title(of: current))
-                        .font(AppFont.bodyMMedium)
-                        .foregroundColor(AppColor.textPrimary)
-                    Spacer()
-                    Text(TravelerHomeViewModel.timeRange(current.startTime, current.endTime))
-                        .font(AppFont.label)
-                        .foregroundColor(AppColor.textSecondary)
-                }
-                .padding(.horizontal, AppSpacing.md)
-                .frame(height: 64)
-                .background(AppColor.surface)
-                .cornerRadius(AppRadius.lg)
-                .padding(.horizontal, AppSpacing.xl)
-                .contentShape(Rectangle())
-                .onTapGesture { openTripDetail(day: current.dayNumber) }
+            // 지금 진행 중인 일정(정규 우선, 없으면 내 일정) — 없으면 안내 문구. 예정 일정은 "다음 일정"에만
+            if let current = viewModel.currentItem {
+                homeScheduleRow(current, height: 64, titleFont: AppFont.bodyMMedium)
             } else {
                 scheduleMessage(viewModel.noCurrentScheduleText)
             }
 
-            // 다음 일정 — 없으면 레이블째 숨김
-            if let next = viewModel.nextSchedule {
+            // 다음 일정 — 정규 일정과 오늘 남은 내 일정 중 더 이른 것, 없으면 레이블째 숨김
+            if let next = viewModel.nextItem {
                 Text("다음 일정")
                     .font(AppFont.label)
                     .foregroundColor(AppColor.textSecondary)
@@ -224,24 +213,39 @@ struct TripListView: View {
                     .padding(.top, 14)
                     .padding(.bottom, 6)
 
-                HStack {
-                    Text(TravelerHomeViewModel.title(of: next))
-                        .font(AppFont.bodyMedium)
-                        .foregroundColor(AppColor.textPrimary)
-                    Spacer()
-                    Text(TravelerHomeViewModel.timeRange(next.startTime, next.endTime))
-                        .font(AppFont.label)
-                        .foregroundColor(AppColor.textSecondary)
-                }
-                .padding(.horizontal, AppSpacing.md)
-                .frame(height: 48)
-                .background(AppColor.surface)
-                .cornerRadius(AppRadius.lg)
-                .contentShape(Rectangle())
-                .onTapGesture { openTripDetail(day: next.dayNumber) }
-                .padding(.horizontal, AppSpacing.xl)
+                homeScheduleRow(next, height: 48, titleFont: AppFont.bodyMedium)
             }
         }
+    }
+
+    /// 홈 일정 한 줄 — 내 일정이면 앞에 "내 일정" 표시, 누르면 그 일정의 일차가 열립니다
+    private func homeScheduleRow(_ item: TravelerHomeViewModel.HomeScheduleItem, height: CGFloat, titleFont: Font) -> some View {
+        HStack(spacing: AppSpacing.xs) {
+            if item.isPersonal {
+                Text("내 일정")
+                    .font(AppFont.caption2Bold)
+                    .foregroundColor(AppColor.accent)
+                    .padding(.horizontal, 6)
+                    .frame(height: 20)
+                    .background(AppColor.accentSubtle)
+                    .cornerRadius(AppRadius.xs)
+            }
+            Text(item.title)
+                .font(titleFont)
+                .foregroundColor(AppColor.textPrimary)
+                .lineLimit(1)
+            Spacer()
+            Text(TravelerHomeViewModel.timeRange(item.startTime, item.endTime))
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textSecondary)
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .frame(height: height)
+        .background(AppColor.surface)
+        .cornerRadius(AppRadius.lg)
+        .contentShape(Rectangle())
+        .onTapGesture { openTripDetail(day: item.dayNumber) }
+        .padding(.horizontal, AppSpacing.xl)
     }
 
     // MARK: - 주변 인기 스팟

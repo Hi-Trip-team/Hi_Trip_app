@@ -24,6 +24,8 @@ final class TravelerHomeViewModel: ObservableObject {
     /// 스팟 요청이 한 번이라도 끝났는지 — 로딩 중(자리 표시)과 결과 없음(안내 문구)을 구분합니다
     @Published private(set) var isSpotsLoaded = false
     @Published private(set) var unreadMessageCount: Int = 0
+    /// 내가 추가한 개인 일정 — 홈 API(today_schedules·next_schedule)에 없어 따로 불러옵니다
+    @Published private(set) var personalSchedules: [TravelerPersonalScheduleDTO] = []
 
     private let repository: TravelerRepositoryProtocol
     private let chatRepository: ChatRepositoryProtocol
@@ -96,6 +98,8 @@ final class TravelerHomeViewModel: ObservableObject {
         })
         .disposed(by: disposeBag)
 
+        reloadPersonalSchedules()
+
         // 하단 "메시지 및 문의" 뱃지 — 전체 채팅방의 안 읽음 합계
         chatRepository.fetchAllRooms()
             .observe(on: MainScheduler.instance)
@@ -105,6 +109,14 @@ final class TravelerHomeViewModel: ObservableObject {
             .disposed(by: disposeBag)
 
         listenForNotices()
+    }
+
+    /// 개인 일정 다시 불러오기 — 일정 화면에서 추가·수정·삭제하고 돌아왔을 때도 부릅니다
+    func reloadPersonalSchedules() {
+        repository.fetchPersonalSchedules()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] in self?.personalSchedules = $0 }, onFailure: { _ in })
+            .disposed(by: disposeBag)
     }
 
     /// 공지 실시간 수신 — 안내사가 공지를 올리거나 바꾸면 목록·뱃지를 다시 불러옵니다.
@@ -237,28 +249,83 @@ final class TravelerHomeViewModel: ObservableObject {
         return upcoming.map { .upcoming($0) } ?? .finished
     }
 
-    /// 지금 진행 중인 일정 — 없으면 nil
+    // MARK: - 홈 일정 칸 (정규 + 개인)
+
+    /// 홈 일정 칸의 한 줄 — 정규(공용) 일정과 내가 추가한 개인 일정을 같은 모양으로 다룹니다
+    struct HomeScheduleItem: Equatable {
+        let id: String
+        let title: String
+        let startTime: String
+        let endTime: String
+        let dayNumber: Int
+        let isPersonal: Bool
+
+        /// 일차 → 시작 시각 순서로 비교하는 키
+        var sortKey: String { String(format: "%03d ", dayNumber) + startTime }
+    }
+
+    private static func item(_ s: TravelerScheduleDTO) -> HomeScheduleItem {
+        HomeScheduleItem(
+            id: "s\(s.id)", title: title(of: s),
+            startTime: s.startTime, endTime: s.endTime,
+            dayNumber: s.dayNumber, isPersonal: false
+        )
+    }
+
+    private static func item(_ p: TravelerPersonalScheduleDTO) -> HomeScheduleItem {
+        HomeScheduleItem(
+            id: "p\(p.id)", title: p.title,
+            startTime: p.startTime, endTime: p.endTime,
+            dayNumber: p.dayNumber, isPersonal: true
+        )
+    }
+
+    private var todaySharedItems: [HomeScheduleItem] {
+        todaySchedules.map { Self.item($0) }
+    }
+
+    /// 오늘의 개인 일정 — 정규 일정과 겹치는 것(서버 overlap_warning)은 빼서 정규 일정을 우선합니다
+    private var todayPersonalItems: [HomeScheduleItem] {
+        guard let today = home?.todayDayNumber else { return [] }
+        return personalSchedules
+            .filter { $0.dayNumber == today && !$0.overlapWarning }
+            .map { Self.item($0) }
+    }
+
+    private static func isOngoing(_ item: HomeScheduleItem, now: Int) -> Bool {
+        guard let start = AppDate.minutes(item.startTime), let end = AppDate.minutes(item.endTime) else { return false }
+        return start <= now && now < end
+    }
+
+    /// 지금 진행 중인 일정 — 정규 일정 우선, 없으면 개인 일정
     ///
     /// 예정 일정은 여기 넣지 않습니다. 넣으면 "오늘의 일정"과 "다음 일정"에 같은 일정이 두 번 뜹니다.
-    var currentSchedule: TravelerScheduleDTO? {
-        if case .ongoing(let s) = todayState { return s }
-        return nil
+    var currentItem: HomeScheduleItem? {
+        let now = AppDate.minutesNow
+        return todaySharedItems.first { Self.isOngoing($0, now: now) }
+            ?? todayPersonalItems.first { Self.isOngoing($0, now: now) }
     }
 
-    /// 진행 중인 일정이 없을 때 "오늘의 일정" 칸 문구
+    /// 진행 중인 일정이 없을 때 "오늘의 일정" 칸 문구 (정규 + 개인 기준)
     var noCurrentScheduleText: String {
-        switch todayState {
-        case .none:     return "오늘은 등록된 일정이 없어요"
-        case .finished: return "오늘 일정이 모두 끝났어요"
-        default:        return "지금 진행 중인 일정이 없어요"
-        }
+        let all = todaySharedItems + todayPersonalItems
+        if all.isEmpty { return "오늘은 등록된 일정이 없어요" }
+        let now = AppDate.minutesNow
+        let allEnded = all.allSatisfy { (AppDate.minutes($0.endTime) ?? 0) <= now }
+        return allEnded ? "오늘 일정이 모두 끝났어요" : "지금 진행 중인 일정이 없어요"
     }
 
-    /// 다음 일정 — 서버가 계산해 준 값을 씁니다 (내일 이후 일정일 수도 있음)
-    var nextSchedule: TravelerScheduleDTO? {
-        guard let next = home?.nextSchedule else { return nil }
-        if let current = currentSchedule, current.id == next.id { return nil }
-        return next
+    /// 다음 일정 — 서버가 계산한 다음 정규 일정과 오늘 남은 개인 일정 중 더 이른 것
+    var nextItem: HomeScheduleItem? {
+        let now = AppDate.minutesNow
+        let upcomingPersonal = todayPersonalItems
+            .filter { (AppDate.minutes($0.startTime) ?? 0) > now }
+            .min { $0.sortKey < $1.sortKey }
+        let serverNext = home?.nextSchedule.map { Self.item($0) }
+        guard let next = [serverNext, upcomingPersonal].compactMap({ $0 }).min(by: { $0.sortKey < $1.sortKey }) else {
+            return nil
+        }
+        return next.id == currentItem?.id ? nil : next
     }
 
     /// "2025.04.24 출발"
