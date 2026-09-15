@@ -41,14 +41,18 @@ final class VoiceRecorder: NSObject, ObservableObject {
     func start() async -> StartResult {
         guard await Self.requestMicrophonePermission() else { return .permissionDenied }
 
+        // 서버가 받는 음성 형식은 mpeg·ogg·wav뿐이라 WAV(PCM)로 녹음합니다.
+        // iOS는 MP3·OGG 인코더가 없고, 16kHz 모노 16bit면 3분에 약 5.8MB로 용량 제한(50MB) 안입니다.
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("voice_\(UUID().uuidString).m4a")
+            .appendingPathComponent("voice_\(UUID().uuidString).wav")
 
         let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44_100,
+            AVFormatIDKey: Int(kAudioFormatLinearPCM),
+            AVSampleRateKey: 16_000,
             AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
         ]
 
         do {

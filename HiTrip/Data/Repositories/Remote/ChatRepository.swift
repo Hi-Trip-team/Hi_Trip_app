@@ -179,32 +179,49 @@ final class ChatRepository: ChatRepositoryProtocol {
     }
 
     /// presign이 알려준 주소로 파일 본문을 올립니다.
+    ///
+    /// 서버는 upload_url을 도메인 없는 경로(`/api/v1/chat/uploads/12/?token=…`)로 줍니다.
+    /// `URL(string:)`은 이런 상대 경로도 받아들여 호스트 없는 주소가 되므로, 반드시 서버 주소를 붙여 완성합니다.
     private static func put(data: Data, to intent: ChatUploadIntentDTO) -> Single<Void> {
-        guard let url = URL(string: intent.uploadUrl)
-            ?? URL(string: APIEnvironment.current.baseURL + intent.uploadUrl) else {
+        guard let url = RemoteImageCache.resolve(intent.uploadUrl) else {
             return .error(HiTripError.networkFailure("업로드 주소가 올바르지 않습니다"))
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = intent.method ?? "PUT"
         intent.requiredHeaders?.forEach { request.setValue($1, forHTTPHeaderField: $0) }
-        if let token = KeychainManager.shared.getToken() {
+
+        // 인증: 관광객은 Bearer, 안내사는 세션 쿠키(자동) + CSRF 헤더
+        // 안내사의 Keychain 토큰은 표시용 값이라 Bearer로 보내면 서버가 거절합니다.
+        let keychain = KeychainManager.shared
+        if keychain.getUserType() == UserType.tourist.rawValue, let token = keychain.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else if let csrf = NetworkService.csrfToken ?? Self.csrfCookie(for: url) {
+            request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
         }
 
         return Single.create { single in
-            let task = URLSession.shared.uploadTask(with: request, from: data) { _, response, error in
+            let task = URLSession.shared.uploadTask(with: request, from: data) { body, response, error in
                 if let error { single(.failure(error)); return }
                 let code = (response as? HTTPURLResponse)?.statusCode ?? 0
                 if (200..<300).contains(code) {
                     single(.success(()))
                 } else {
-                    single(.failure(HiTripError.networkFailure("업로드에 실패했습니다 (\(code))")))
+                    // 서버 사유(detail)를 그대로 보여줘야 원인(형식·용량·만료)을 알 수 있습니다
+                    let detail = body
+                        .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+                        .flatMap { $0["detail"] as? String }
+                    single(.failure(HiTripError.networkFailure(detail ?? "업로드에 실패했습니다 (\(code))")))
                 }
             }
             task.resume()
             return Disposables.create { task.cancel() }
         }
+    }
+
+    /// 앱 재시작 뒤처럼 메모리에 CSRF 값이 없을 때 쿠키 저장소에서 읽습니다
+    private static func csrfCookie(for url: URL) -> String? {
+        HTTPCookieStorage.shared.cookies(for: url)?.first { $0.name == "csrftoken" }?.value
     }
 
     /// 읽음 처리 — 서버가 `message_id`(마지막으로 읽은 메시지)를 필수로 요구합니다.
