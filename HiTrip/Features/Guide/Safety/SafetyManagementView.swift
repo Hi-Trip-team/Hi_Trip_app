@@ -141,7 +141,8 @@ struct SafetyManagementView: View {
             VStack(spacing: 0) {
                 tableHeader
                     .padding(.horizontal, AppSpacing.xl)
-                    .padding(.top, AppSpacing.xl)
+                    // 갱신 시각 문구와 표를 붙여 한 덩어리로 보이게
+                    .padding(.top, AppSpacing.xs)
 
                 ForEach(viewModel.sortedParticipants, id: \.participantId) { p in
                     participantRow(p)
@@ -164,9 +165,9 @@ struct SafetyManagementView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            headerCell("이름", width: 72)
+            headerCell("이름", width: 56)
             headerCell("연락처", width: 84)
-            headerCell("이탈여부", width: 74)
+            headerCell("이탈여부", width: 90)
             headerCell("심박수", width: 64)
             headerCell("SpO₂", width: 44)
         }
@@ -188,7 +189,7 @@ struct SafetyManagementView: View {
             Text(p.travelerName)
                 .font(AppFont.labelMedium)
                 .foregroundColor(AppColor.accent)
-                .frame(width: 72, alignment: .center)
+                .frame(width: 56, alignment: .center)
                 .lineLimit(1)
 
             Text(viewModel.profile(for: p)?.phone ?? "—")
@@ -218,7 +219,7 @@ struct SafetyManagementView: View {
                                          ? AppColor.textSecondary : AppColor.textBody)
                 }
             }
-            .frame(width: 74, alignment: .center)
+            .frame(width: 90, alignment: .center)
 
             metricCell(viewModel.heartRateText(p), level: viewModel.heartRateLevel(p), width: 64)
             metricCell(viewModel.spo2Text(p), level: viewModel.spo2Level(p), width: 44)
