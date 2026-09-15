@@ -164,23 +164,34 @@ final class StaffHomeViewModel: ObservableObject {
     /// 진행률 카드 오른쪽 목적지
     var destinationText: String { trip?.destination ?? "" }
 
+    /// 홈 일정 한 줄 — 장소가 없는 일정(앱에서 추가한 것)은 메모를 제목으로
+    private static func item(_ s: StaffScheduleDTO) -> ScheduleSummary {
+        ScheduleSummary(
+            id: "s\(s.id)", title: StaffTripDetailViewModel.title(of: s),
+            startTime: s.startTime, endTime: s.endTime, dayNumber: s.dayNumber
+        )
+    }
+
     /// 지금 진행 중인 일정 — 예정 일정은 "다음 일정"에만 (여행객 홈과 같은 규칙)
-    var currentSchedule: StaffScheduleDTO? {
+    var currentItem: ScheduleSummary? {
         let now = nowMinutes
         return todaySchedules.first {
             guard let s = AppDate.minutes($0.startTime), let e = AppDate.minutes($0.endTime) else { return false }
             return s <= now && now < e
+        }.map(Self.item)
+    }
+
+    /// 여행 기간 밖이면 일정 대신 보여줄 문구 — 여행 중이면 nil
+    var phaseMessage: String? {
+        switch clock?.phase {
+        case .before?:   return "여행 시작 전이에요 · D-\(clock?.daysUntilStart ?? 0)"
+        case .finished?: return "여행 일정이 모두 끝났어요"
+        default:         return nil
         }
     }
 
     /// 진행 중인 일정이 없을 때 "오늘의 일정" 칸 문구
     var noCurrentScheduleText: String {
-        // 여행 기간 밖이면 "오늘 일정 없음" 대신 상태를 알려줍니다 (여행객 홈과 같은 기준)
-        switch clock?.phase {
-        case .before?:   return "여행 시작 전이에요 · D-\(clock?.daysUntilStart ?? 0)"
-        case .finished?: return "여행 일정이 모두 끝났어요"
-        default:         break
-        }
         if todaySchedules.isEmpty { return "오늘은 등록된 일정이 없어요" }
         let now = nowMinutes
         let allEnded = todaySchedules.allSatisfy { (AppDate.minutes($0.endTime) ?? 0) <= now }
@@ -188,12 +199,13 @@ final class StaffHomeViewModel: ObservableObject {
     }
 
     /// 다음 일정 — 지금 이후 가장 이른 일정 (내일 이후 포함, 여행지 시각 기준)
-    var nextSchedule: StaffScheduleDTO? {
+    var nextItem: ScheduleSummary? {
         guard let clock else { return nil }
         let next = schedules
             .filter { clock.isAfterNow(dayNumber: $0.dayNumber, startTime: $0.startTime) }
             .min { ($0.dayNumber, $0.startTime) < ($1.dayNumber, $1.startTime) }
-        guard let next, next.id != currentSchedule?.id else { return nil }
+            .map(Self.item)
+        guard let next, next.id != currentItem?.id else { return nil }
         return next
     }
 

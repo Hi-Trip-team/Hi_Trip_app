@@ -22,7 +22,7 @@ protocol StaffRepositoryProtocol {
     /// 일정 추가 — 장소는 place_id로만 지정할 수 있어 제목은 main_content에 넣습니다
     func createSchedule(
         tripId: Int, dayNumber: Int,
-        startTime: String, endTime: String, content: String, placeId: Int?
+        startTime: String, endTime: String, content: String, placeId: Int?, order: Int
     ) -> Single<StaffScheduleDTO>
 
     /// 시간 변경·메모 수정 — 바뀐 값만 보냅니다
@@ -36,6 +36,7 @@ protocol StaffRepositoryProtocol {
     /// 카카오 장소 검색 → 서버 장소 등록 (일정 장소 지정)
     func searchKakaoPlaces(query: String) -> Single<[KakaoPlaceResultDTO]>
     func adoptKakaoPlace(query: String, providerObjectId: String) -> Single<Int>
+    func fetchPlace(id: Int) -> Single<StaffPlaceDTO>
 
     // 안전 관리
     func fetchSafetySummary(tripId: Int) -> Single<MonitoringSummaryDTO>
@@ -125,6 +126,10 @@ final class StaffRepository: StaffRepositoryProtocol {
         networkService.request(.staffSchedules(tripId: tripId), type: [StaffScheduleDTO].self)
     }
 
+    func fetchPlace(id: Int) -> Single<StaffPlaceDTO> {
+        networkService.request(.staffPlace(id: id), type: StaffPlaceDTO.self)
+    }
+
     func searchKakaoPlaces(query: String) -> Single<[KakaoPlaceResultDTO]> {
         networkService.request(.kakaoPlaceSearch(query: query), type: KakaoPlaceSearchResponseDTO.self)
             .map(\.results)
@@ -142,7 +147,7 @@ final class StaffRepository: StaffRepositoryProtocol {
 
     func createSchedule(
         tripId: Int, dayNumber: Int,
-        startTime: String, endTime: String, content: String, placeId: Int?
+        startTime: String, endTime: String, content: String, placeId: Int?, order: Int
     ) -> Single<StaffScheduleDTO> {
         var body: [String: Any] = [
             "day_number": dayNumber,
@@ -151,6 +156,8 @@ final class StaffRepository: StaffRepositoryProtocol {
             "main_content": content,
         ]
         if let placeId { body["place_id"] = placeId }
+        // 서버가 (일차, order) 중복을 막아서 그 일차의 다음 번호를 보냅니다
+        body["order"] = order
         return networkService.request(
             .staffScheduleCreate(tripId: tripId, body: body),
             type: StaffScheduleDTO.self

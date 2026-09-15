@@ -77,6 +77,8 @@ struct StaffScheduleDTO: Decodable {
     /// 장소를 붙이지 않고 만든 일정에는 서버가 이 값들을 아예 넣지 않습니다.
     /// 필수로 두면 일정 추가 응답에서 디코딩이 깨집니다.
     let durationMinutes: Int?
+    /// 서버 장소 id — 누르면 장소 상세를 받아옵니다
+    var place: Int? = nil
     let placeName: String?
     let durationDisplay: String?
     let transport: String?

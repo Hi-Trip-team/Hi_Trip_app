@@ -28,8 +28,6 @@ struct TripDetailView: View {
     @State private var expandedDescriptions: Set<Int> = []
     /// 작성 중 닫기 확인
     @State private var showDiscardConfirm = false
-    /// 키보드가 올라와 있는지 — 시트 아래 여백(홈 인디케이터용)을 줄이는 데 씁니다
-    @State private var isKeyboardVisible = false
     /// 일정 카드 탭 → 스팟 상세
     @State private var selectedSchedule: SchedulePlace?
     /// 삭제 확인 대기 중인 개인 일정
@@ -68,33 +66,12 @@ struct TripDetailView: View {
             .background(Color.white)
 
             if showAddSheet {
-                DimmedBackground { requestCloseSheet() }
-
-                VStack(spacing: 0) {
-                    Spacer()
-                    addScheduleSheet
-                        .transition(.move(edge: .bottom))
-                        .gesture(
-                            DragGesture()
-                                .onEnded { value in
-                                    if value.translation.height > 80 { requestCloseSheet() }
-                                }
-                        )
+                BottomSheetOverlay(onDismissRequest: requestCloseSheet) { keyboardVisible in
+                    addScheduleSheet(isKeyboardVisible: keyboardVisible)
                 }
-                // 홈 인디케이터 영역만 무시합니다. edges만 주면 키보드 영역까지 무시해서
-                // 키보드가 올라와도 시트가 그대로 있어 입력칸이 가려졌습니다.
-                .ignoresSafeArea(.container, edges: .bottom)
             }
         }
         .toast($viewModel.toast)
-        // 키보드가 떠 있으면 시트 아래 여백을 줄여 키보드와 붙게 합니다
-        // (키보드 위 [완료] 줄은 시트와 키보드 사이에 빈 간격을 만들어 뺐습니다 — 키보드의 return으로 내림)
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-            isKeyboardVisible = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            isKeyboardVisible = false
-        }
         .animation(.easeInOut(duration: 0.25), value: showAddSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
@@ -210,30 +187,7 @@ struct TripDetailView: View {
     // MARK: - 여행 정보 카드
 
     private var tripInfoCard: some View {
-        HStack(spacing: AppSpacing.sm) {
-            RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(AppColor.borderSoft)
-                .frame(width: 60, height: 60)
-                .overlay(
-                    Image(systemName: "suitcase")
-                        .font(AppFont.title1Light)
-                        .foregroundColor(AppColor.textTertiary)
-                )
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(viewModel.tripTitle)
-                    .font(AppFont.bodyMBold)
-                    .foregroundColor(AppColor.textPrimary)
-                Text("진행일자 \(viewModel.tripPeriod)")
-                    .font(AppFont.caption)
-                    .foregroundColor(AppColor.textSecondary)
-            }
-            Spacer()
-        }
-        .padding(AppSpacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColor.surface)
-        .cornerRadius(AppRadius.lg)
+        TripInfoCard(title: viewModel.tripTitle, subtitle: "진행일자 \(viewModel.tripPeriod)")
     }
 
     // MARK: - 오늘의 일정
@@ -298,48 +252,19 @@ struct TripDetailView: View {
         let isExpanded = viewModel.expandedDay == day.dayNumber
 
         return VStack(spacing: 0) {
-            Button {
+            DayAccordionHeader(
+                dayNumber: day.dayNumber,
+                date: day.date.replacingOccurrences(of: "-", with: "."),
+                isExpanded: isExpanded
+            ) {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     viewModel.expandedDay = isExpanded ? nil : day.dayNumber
                 }
-            } label: {
-                HStack(spacing: 10) {
-                    // 펼친 일차만 파란 칩, 나머지는 회색
-                    Text("\(day.dayNumber)일차")
-                        .font(AppFont.captionBold)
-                        .foregroundColor(isExpanded ? .white : AppColor.textSecondary)
-                        .frame(width: 48, height: 24)
-                        .background(isExpanded ? AppColor.accent : AppColor.divider)
-                        .cornerRadius(AppRadius.xs)
-
-                    Text(day.date.replacingOccurrences(of: "-", with: "."))
-                        .font(AppFont.labelMedium)
-                        .foregroundColor(isExpanded ? AppColor.textPrimary : AppColor.textSecondary)
-
-                    Spacer()
-
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(AppFont.captionSemiBold)
-                        .foregroundColor(AppColor.textSecondary)
-                }
-                .padding(.horizontal, 14)
-                .frame(height: 52)
-                .background(isExpanded ? AppColor.accentSubtle : AppColor.surface)
-                .cornerRadius(AppRadius.lg)
             }
-            .buttonStyle(.plain)
 
             if isExpanded {
                 VStack(spacing: AppSpacing.sm) {
-                    if day.items.isEmpty {
-                        Text("등록된 일정이 없어요")
-                            .font(AppFont.label)
-                            .foregroundColor(AppColor.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 60)
-                            .background(AppColor.surfaceSubtle)
-                            .cornerRadius(AppRadius.lg)
-                    }
+                    if day.items.isEmpty { EmptyDayRow() }
 
                     ForEach(day.items) { item in
                         switch item {
@@ -540,50 +465,19 @@ struct TripDetailView: View {
     // MARK: - 개인 일정 추가 버튼
 
     private func addPersonalButton(dayNumber: Int) -> some View {
-        Button {
+        DashedAddButton(title: "+ 개인 일정 추가") {
             addDayNumber = dayNumber
             showAddSheet = true
-        } label: {
-            Text("+ 개인 일정 추가")
-                .font(AppFont.bodyMedium)
-                .foregroundColor(AppColor.accent)
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(AppColor.surface)
-                .cornerRadius(AppRadius.lg)
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.lg)
-                        .strokeBorder(AppColor.textSecondary, style: StrokeStyle(lineWidth: 1, dash: [4]))
-                )
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - 개인 일정 추가 시트
 
-    private var addScheduleSheet: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Spacer()
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(AppColor.divider)
-                    .frame(width: 52, height: 5)
-                Spacer()
-            }
-            .padding(.top, 10)
-
-            Text(editingId == nil ? "개인 일정 추가" : "개인 일정 수정")
-                .font(AppFont.bodyLBold)
-                .foregroundColor(AppColor.textPrimary)
-                .padding(.horizontal, AppSpacing.xl)
-                .padding(.top, 22)
-                .padding(.bottom, AppSpacing.md)
-
+    private func addScheduleSheet(isKeyboardVisible: Bool) -> some View {
+        BottomSheetCard(title: editingId == nil ? "개인 일정 추가" : "개인 일정 수정") {
             // 제목
             VStack(alignment: .leading, spacing: 6) {
-                Text("제목")
-                    .font(AppFont.captionMedium)
-                    .foregroundColor(AppColor.textSecondary)
+                SheetFieldLabel("제목")
                     .padding(.horizontal, AppSpacing.xl)
 
                 // 입력 중에는 자르지 않습니다. 한국어·일본어·중국어는 여러 타를
@@ -615,28 +509,19 @@ struct TripDetailView: View {
 
             // 시간
             VStack(alignment: .leading, spacing: 6) {
-                Text("시간")
-                    .font(AppFont.captionMedium)
-                    .foregroundColor(AppColor.textSecondary)
+                SheetFieldLabel("시간")
                     .padding(.horizontal, AppSpacing.xl)
 
                 HStack(spacing: AppSpacing.sm) {
                     timeField(prefix: "시작", value: addStart, field: .start)
-                    timeField(prefix: "종료", value: addEnd,   field: .end)
+                    timeField(prefix: "종료", value: addEnd, field: .end)
                 }
                 .padding(.horizontal, AppSpacing.xl)
 
                 // 탭한 쪽만 휠 피커를 펼칩니다
                 if let field = openPicker {
-                    DatePicker(
-                        "",
-                        selection: field == .start ? $startDate : $endDate,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(height: 140)
-                    .padding(.horizontal, AppSpacing.xl)
+                    SheetTimeWheel(selection: field == .start ? $startDate : $endDate)
+                        .padding(.horizontal, AppSpacing.xl)
                 }
 
                 if isEndBeforeStart {
@@ -679,57 +564,19 @@ struct TripDetailView: View {
             }
             .padding(.horizontal, AppSpacing.xl)
 
-            // 저장
-            Button { save() } label: {
-                Group {
-                    if viewModel.isSaving {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text("저장")
-                            .font(AppFont.bodyLBold)
-                            .foregroundColor(.white)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(canSave ? AppColor.accent : AppColor.borderMuted)
-                .cornerRadius(AppRadius.lg)
-            }
-            .buttonStyle(.plain)
-            .disabled(!canSave || viewModel.isSaving)
-            .padding(.horizontal, AppSpacing.xl)
-            .padding(.top, 18)
-            // 34는 홈 인디케이터 자리 — 키보드가 떠 있으면 필요 없어 줄입니다
-            .padding(.bottom, isKeyboardVisible ? AppSpacing.md : 34)
+            SheetPrimaryButton(
+                isEnabled: canSave,
+                isLoading: viewModel.isSaving,
+                isKeyboardVisible: isKeyboardVisible,
+                action: save
+            )
         }
-        .background(Color.white)
-        .cornerRadius(24, corners: [.topLeft, .topRight])
     }
 
     private func timeField(prefix: String, value: String, field: TimeField) -> some View {
-        Button {
+        SheetTimeField(prefix: prefix, value: value, isActive: openPicker == field) {
             openPicker = (openPicker == field) ? nil : field
-        } label: {
-            HStack(spacing: AppSpacing.xs) {
-                Text(prefix)
-                    .font(AppFont.caption)
-                    .foregroundColor(AppColor.textSecondary)
-                Text(value)
-                    .font(AppFont.bodyMedium)
-                    .foregroundColor(AppColor.textPrimary)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity)
-            .frame(height: 48)
-            .background(AppColor.surface)
-            .cornerRadius(AppRadius.lg)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.lg)
-                    .stroke(openPicker == field ? AppColor.accent : .clear, lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - 동작

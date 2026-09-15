@@ -272,17 +272,8 @@ final class TravelerHomeViewModel: ObservableObject {
     // MARK: - 홈 일정 칸 (정규 + 개인)
 
     /// 홈 일정 칸의 한 줄 — 정규(공용) 일정과 내가 추가한 개인 일정을 같은 모양으로 다룹니다
-    struct HomeScheduleItem: Equatable {
-        let id: String
-        let title: String
-        let startTime: String
-        let endTime: String
-        let dayNumber: Int
-        let isPersonal: Bool
-
-        /// 일차 → 시작 시각 순서로 비교하는 키
-        var sortKey: String { String(format: "%03d ", dayNumber) + startTime }
-    }
+    /// 안내사 홈과 같은 공통 모델
+    typealias HomeScheduleItem = ScheduleSummary
 
     private static func item(_ s: TravelerScheduleDTO) -> HomeScheduleItem {
         HomeScheduleItem(
@@ -324,6 +315,15 @@ final class TravelerHomeViewModel: ObservableObject {
         let now = nowMinutes
         return todaySharedItems.first { Self.isOngoing($0, now: now) }
             ?? todayPersonalItems.first { Self.isOngoing($0, now: now) }
+    }
+
+    /// 여행 기간 밖이면 일정 대신 보여줄 문구 — 여행 중이면 nil
+    var phaseMessage: String? {
+        switch phase {
+        case .before:   return "여행 시작 전이에요 · \(departureDateText)"
+        case .finished: return "여행 정보와 계정은 \(dataPurgeDateText)에 파기됩니다"
+        case .during:   return nil
+        }
     }
 
     /// 진행 중인 일정이 없을 때 "오늘의 일정" 칸 문구 (정규 + 개인 기준)

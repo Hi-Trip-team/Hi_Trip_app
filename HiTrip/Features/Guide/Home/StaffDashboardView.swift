@@ -18,6 +18,8 @@ struct StaffDashboardView: View {
     @State private var showChat = false
     @State private var showNotification = false
     @State private var showFullSchedule = false
+    /// 전체 일정에서 처음 펼칠 일차 — nil이면 오늘
+    @State private var fullScheduleFocusDay: Int?
     @State private var showNotice = false
 
     var body: some View {
@@ -45,7 +47,7 @@ struct StaffDashboardView: View {
             }
             .navigationDestination(isPresented: $showChat) { StaffChatListView(currentTripId: viewModel.trip?.id) }
             .navigationDestination(isPresented: $showNotification) { NotificationCenterView() }
-            .navigationDestination(isPresented: $showFullSchedule) { StaffTripDetailView() }
+            .navigationDestination(isPresented: $showFullSchedule) { StaffTripDetailView(focusDay: fullScheduleFocusDay) }
             .navigationDestination(isPresented: $showNotice) { NoticeSettingView() }
         }
     }
@@ -114,84 +116,25 @@ struct StaffDashboardView: View {
 
     // MARK: - 오늘의 일정
 
+    /// 여행객 홈과 같은 공통 부품 — 일정을 누르면 그 일차, 링크는 오늘 일차를 펼칩니다
     private var todayScheduleSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 여행 진행률 카드 → "오늘의 일정" → 일정 카드 → 전체일정 링크 (여행객 홈과 같은 순서·여백)
+        TodayScheduleSection(
+            phaseMessage: viewModel.phaseMessage,
+            current: viewModel.currentItem,
+            noCurrentText: viewModel.noCurrentScheduleText,
+            next: viewModel.nextItem,
+            linkTitle: "전체일정 확인 및 일정 수정하기  >",
+            onOpenDay: { day in
+                fullScheduleFocusDay = day
+                showFullSchedule = true
+            }
+        ) {
             TripProgressCard(
                 progress: viewModel.tripProgress,
                 remainingDays: viewModel.remainingDays,
                 destination: viewModel.destinationText
             )
-            .padding(.horizontal, 21)
-            .padding(.bottom, AppSpacing.lg)
-
-            Text("오늘의 일정")
-                .font(AppFont.bodyLBold)
-                .foregroundColor(AppColor.textPrimary)
-                .padding(.horizontal, AppSpacing.xl)
-                .padding(.bottom, AppSpacing.md)
-
-            // 지금 진행 중인 일정 — 없으면 안내 문구. 예정 일정은 "다음 일정"에만 (여행객 홈과 같은 카드)
-            if let current = viewModel.currentSchedule {
-                scheduleRow(current, height: 64, titleFont: AppFont.bodyMMedium)
-                    .padding(.horizontal, AppSpacing.xl)
-            } else {
-                Text(viewModel.noCurrentScheduleText)
-                    .font(AppFont.body)
-                    .foregroundColor(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, AppSpacing.md)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 64)
-                    .background(AppColor.surface)
-                    .cornerRadius(AppRadius.lg)
-                    .padding(.horizontal, AppSpacing.xl)
-            }
-
-            // 다음 일정 — 없으면 레이블째 숨김
-            if let next = viewModel.nextSchedule {
-                Text("다음 일정")
-                    .font(AppFont.label)
-                    .foregroundColor(AppColor.textSecondary)
-                    .padding(.horizontal, AppSpacing.xl)
-                    .padding(.top, 14)
-                    .padding(.bottom, 6)
-
-                scheduleRow(next, height: 48, titleFont: AppFont.bodyMedium)
-                    .padding(.horizontal, AppSpacing.xl)
-            }
-
-            // 전체일정 링크
-            Button { showFullSchedule = true } label: {
-                Text("전체일정 확인 및 일정 수정하기  >")
-                    .font(AppFont.labelMedium)
-                    .foregroundColor(AppColor.accent)
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, AppSpacing.xl)
-            .padding(.top, 14)
-            .padding(.bottom, 12)
         }
-    }
-
-    private func scheduleRow(_ item: StaffScheduleDTO, height: CGFloat, titleFont: Font) -> some View {
-        HStack(spacing: AppSpacing.xs) {
-            // 장소가 없는 일정(앱에서 추가한 것)은 메모를 제목으로 씁니다
-            Text(item.placeName?.isEmpty == false ? (item.placeName ?? "") : (item.mainContent ?? "일정"))
-                .font(titleFont)
-                .foregroundColor(AppColor.textPrimary)
-                .lineLimit(1)
-            Spacer()
-            Text(StaffHomeViewModel.timeRange(item.startTime, item.endTime))
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-        }
-        .padding(.horizontal, AppSpacing.md)
-        .frame(height: height)
-        .background(AppColor.surface)
-        .cornerRadius(AppRadius.lg)
-        .contentShape(Rectangle())
-        .onTapGesture { showFullSchedule = true }
     }
 
     // MARK: - 퀵 메뉴 2×2

@@ -88,6 +88,12 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/trips/\(tripId)/schedules/\(id)/", method: .delete)
     }
 
+    /// 장소 상세
+    /// GET /api/places/{id}/
+    static func staffPlace(id: Int) -> APIEndpoint {
+        APIEndpoint(path: "/api/places/\(id)/")
+    }
+
     /// 카카오 장소 검색 (서버 프록시)
     /// GET /api/v1/publicdata/kakao/places/?q=
     static func kakaoPlaceSearch(query: String) -> APIEndpoint {

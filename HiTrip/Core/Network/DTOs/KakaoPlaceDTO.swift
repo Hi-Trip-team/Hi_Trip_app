@@ -27,6 +27,18 @@ struct KakaoPlaceResultDTO: Decodable, Equatable, Identifiable {
     }
 }
 
+/// GET /api/places/{id}/ — 안내사 일정의 장소 상세
+struct StaffPlaceDTO: Decodable {
+    let id: Int
+    let name: String
+    let address: String?
+    let latitude: String?
+    let longitude: String?
+    let imageUrl: String?
+    let tourOverview: String?
+    let kakaoCategory: String?
+}
+
 struct KakaoPlaceAdoptResponseDTO: Decodable {
     let placeId: Int
     let name: String?

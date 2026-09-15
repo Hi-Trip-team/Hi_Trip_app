@@ -20,6 +20,9 @@ struct ChatBubbleView: View {
 
     private var isMine: Bool { message.isMine }
 
+    /// 음성 메시지 재생 — 방 전체에서 하나만 재생되도록 공유
+    @ObservedObject private var audioPlayer = ChatAudioPlayer.shared
+
     var body: some View {
         HStack(alignment: .bottom, spacing: AppSpacing.xs) {
             if isMine {
@@ -103,9 +106,30 @@ struct ChatBubbleView: View {
             }
             .frame(width: 180, height: 180)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+        } else if attachment.isAudio {
+            // 누르면 재생, 다시 누르면 멈춤
+            Button { audioPlayer.toggle(attachment) } label: {
+                HStack(spacing: AppSpacing.xs) {
+                    if audioPlayer.loadingId == attachment.id {
+                        ProgressView().tint(textColor)
+                    } else {
+                        Image(systemName: audioPlayer.playingId == attachment.id ? "stop.circle.fill" : "play.circle.fill")
+                            .font(AppFont.title3)
+                    }
+                    Image(systemName: "waveform")
+                        .font(AppFont.bodyL)
+                    Text(attachmentLabel(attachment))
+                        .font(AppFont.label)
+                }
+                .foregroundColor(textColor)
+                .padding(.vertical, 2)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(audioPlayer.playingId == attachment.id ? "음성 메시지 정지" : "음성 메시지 재생")
         } else {
             HStack(spacing: AppSpacing.xs) {
-                Image(systemName: attachment.isVideo ? "play.rectangle.fill" : "waveform")
+                Image(systemName: "play.rectangle.fill")
                     .font(AppFont.bodyL)
                 Text(attachmentLabel(attachment))
                     .font(AppFont.label)

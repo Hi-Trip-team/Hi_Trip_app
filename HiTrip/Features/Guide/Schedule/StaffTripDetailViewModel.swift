@@ -34,7 +34,14 @@ final class StaffTripDetailViewModel: ObservableObject {
     private let repository: StaffRepositoryProtocol
     private let disposeBag = DisposeBag()
 
-    init(repository: StaffRepositoryProtocol = AppDIContainer.shared.staffRepositoryForGuide) {
+    /// 처음 펼칠 일차 — 홈에서 누른 일정의 일차 (nil이면 오늘 → 첫 일차)
+    private let focusDay: Int?
+
+    init(
+        focusDay: Int? = nil,
+        repository: StaffRepositoryProtocol = AppDIContainer.shared.staffRepositoryForGuide
+    ) {
+        self.focusDay = focusDay
         self.repository = repository
     }
 
@@ -74,7 +81,7 @@ final class StaffTripDetailViewModel: ObservableObject {
                     guard let self else { return }
                     self.schedules = list
                     self.state = .loaded
-                    if self.expandedDay == nil { self.expandedDay = self.todayDayNumber ?? self.days.first?.dayNumber }
+                    if self.expandedDay == nil { self.expandedDay = self.focusDay ?? self.todayDayNumber ?? self.days.first?.dayNumber }
                 },
                 onFailure: { [weak self] error in
                     if self?.schedules.isEmpty ?? true {
@@ -98,8 +105,11 @@ final class StaffTripDetailViewModel: ObservableObject {
         }
     }
 
-    /// 오늘이 며칠째인지 — 서버 today_day_number (여행 기간이 아니면 nil)
-    var todayDayNumber: Int? { trip?.todayDayNumber }
+    /// 오늘이 며칠째인지 — 여행지 날짜 기준 TripClock (여행 기간이 아니면 nil)
+    /// (서버 today_day_number는 UTC라 새벽에 하루 어긋남)
+    var todayDayNumber: Int? {
+        trip.flatMap { TripClock(startDate: $0.startDate, endDate: $0.endDate, timeZoneID: $0.timezone) }?.todayDayNumber
+    }
 
     var tripTitle: String { trip?.title ?? "" }
 
@@ -163,6 +173,22 @@ final class StaffTripDetailViewModel: ObservableObject {
 
     func clearPlaceResults() { placeResults = [] }
 
+    // MARK: - 장소 상세
+
+    /// 일정을 누르면 여는 장소 상세 — 장소가 없는 일정은 열지 않습니다
+    @Published var selectedPlace: StaffPlaceDTO?
+
+    func openPlace(of item: StaffScheduleDTO) {
+        guard let placeId = item.place else { return }
+        repository.fetchPlace(id: placeId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in self?.selectedPlace = $0 },
+                onFailure: { [weak self] error in self?.toast = Self.message(for: error) }
+            )
+            .disposed(by: disposeBag)
+    }
+
     func addSchedule(
         dayNumber: Int, title: String, start: String, end: String,
         place: KakaoPlaceResultDTO? = nil, placeQuery: String = "",
@@ -170,6 +196,9 @@ final class StaffTripDetailViewModel: ObservableObject {
     ) {
         guard let tripId = trip?.id else { return }
         isSaving = true
+
+        // 같은 일차 안에서 order가 겹치면 서버가 거절합니다 — 가장 큰 번호 다음
+        let order = (schedules.filter { $0.dayNumber == dayNumber }.compactMap(\.order).max() ?? -1) + 1
 
         // 장소를 골랐으면 서버 장소로 먼저 등록해 place_id를 받습니다 (서버는 place_id로만 받음)
         let placeId: Single<Int?> = place.map { p in
@@ -180,7 +209,7 @@ final class StaffTripDetailViewModel: ObservableObject {
             repository.createSchedule(
                 tripId: tripId, dayNumber: dayNumber,
                 startTime: Self.withSeconds(start), endTime: Self.withSeconds(end),
-                content: title, placeId: placeId
+                content: title, placeId: placeId, order: order
             )
         }
         .observe(on: MainScheduler.instance)
@@ -253,10 +282,18 @@ final class StaffTripDetailViewModel: ObservableObject {
     // MARK: - 헬퍼
 
     /// 카드 제목 — 장소가 있으면 장소, 없으면 메모를 씁니다
+    /// 일정 제목 — 앱에서 직접 쓴 짧은 제목(main_content 한 줄)이 있으면 그것, 없으면 장소명
+    ///
+    /// SaaS 일정은 main_content에 긴 설명이 들어 있어, 길거나 여러 줄이면 장소명을 씁니다.
     static func title(of item: StaffScheduleDTO) -> String {
-        if let place = item.placeName, !place.isEmpty { return place }
-        return item.mainContent ?? "일정"
+        let place = item.placeName?.isEmpty == false ? item.placeName : nil
+        if let content = item.mainContent?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !content.isEmpty, (place == nil || (content.count <= 30 && !content.contains("\n"))) {
+            return content
+        }
+        return place ?? "일정"
     }
+
 
     static func timeRange(_ start: String, _ end: String) -> String {
         "\(AppDate.hhmm(start)) - \(AppDate.hhmm(end))"
@@ -271,7 +308,8 @@ final class StaffTripDetailViewModel: ObservableObject {
             switch e {
             case .unauthorized, .forbidden: return "로그인이 필요합니다"
             case .noConnection:             return "연결을 확인해주세요"
-            default:                        break
+            // 서버가 거절한 사유(필드 오류·detail)를 그대로 보여줘야 원인을 알 수 있습니다
+            default:                        if let text = e.errorDescription, !text.isEmpty { return text }
             }
         }
         return "저장하지 못했어요"
