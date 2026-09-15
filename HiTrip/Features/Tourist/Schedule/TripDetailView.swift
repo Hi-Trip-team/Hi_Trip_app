@@ -466,7 +466,7 @@ struct TripDetailView: View {
             }
             .opacity(isSwiped ? 1 : 0)
 
-            personalRowContent(p)
+            personalRowContent(p, dayNumber: dayNumber)
                 .offset(x: isSwiped ? -actionWidth : 0)
                 .gesture(
                     DragGesture(minimumDistance: 12)
@@ -480,7 +480,7 @@ struct TripDetailView: View {
         }
     }
 
-    private func personalRowContent(_ p: TravelerPersonalScheduleDTO) -> some View {
+    private func personalRowContent(_ p: TravelerPersonalScheduleDTO, dayNumber: Int) -> some View {
         HStack(spacing: 10) {
             Text("내 일정")
                 .font(AppFont.caption2Bold)
@@ -512,6 +512,18 @@ struct TripDetailView: View {
                         .font(AppFont.microBold)
                         .foregroundColor(AppColor.warning)
                 }
+                // ⋯ 메뉴 — 밀기 제스처를 모르는 사용자도 수정·삭제를 찾을 수 있게 (밀기는 그대로 둠)
+                Menu {
+                    Button("수정") { beginEdit(p, dayNumber: dayNumber) }
+                    Button("삭제", role: .destructive) { pendingDelete = p }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(AppFont.body)
+                        .foregroundColor(AppColor.textTertiary)
+                        .frame(width: 32, height: 20)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("개인 일정 더보기")
             }
         }
         .padding(.horizontal, 14)
