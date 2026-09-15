@@ -11,6 +11,8 @@
 		<string>kakaomap</string>
 		<string>comgooglemaps</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>채팅에서 사진을 바로 찍어 보내는 데 사용합니다.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>채팅에서 음성 메시지를 녹음하는 데 사용합니다.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
