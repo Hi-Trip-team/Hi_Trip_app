@@ -275,8 +275,8 @@ struct ChatRoomView: View {
             chatRoomId: chatRoom.id,
             data: result.data,
             mediaType: "audio",
-            fileName: "voice.m4a",
-            mimeType: "audio/mp4",
+            fileName: "voice.wav",
+            mimeType: "audio/wav",
             duration: result.duration
         )
     }
