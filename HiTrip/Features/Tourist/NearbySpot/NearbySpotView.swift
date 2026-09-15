@@ -68,7 +68,10 @@ struct NearbySpotView: View {
             NearbySpotDetailView(
                 name: spot.name,
                 address: spot.roadAddress ?? spot.address,
+                // 도로명이 있으면 지번은 아래에 작게 — 카카오 장소 정보를 조금 더 보여줍니다
+                subAddress: spot.roadAddress != nil ? spot.address : nil,
                 description: spot.description,
+                distance: spot.distanceText,
                 imageUrl: spot.imageUrl,
                 isSponsored: spot.isSponsored == true,
                 latitude: spot.latitude,
