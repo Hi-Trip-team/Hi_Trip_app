@@ -197,6 +197,9 @@ final class StaffTripDetailViewModel: ObservableObject {
         guard let tripId = trip?.id else { return }
         isSaving = true
 
+        // 같은 일차 안에서 order가 겹치면 서버가 거절합니다 — 가장 큰 번호 다음
+        let order = (schedules.filter { $0.dayNumber == dayNumber }.compactMap(\.order).max() ?? -1) + 1
+
         // 장소를 골랐으면 서버 장소로 먼저 등록해 place_id를 받습니다 (서버는 place_id로만 받음)
         let placeId: Single<Int?> = place.map { p in
             repository.adoptKakaoPlace(query: placeQuery, providerObjectId: p.providerObjectId).map { Optional($0) }
@@ -206,7 +209,7 @@ final class StaffTripDetailViewModel: ObservableObject {
             repository.createSchedule(
                 tripId: tripId, dayNumber: dayNumber,
                 startTime: Self.withSeconds(start), endTime: Self.withSeconds(end),
-                content: title, placeId: placeId
+                content: title, placeId: placeId, order: order
             )
         }
         .observe(on: MainScheduler.instance)
@@ -291,11 +294,6 @@ final class StaffTripDetailViewModel: ObservableObject {
         return place ?? "일정"
     }
 
-    /// 제목과 다를 때만 보여줄 장소명 한 줄
-    static func placeLine(of item: StaffScheduleDTO) -> String? {
-        guard let place = item.placeName, !place.isEmpty, place != title(of: item) else { return nil }
-        return place
-    }
 
     static func timeRange(_ start: String, _ end: String) -> String {
         "\(AppDate.hhmm(start)) - \(AppDate.hhmm(end))"

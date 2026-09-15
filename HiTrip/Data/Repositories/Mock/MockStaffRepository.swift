@@ -101,7 +101,7 @@ final class MockStaffRepository: StaffRepositoryProtocol {
 
     func createSchedule(
         tripId: Int, dayNumber: Int,
-        startTime: String, endTime: String, content: String, placeId: Int?
+        startTime: String, endTime: String, content: String, placeId: Int?, order: Int
     ) -> Single<StaffScheduleDTO> {
         let created = StaffScheduleDTO(
             id: (Self.extraSchedules.map(\.id).max() ?? 900) + 1,
