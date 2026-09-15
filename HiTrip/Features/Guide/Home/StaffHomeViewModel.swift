@@ -146,6 +146,16 @@ final class StaffHomeViewModel: ObservableObject {
         return min(max(Double(AppDate.minutesNow - first) / Double(last - first), 0), 1)
     }
 
+    /// 여행 종료까지 남은 일수 — 여행객 진행률 카드와 같은 의미 (마지막 날 0, 끝나면 음수)
+    var remainingDays: Int {
+        guard let end = trip.flatMap({ AppDate.day($0.endDate) }) else { return 0 }
+        let today = Calendar.current.startOfDay(for: Date())
+        return Calendar.current.dateComponents([.day], from: today, to: end).day ?? 0
+    }
+
+    /// 진행률 카드 오른쪽 목적지
+    var destinationText: String { trip?.destination ?? "" }
+
     /// 지금 진행 중이거나 다음에 올 일정
     var currentSchedule: StaffScheduleDTO? {
         let now = AppDate.minutesNow
