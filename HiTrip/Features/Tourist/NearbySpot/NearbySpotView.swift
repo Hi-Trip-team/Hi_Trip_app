@@ -14,6 +14,8 @@ struct NearbySpotView: View {
 
     @State private var camera: MapCameraCommand?
     @State private var selectedSpot: TravelerNearbySpotDTO?
+    /// 내 위치 + 안전 구역을 한 화면에 맞췄는지 — 한 번 맞춘 뒤에는 사용자가 움직인 지도를 되돌리지 않습니다
+    @State private var hasFitInitialCamera = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -47,7 +49,9 @@ struct NearbySpotView: View {
         .navigationBarHidden(true)
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }
-        .onChange(of: viewModel.currentLocation?.latitude) { _, _ in moveToCurrentLocation() }
+        // 위치가 갱신될 때마다 카메라를 옮기면 지도를 둘러볼 수 없어서, 처음 한 번만 맞춥니다
+        .onChange(of: viewModel.currentLocation?.latitude) { _, _ in fitInitialCameraIfNeeded() }
+        .onChange(of: viewModel.geofence?.radiusM) { _, _ in fitInitialCameraIfNeeded() }
         .navigationDestination(item: $selectedSpot) { spot in
             NearbySpotDetailView(
                 name: spot.name,
@@ -198,6 +202,33 @@ struct NearbySpotView: View {
     private func moveToCurrentLocation() {
         guard let coordinate = viewModel.currentLocation else { return }
         camera = .center(coordinate, level: 15)
+    }
+
+    /// 지도를 열 때 내 위치와 안전 구역(원 전체)이 한 화면에 들어오도록 맞춥니다
+    ///
+    /// - 둘 다 있으면: 원 둘레 + 내 위치를 모두 담고 끝냅니다
+    /// - 하나만 먼저 오면: 그것만 보여주고, 나머지가 오면 다시 맞춥니다
+    /// - 안전 구역이 없는 여행: 내 위치로 이동합니다
+    private func fitInitialCameraIfNeeded() {
+        guard !hasFitInitialCamera else { return }
+
+        let me = viewModel.currentLocation
+        let fenceRing: [CLLocationCoordinate2D] = mapCircles.first.map {
+            KakaoMapView.circlePoints(center: $0.center, radiusM: $0.radiusM, count: 16)
+        } ?? []
+
+        switch (me, fenceRing.isEmpty) {
+        case (let me?, false):
+            camera = .fit(fenceRing + [me])
+            hasFitInitialCamera = true
+        case (nil, false):
+            camera = .fit(fenceRing)
+        case (let me?, true):
+            // 안전 구역이 끝내 없을 수도 있어 첫 위치에서 한 번만 옮깁니다 (구역이 오면 위에서 다시 맞춤)
+            if camera == nil { camera = .center(me, level: 15) }
+        case (nil, true):
+            break
+        }
     }
 
     // MARK: - 스팟 카드
