@@ -88,7 +88,10 @@ final class TravelerHomeViewModel: ObservableObject {
         .observe(on: MainScheduler.instance)
         .subscribe(onSuccess: { [weak self] recommended, popular in
             var seen = Set<Int>()
-            self?.popularSpots = (recommended + popular).filter { seen.insert($0.id).inserted }
+            // 장소 데이터를 찾지 못한 스팟(좌표·주소 모두 없음)은 상세에 보여줄 게 없어 뺍니다
+            self?.popularSpots = (recommended + popular)
+                .filter { seen.insert($0.id).inserted }
+                .filter { Self.hasPlaceData($0.place) }
             self?.isSpotsLoaded = true
         })
         .disposed(by: disposeBag)
@@ -122,6 +125,13 @@ final class TravelerHomeViewModel: ObservableObject {
     /// 뱃지 표기 — 세 자리부터는 99+로 줄입니다
     var unreadMessageBadgeText: String {
         unreadMessageCount > 99 ? "99+" : "\(unreadMessageCount)"
+    }
+
+    /// 장소 데이터가 있는지 — 좌표나 주소 중 하나라도 있어야 상세·지도에 보여줄 수 있습니다
+    private static func hasPlaceData(_ place: TripSpotPlaceDTO) -> Bool {
+        let hasCoordinate = place.latitude.flatMap(Double.init) != nil && place.longitude.flatMap(Double.init) != nil
+        let hasAddress = !(place.address ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+        return hasCoordinate || hasAddress
     }
 
     private static func message(for error: Error) -> String {

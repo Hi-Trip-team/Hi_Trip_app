@@ -234,13 +234,11 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             var seen = Set<Int>()
             return (recommended + popular)
                 .filter { seen.insert($0.id).inserted }
-                .map { spot in
-                    let lat = spot.place.latitude.flatMap(Double.init)
-                    let lng = spot.place.longitude.flatMap(Double.init)
-                    var distance: Int?
-                    if let lat, let lng {
-                        distance = Int(here.distance(from: CLLocation(latitude: lat, longitude: lng)))
-                    }
+                // 좌표가 없는 스팟(장소 데이터를 찾지 못한 것)은 지도에 핀도 위치도 없어 뺍니다
+                .compactMap { spot -> TravelerNearbySpotDTO? in
+                    guard let lat = spot.place.latitude.flatMap(Double.init),
+                          let lng = spot.place.longitude.flatMap(Double.init) else { return nil }
+                    let distance = Int(here.distance(from: CLLocation(latitude: lat, longitude: lng)))
                     return TravelerNearbySpotDTO(
                         providerObjectId: "guide-\(spot.id)",
                         name: spot.title,
@@ -252,8 +250,8 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
                         roadAddress: nil,
                         placeUrl: nil,
                         distanceM: distance,
-                        lat: lat.map(FlexibleDouble.init),
-                        lng: lng.map(FlexibleDouble.init),
+                        lat: FlexibleDouble(lat),
+                        lng: FlexibleDouble(lng),
                         isSponsored: spot.isSponsored,
                         imageUrl: spot.imageUrl.isEmpty ? nil : spot.imageUrl,
                         description: spot.description.isEmpty ? nil : spot.description
