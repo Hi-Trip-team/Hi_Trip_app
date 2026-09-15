@@ -74,10 +74,21 @@ struct TripDetailView: View {
                                 }
                         )
                 }
-                .ignoresSafeArea(edges: .bottom)
+                // 홈 인디케이터 영역만 무시합니다. edges만 주면 키보드 영역까지 무시해서
+                // 키보드가 올라와도 시트가 그대로 있어 입력칸이 가려졌습니다.
+                .ignoresSafeArea(.container, edges: .bottom)
             }
         }
         .toast($viewModel.toast)
+        // 키보드 위 [완료] — 입력을 마치고 시간·저장 버튼을 누를 수 있게 키보드를 내립니다
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("완료") {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+            }
+        }
         .animation(.easeInOut(duration: 0.25), value: showAddSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
