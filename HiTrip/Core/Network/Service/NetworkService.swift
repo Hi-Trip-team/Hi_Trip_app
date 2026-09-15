@@ -309,11 +309,15 @@ final class NetworkService {
         // 관리자 API(/api/v1/staff/, /api/monitoring/, /api/v1/notices/, /api/trips/)는
         // sessionid 쿠키 기반이라 URLSession의 공유 쿠키 저장소가 자동으로 붙습니다.
         // 쓰기 요청에만 X-CSRFToken 헤더를 추가로 실어야 Django가 통과시킵니다.
-        if let token = KeychainManager.shared.getToken() {
+        // 안내사의 Keychain 토큰은 로그인 표시용 값이라 Bearer로 보내면 토큰 인증이 거절합니다.
+        let keychain = KeychainManager.shared
+        if keychain.getUserType() != UserType.guide.rawValue, let token = keychain.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        if endpoint.method != .get, let csrf = NetworkService.csrfToken ?? csrfCookieValue() {
+        // Django는 로그인할 때 CSRF 토큰을 새로 발급합니다(rotate).
+        // 로그인 전에 받아 둔 값보다 쿠키의 최신 값을 먼저 써야 쓰기 요청이 403으로 막히지 않습니다.
+        if endpoint.method != .get, let csrf = csrfCookieValue() ?? NetworkService.csrfToken {
             request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
             request.setValue(baseURL, forHTTPHeaderField: "Referer")
         }
