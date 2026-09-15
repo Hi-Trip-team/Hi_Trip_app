@@ -308,8 +308,13 @@ final class ChatViewModel: ObservableObject {
             },
             onFailure: { [weak self] error in
                 self?.isUploading = false
-                // 서버 사유(형식·용량 등)가 있으면 함께 보여줍니다
-                let reason = (error as? HiTripError)?.errorDescription
+                // 서버 사유(형식·용량 등)가 있으면 함께 보여줍니다.
+                // networkFailure의 errorDescription은 고정 문구라, 업로드가 담아 둔 사유를 직접 꺼냅니다.
+                let reason: String? = {
+                    guard let e = error as? HiTripError else { return nil }
+                    if case .networkFailure(let message) = e { return message }
+                    return e.errorDescription
+                }()
                 self?.toast = reason.map { "첨부하지 못했어요 · \($0)" } ?? "첨부하지 못했어요"
             }
         )
