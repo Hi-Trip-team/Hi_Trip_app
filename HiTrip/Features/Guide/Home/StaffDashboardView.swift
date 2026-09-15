@@ -130,26 +130,15 @@ struct StaffDashboardView: View {
                 .foregroundColor(AppColor.textPrimary)
                 .padding(.horizontal, AppSpacing.xl)
 
-            // 진행바 + 버스 — 관광객 홈과 같은 규칙(당일 시각 비율)
-            GeometryReader { geo in
-                let filled = geo.size.width * viewModel.todayProgress
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("🚌")
-                        .font(AppFont.bodyL)
-                        .offset(x: max(filled - 8, 0))
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(AppColor.divider)
-                            .frame(height: 4)
-                        Capsule()
-                            .fill(AppColor.accent)
-                            .frame(width: filled, height: 4)
-                    }
-                }
-            }
-            .frame(height: 40)
+            // 여행 진행률 카드 — 여행객 홈과 같은 카드·같은 규칙(당일 시각 비율)
+            TripProgressCard(
+                progress: viewModel.todayProgress,
+                remainingDays: viewModel.remainingDays,
+                destination: viewModel.destinationText
+            )
             .padding(.horizontal, AppSpacing.xl)
-            .padding(.top, AppSpacing.xxs)
+            .padding(.top, AppSpacing.sm)
+            .padding(.bottom, AppSpacing.xs)
 
             if let current = viewModel.currentSchedule {
                 scheduleRow(current, height: 56, titleSize: 14)
