@@ -173,6 +173,22 @@ final class StaffTripDetailViewModel: ObservableObject {
 
     func clearPlaceResults() { placeResults = [] }
 
+    // MARK: - 장소 상세
+
+    /// 일정을 누르면 여는 장소 상세 — 장소가 없는 일정은 열지 않습니다
+    @Published var selectedPlace: StaffPlaceDTO?
+
+    func openPlace(of item: StaffScheduleDTO) {
+        guard let placeId = item.place else { return }
+        repository.fetchPlace(id: placeId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in self?.selectedPlace = $0 },
+                onFailure: { [weak self] error in self?.toast = Self.message(for: error) }
+            )
+            .disposed(by: disposeBag)
+    }
+
     func addSchedule(
         dayNumber: Int, title: String, start: String, end: String,
         place: KakaoPlaceResultDTO? = nil, placeQuery: String = "",

@@ -86,6 +86,18 @@ struct StaffTripDetailView: View {
         .animation(.easeInOut(duration: 0.25), value: showSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
+        // 일정을 누르면 여행객과 같은 장소 상세
+        .navigationDestination(unwrapping: $viewModel.selectedPlace) { place in
+            NearbySpotDetailView(
+                name: place.name,
+                address: place.address,
+                description: place.tourOverview,
+                imageUrl: place.imageUrl,
+                latitude: place.latitude.flatMap(Double.init),
+                longitude: place.longitude.flatMap(Double.init),
+                categoryName: place.kakaoCategory
+            )
+        }
         .confirmationDialog(
             "일정",
             isPresented: Binding(get: { menuTarget != nil }, set: { if !$0 { menuTarget = nil } }),
@@ -215,6 +227,8 @@ struct StaffTripDetailView: View {
             RoundedRectangle(cornerRadius: AppRadius.lg)
                 .stroke(AppColor.divider, lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture { viewModel.openPlace(of: item) }
     }
 
     // MARK: - 시트

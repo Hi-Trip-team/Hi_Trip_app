@@ -36,6 +36,7 @@ protocol StaffRepositoryProtocol {
     /// 카카오 장소 검색 → 서버 장소 등록 (일정 장소 지정)
     func searchKakaoPlaces(query: String) -> Single<[KakaoPlaceResultDTO]>
     func adoptKakaoPlace(query: String, providerObjectId: String) -> Single<Int>
+    func fetchPlace(id: Int) -> Single<StaffPlaceDTO>
 
     // 안전 관리
     func fetchSafetySummary(tripId: Int) -> Single<MonitoringSummaryDTO>
@@ -123,6 +124,10 @@ final class StaffRepository: StaffRepositoryProtocol {
 
     func fetchSchedules(tripId: Int) -> Single<[StaffScheduleDTO]> {
         networkService.request(.staffSchedules(tripId: tripId), type: [StaffScheduleDTO].self)
+    }
+
+    func fetchPlace(id: Int) -> Single<StaffPlaceDTO> {
+        networkService.request(.staffPlace(id: id), type: StaffPlaceDTO.self)
     }
 
     func searchKakaoPlaces(query: String) -> Single<[KakaoPlaceResultDTO]> {

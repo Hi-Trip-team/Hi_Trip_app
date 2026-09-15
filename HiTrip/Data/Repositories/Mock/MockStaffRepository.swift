@@ -121,6 +121,11 @@ final class MockStaffRepository: StaffRepositoryProtocol {
 
     func adoptKakaoPlace(query: String, providerObjectId: String) -> Single<Int> { .just(1) }
 
+    func fetchPlace(id: Int) -> Single<StaffPlaceDTO> {
+        .just(StaffPlaceDTO(id: id, name: "목 장소", address: "서울 중구", latitude: "37.5665", longitude: "126.9780",
+                            imageUrl: nil, tourOverview: nil, kakaoCategory: nil))
+    }
+
     func updateSchedule(
         tripId: Int, id: Int,
         startTime: String?, endTime: String?, content: String?
