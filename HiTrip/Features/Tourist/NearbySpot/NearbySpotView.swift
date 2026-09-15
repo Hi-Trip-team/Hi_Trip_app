@@ -71,10 +71,12 @@ struct NearbySpotView: View {
             pins: mapPins,
             circles: mapCircles,
             camera: camera,
-            // 핀을 누르면 아래 카드가 그 스팟으로 이동합니다
+            // 핀을 누르면 그 스팟 상세로 갑니다 — 돌아왔을 때 아래 카드도 그 스팟에 맞춰 둡니다
             onPinTap: { id in
-                guard id != Self.myLocationPinID else { return }
+                guard id != Self.myLocationPinID,
+                      let spot = viewModel.spots.first(where: { $0.id == id }) else { return }
                 viewModel.focusedSpotId = id
+                selectedSpot = spot
             }
         )
     }
