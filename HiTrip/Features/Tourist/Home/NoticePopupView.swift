@@ -60,7 +60,12 @@ struct NoticePopupView: View {
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.top, AppSpacing.lg)
-            .padding(.bottom, AppSpacing.lg)
+            .padding(.bottom, AppSpacing.md)
+
+            // 제목과 본문 사이 구분선 (피그마)
+            Divider()
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.md)
 
             ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -78,12 +83,17 @@ struct NoticePopupView: View {
             // 긴 공지도 팝업 안에서 읽을 수 있게 본문만 스크롤합니다
             .frame(maxHeight: 320)
 
-            if !previousNotices.isEmpty {
+            // 이전 공지 보기 — 지난 공지가 없어도 버튼은 두고, 펼치면 없다고 알려줍니다 (피그마)
             Divider()
                 .padding(.horizontal, AppSpacing.lg)
 
             if showPrevious {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    if previousNotices.isEmpty {
+                        Text("이전 공지가 없어요")
+                            .font(AppFont.caption)
+                            .foregroundColor(AppColor.textSecondary)
+                    }
                     ForEach(previousNotices) { prev in
                         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                             Text(prev.title)
@@ -113,7 +123,6 @@ struct NoticePopupView: View {
             .buttonStyle(.plain)
             .padding(.horizontal, AppSpacing.lg)
             .padding(.vertical, AppSpacing.md)
-            }
         }
         .background(Color.white)
         .cornerRadius(AppRadius.xl)
