@@ -16,6 +16,8 @@ struct NearbySpotView: View {
     @State private var selectedSpot: TravelerNearbySpotDTO?
     /// 내 위치 + 안전 구역을 한 화면에 맞췄는지 — 한 번 맞춘 뒤에는 사용자가 움직인 지도를 되돌리지 않습니다
     @State private var hasFitInitialCamera = false
+    /// 안전 구역을 벗어났을 때 한 번 띄우는 경고 팝업
+    @State private var showOutsideAlert = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -45,13 +47,23 @@ struct NearbySpotView: View {
                 outsideBanner
             }
         }
-        .background(AppColor.successSubtle)
+        // 지도 뒤 배경 — 화면을 나갔다 오면 지도가 다시 그려지는 동안 뒤가 비쳐 보여 흰색으로 고정합니다
+        .background(Color.white)
         .navigationBarHidden(true)
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }
         // 위치가 갱신될 때마다 카메라를 옮기면 지도를 둘러볼 수 없어서, 처음 한 번만 맞춥니다
         .onChange(of: viewModel.currentLocation?.latitude) { _ in fitInitialCameraIfNeeded() }
         .onChange(of: viewModel.geofence?.radiusM) { _ in fitInitialCameraIfNeeded() }
+        // 안전 구역 이탈 — 상단 배너와 함께 경고 팝업을 한 번 띄웁니다 (다시 들어왔다 나가면 또 띄움)
+        .onChange(of: viewModel.isOutsideGeofence) { isOutside in
+            if isOutside { showOutsideAlert = true }
+        }
+        .alert("안전 구역을 벗어났어요", isPresented: $showOutsideAlert) {
+            Button("확인", role: .cancel) { }
+        } message: {
+            Text("안내사가 설정한 안전 구역 밖에 있어요.\n일행과 안내사가 있는 곳으로 돌아와 주세요.")
+        }
         .navigationDestination(unwrapping: $selectedSpot) { spot in
             NearbySpotDetailView(
                 name: spot.name,
