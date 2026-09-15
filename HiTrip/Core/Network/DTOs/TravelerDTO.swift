@@ -58,6 +58,8 @@ struct TravelerTripDTO: Decodable {
     let managerContact: [String: String]?
     let dDay: Int
     let durationDays: Int
+    /// 여행지 시간대(IANA, 예: "Asia/Seoul") — 서버 추가 예정. 없으면 TripClock이 한국 시간대로 계산
+    var timezone: String? = nil
 }
 
 // MARK: - Agreement
