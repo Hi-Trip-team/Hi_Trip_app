@@ -134,6 +134,8 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
     private var appliedCameraID: UUID?
 
     private var pinIDByItemID: [String: String] = [:]
+    /// 핀마다 건 탭 핸들러 — 핀을 다시 그리거나 지도를 닫을 때 해제합니다
+    private var pinTapHandlers: [DisposableEventHandler] = []
     private var registeredStyleIDs = Set<String>()
 
     private var map: KakaoMap? { controller?.getView(Self.viewName) as? KakaoMap }
@@ -197,6 +199,8 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
     func shutdown() {
         eventHandlers.forEach { $0.dispose() }
         eventHandlers.removeAll()
+        pinTapHandlers.forEach { $0.dispose() }
+        pinTapHandlers.removeAll()
         controller?.pauseEngine()
         controller?.resetEngine()
     }
@@ -225,14 +229,8 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
             map.addTerrainLongPressedEventHandler(target: self) { owner in
                 { param in owner.dispatch { owner.onLongPress?(param.position.coordinate) } }
             },
-            map.addPoisTappedEventHandler(target: self) { owner in
-                { param in
-                    owner.dispatch {
-                        guard let pinID = owner.pinIDByItemID[param.poiID] else { return }
-                        owner.onPinTap?(pinID)
-                    }
-                }
-            },
+            // 핀 탭은 핀마다 따로 겁니다(drawPins). 지도의 addPoisTappedEventHandler는
+            // 카카오 지도 자체 장소 표시용이라 우리가 올린 핀을 눌러도 불리지 않았습니다.
         ]
         refresh()
     }
@@ -281,6 +279,8 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
         let labels = map.getLabelManager()
         labels.removeLabelLayer(layerID: Self.pinLayerID)
         pinIDByItemID.removeAll()
+        pinTapHandlers.forEach { $0.dispose() }
+        pinTapHandlers.removeAll()
         guard !pins.isEmpty else { return }
 
         let option = LabelLayerOptions(
@@ -296,6 +296,16 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
             if let poi = layer.addPoi(option: poiOption, at: pin.coordinate.mapPoint) {
                 poi.show()
                 pinIDByItemID[poi.itemID] = pin.id
+                // 우리가 올린 핀의 탭은 핀 자신에게 걸어야 불립니다
+                let handler = poi.addPoiTappedEventHandler(target: self) { owner in
+                    { param in
+                        owner.dispatch {
+                            guard let pinID = owner.pinIDByItemID[param.poiItem.itemID] else { return }
+                            owner.onPinTap?(pinID)
+                        }
+                    }
+                }
+                pinTapHandlers.append(handler)
             }
         }
     }
