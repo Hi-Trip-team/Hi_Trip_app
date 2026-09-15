@@ -164,22 +164,31 @@ final class StaffHomeViewModel: ObservableObject {
     /// 진행률 카드 오른쪽 목적지
     var destinationText: String { trip?.destination ?? "" }
 
-    /// 지금 진행 중이거나 다음에 올 일정
+    /// 지금 진행 중인 일정 — 예정 일정은 "다음 일정"에만 (여행객 홈과 같은 규칙)
     var currentSchedule: StaffScheduleDTO? {
         let now = nowMinutes
-        if let ongoing = todaySchedules.first(where: {
+        return todaySchedules.first {
             guard let s = AppDate.minutes($0.startTime), let e = AppDate.minutes($0.endTime) else { return false }
             return s <= now && now < e
-        }) { return ongoing }
-        return todaySchedules.first { (AppDate.minutes($0.startTime) ?? 0) > now }
+        }
     }
 
-    /// 그다음 일정 — 현재와 같으면 숨깁니다
+    /// 진행 중인 일정이 없을 때 "오늘의 일정" 칸 문구
+    var noCurrentScheduleText: String {
+        if todaySchedules.isEmpty { return "오늘은 등록된 일정이 없어요" }
+        let now = nowMinutes
+        let allEnded = todaySchedules.allSatisfy { (AppDate.minutes($0.endTime) ?? 0) <= now }
+        return allEnded ? "오늘 일정이 모두 끝났어요" : "지금 진행 중인 일정이 없어요"
+    }
+
+    /// 다음 일정 — 지금 이후 가장 이른 일정 (내일 이후 포함, 여행지 시각 기준)
     var nextSchedule: StaffScheduleDTO? {
-        guard let current = currentSchedule,
-              let idx = todaySchedules.firstIndex(where: { $0.id == current.id }),
-              idx + 1 < todaySchedules.count else { return nil }
-        return todaySchedules[idx + 1]
+        guard let clock else { return nil }
+        let next = schedules
+            .filter { clock.isAfterNow(dayNumber: $0.dayNumber, startTime: $0.startTime) }
+            .min { ($0.dayNumber, $0.startTime) < ($1.dayNumber, $1.startTime) }
+        guard let next, next.id != currentSchedule?.id else { return nil }
+        return next
     }
 
     // MARK: - 안전 현황
