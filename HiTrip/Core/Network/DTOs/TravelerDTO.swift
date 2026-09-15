@@ -544,7 +544,12 @@ extension ChatMessageV1DTO {
     ///   - currentUserId: Keychain의 내 사용자 id
     ///   - currentRole: 내 역할("tourist" | "staff") — 내 말풍선 판정 기준.
     ///     여행객 앱과 관리자 앱이 같은 방을 보므로 역할을 고정하면 안 됩니다.
-    func toMessage(chatRoomId: UUID, currentUserId: String, currentRole: String) -> Message {
+    ///   - myChatUserId: 서버 메시지의 sender로 오는 내 사용자 id (여행객은 보낸 메시지 응답에서 알게 됨)
+    ///   - myName: 아직 id를 모를 때 쓰는 내 이름
+    func toMessage(
+        chatRoomId: UUID, currentUserId: String, currentRole: String,
+        myChatUserId: Int? = nil, myName: String? = nil
+    ) -> Message {
         let df = ISO8601DateFormatter()
         df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let sentAt = df.date(from: createdAt ?? "") ?? Date()
@@ -556,6 +561,9 @@ extension ChatMessageV1DTO {
         let isMine: Bool = {
             guard senderSide == currentRole else { return false }
             if currentRole == "staff", let sender { return String(sender) == currentUserId }
+            // 여행객: 단체방에는 다른 여행객도 있어 역할만으로는 구분이 안 됩니다
+            if let myChatUserId, let sender { return sender == myChatUserId }
+            if let myName, !myName.isEmpty, let senderName { return senderName == myName }
             return true
         }()
         let senderId = isMine ? currentUserId : "\(senderRole ?? "peer")_\(sender ?? 0)"

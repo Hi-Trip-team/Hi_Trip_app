@@ -99,6 +99,8 @@ final class ChatRepository: ChatRepositoryProtocol {
         }
         let userId = keychain.getUserId() ?? ""
         let role = currentRole
+        let me = myChatUserId
+        let myName = keychain.getUserName()
 
         return networkService.request(
             .chatMessages(roomId: String(serverId), cursor: before.map(String.init)),
@@ -107,7 +109,7 @@ final class ChatRepository: ChatRepositoryProtocol {
         .map { [weak self] page in
             let messages = page.results
                 .filter { $0.isDeleted != true }
-                .map { $0.toMessage(chatRoomId: chatRoomId, currentUserId: userId, currentRole: role) }
+                .map { $0.toMessage(chatRoomId: chatRoomId, currentUserId: userId, currentRole: role, myChatUserId: me, myName: myName) }
                 .sorted { $0.sentAt < $1.sentAt }
 
             // 읽음 처리에 쓸 기준점을 여기서 갱신 — 최신 페이지에서만 올립니다.
@@ -129,6 +131,8 @@ final class ChatRepository: ChatRepositoryProtocol {
         }
         let userId = keychain.getUserId() ?? ""
         let role = currentRole
+        let me = myChatUserId
+        let myName = keychain.getUserName()
 
         // client_message_id는 서버 필수값이자 멱등키입니다.
         // 재전송 시 같은 값을 유지해야 메시지가 중복 생성되지 않으므로
@@ -145,7 +149,12 @@ final class ChatRepository: ChatRepositoryProtocol {
             type: ChatMessageV1DTO.self
         )
         .map { dto in
-            dto.toMessage(chatRoomId: message.chatRoomId, currentUserId: userId, currentRole: role)
+            // 여행객은 로그인 응답에 사용자 id가 없어, 내가 보낸 메시지의 sender로 알게 됩니다
+            if role == "tourist", let sender = dto.sender { Self.saveMyChatUserId(sender) }
+            return dto.toMessage(
+                chatRoomId: message.chatRoomId, currentUserId: userId, currentRole: role,
+                myChatUserId: dto.sender ?? me, myName: myName
+            )
         }
     }
 
@@ -252,6 +261,21 @@ final class ChatRepository: ChatRepositoryProtocol {
     private var currentRole: String {
         keychain.getUserType() == "tourist" ? "tourist" : "staff"
     }
+
+    /// 서버 메시지 sender로 오는 내 사용자 id — 여행객 번호별로 기기에 저장합니다
+    private var myChatUserId: Int? {
+        guard let key = Self.myChatUserIdKey else { return nil }
+        return UserDefaults.standard.object(forKey: key) as? Int
+    }
+
+    private static var myChatUserIdKey: String? {
+        KeychainManager.shared.getUserId().map { "chatSenderUserId.\($0)" }
+    }
+
+    private static func saveMyChatUserId(_ id: Int) {
+        guard let key = myChatUserIdKey else { return }
+        UserDefaults.standard.set(id, forKey: key)
+    }
 }
 
 // MARK: - ChatReadResponseDTO
@@ -269,6 +293,8 @@ extension ChatRepository {
         guard let serverId = resolveServerId(for: chatRoomId) else { return .empty() }
         let userId = keychain.getUserId() ?? ""
         let role = currentRole
+        let me = myChatUserId
+        let myName = keychain.getUserName()
 
         return RealtimeSocket.events(path: "/ws/v1/chat/\(serverId)/")
             .compactMap { [weak self] event -> Message? in
@@ -279,7 +305,7 @@ extension ChatRepository {
                 let prev = self?.lastSeenMessageId[chatRoomId] ?? 0
                 self?.lastSeenMessageId[chatRoomId] = max(prev, dto.id)
 
-                let message = dto.toMessage(chatRoomId: chatRoomId, currentUserId: userId, currentRole: role)
+                let message = dto.toMessage(chatRoomId: chatRoomId, currentUserId: userId, currentRole: role, myChatUserId: me, myName: myName)
                 // 로컬 id를 client_message_id로 맞춰야 전송 중인 내 말풍선과 겹치지 않습니다
                 guard let clientId = dto.clientMessageId.flatMap(UUID.init(uuidString:)) else { return message }
                 return Message(
