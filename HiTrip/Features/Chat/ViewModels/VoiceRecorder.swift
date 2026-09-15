@@ -26,12 +26,20 @@ final class VoiceRecorder: NSObject, ObservableObject {
     private var timer: Timer?
     private var fileURL: URL?
 
+    /// 마이크 권한 — iOS 17부터 AVAudioApplication, 16은 AVAudioSession API를 씁니다
+    private static func requestMicrophonePermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            if #available(iOS 17.0, *) {
+                AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) }
+            } else {
+                AVAudioSession.sharedInstance().requestRecordPermission { continuation.resume(returning: $0) }
+            }
+        }
+    }
+
     /// 권한을 확인하고 녹음을 시작합니다.
     func start() async -> StartResult {
-        let granted = await withCheckedContinuation { continuation in
-            AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) }
-        }
-        guard granted else { return .permissionDenied }
+        guard await Self.requestMicrophonePermission() else { return .permissionDenied }
 
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("voice_\(UUID().uuidString).m4a")
