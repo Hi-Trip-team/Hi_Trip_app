@@ -41,7 +41,7 @@ struct TripListView: View {
                             bottomActionRow
                             LogoutButton()
                                 .padding(.top, AppSpacing.xl)
-                                .padding(.bottom, AppSpacing.xxl)
+                                .padding(.bottom, AppSpacing.xs)
                         }
                     }
                     .refreshable { viewModel.refresh() }
