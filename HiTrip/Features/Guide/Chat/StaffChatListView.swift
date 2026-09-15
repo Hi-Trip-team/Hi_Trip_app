@@ -127,7 +127,7 @@ struct StaffChatListView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        NavigationHeader(title: "메시지 및 문의", style: .compact, onBack: { dismiss() }) {
+        NavigationHeader(title: "메시지 및 문의", onBack: { dismiss() }) {
             // 즉시 실행하지 않고 한 번 확인합니다
             HeaderTextButton("모두 확인") { showMarkAllConfirm = true }
         }
