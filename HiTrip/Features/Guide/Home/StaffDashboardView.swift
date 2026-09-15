@@ -132,7 +132,7 @@ struct StaffDashboardView: View {
 
             // 여행 진행률 카드 — 여행객 홈과 같은 카드·같은 규칙(당일 시각 비율)
             TripProgressCard(
-                progress: viewModel.todayProgress,
+                progress: viewModel.tripProgress,
                 remainingDays: viewModel.remainingDays,
                 destination: viewModel.destinationText
             )

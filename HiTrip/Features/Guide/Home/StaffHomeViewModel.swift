@@ -146,6 +146,22 @@ final class StaffHomeViewModel: ObservableObject {
         return min(max(Double(AppDate.minutesNow - first) / Double(last - first), 0), 1)
     }
 
+    /// 여행 전체 진행률 — (지난 날수 + 오늘 진행률) ÷ 전체 일수, 시작 전 0 · 종료 후 1 (여행객 홈과 같은 규칙)
+    ///
+    /// todayProgress만 쓰면 날짜가 바뀌어도 여행 전체 진행이 반영되지 않습니다.
+    var tripProgress: Double {
+        guard let trip,
+              let start = AppDate.day(trip.startDate),
+              let end = AppDate.day(trip.endDate) else { return 0 }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        if today < start { return 0 }
+        if today > end { return 1 }
+        let total = (calendar.dateComponents([.day], from: start, to: end).day ?? 0) + 1
+        let elapsed = calendar.dateComponents([.day], from: start, to: today).day ?? 0
+        return min(max((Double(elapsed) + todayProgress) / Double(max(total, 1)), 0), 1)
+    }
+
     /// 여행 종료까지 남은 일수 — 여행객 진행률 카드와 같은 의미 (마지막 날 0, 끝나면 음수)
     var remainingDays: Int {
         guard let end = trip.flatMap({ AppDate.day($0.endDate) }) else { return 0 }
