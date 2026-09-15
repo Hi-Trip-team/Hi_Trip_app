@@ -227,22 +227,52 @@ final class TravelerHomeViewModel: ObservableObject {
         return upcoming.map { .upcoming($0) } ?? .finished
     }
 
-    /// 상단 카드에 띄울 일정 — 끝났거나 없으면 nil
+    /// 지금 진행 중인 일정 — 없으면 nil
+    ///
+    /// 예정 일정은 여기 넣지 않습니다. 넣으면 "오늘의 일정"과 "다음 일정"에 같은 일정이 두 번 뜹니다.
     var currentSchedule: TravelerScheduleDTO? {
+        if case .ongoing(let s) = todayState { return s }
+        return nil
+    }
+
+    /// 진행 중인 일정이 없을 때 "오늘의 일정" 칸 문구
+    var noCurrentScheduleText: String {
         switch todayState {
-        case .ongoing(let s), .upcoming(let s): return s
-        case .finished, .none:                  return nil
+        case .none:     return "오늘은 등록된 일정이 없어요"
+        case .finished: return "오늘 일정이 모두 끝났어요"
+        default:        return "지금 진행 중인 일정이 없어요"
         }
     }
 
-    /// 다음 일정 — 서버가 계산해 준 값을 씁니다.
-    ///
-    /// 진행 중인 일정이 없으면 상단 카드가 이미 다음 예정 일정을 보여주므로,
-    /// 같은 일정이면 "다음 일정" 줄을 숨겨 중복 표시를 막습니다.
+    /// 다음 일정 — 서버가 계산해 준 값을 씁니다 (내일 이후 일정일 수도 있음)
     var nextSchedule: TravelerScheduleDTO? {
         guard let next = home?.nextSchedule else { return nil }
         if let current = currentSchedule, current.id == next.id { return nil }
         return next
+    }
+
+    /// "2025.04.24 출발"
+    var departureDateText: String {
+        guard let trip = home?.trip else { return "" }
+        return "\(Self.displayDate(trip.startDate)) 출발"
+    }
+
+    /// 진행률 카드 제목 — 여행 중에는 카드가 남은 일수로 만듭니다
+    var progressHeadline: String? {
+        switch phase {
+        case .before:   return "여행 시작까지 D-\(dDay)"
+        case .finished: return "여행 진행률 · 일정 종료"
+        case .during:   return nil
+        }
+    }
+
+    /// 진행률 카드의 퍼센트 자리 문구 — 시작 전·종료 후
+    var progressStatus: String? {
+        switch phase {
+        case .before:   return "출발 준비 중이에요"
+        case .finished: return "여행 완료 · 수고하셨어요!"
+        case .during:   return nil
+        }
     }
 
     // MARK: - 여행 진행률 카드
@@ -274,6 +304,21 @@ final class TravelerHomeViewModel: ObservableObject {
         guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
         let now = AppDate.minutesNow
         return min(max(Double(now - first) / Double(last - first), 0), 1)
+    }
+
+    /// 여행 전체 진행률 (0...1) — 진행률 카드
+    ///
+    /// (지난 날수 + 오늘 진행률) ÷ 전체 일수. 시작 전 0, 종료 후 1.
+    /// 오늘 진행률만 쓰면 5일 중 첫날이 지나도 막대가 그대로라, 날짜 진행을 함께 반영합니다.
+    var tripProgress: Double {
+        switch phase {
+        case .before:   return 0
+        case .finished: return 1
+        case .during:
+            guard tripTotalDays > 0, todayDayNumber > 0 else { return 0 }
+            let done = Double(todayDayNumber - 1) + todayProgress
+            return min(max(done / Double(tripTotalDays), 0), 1)
+        }
     }
 
     // MARK: - 공지
