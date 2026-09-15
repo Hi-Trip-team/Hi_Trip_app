@@ -9,8 +9,11 @@ enum AppContacts {
     /// 긴급 즉시 연락 — 통역 연결 번호
     static let interpreterPhone = ""
 
-    /// 로그인 화면 [문의하기] 번호
+    /// 로그인 화면 [문의하기] 번호 (지금은 사용하지 않음 — 이메일로 연결)
     static let inquiryPhone = ""
+
+    /// 로그인 화면 [문의하기] 이메일
+    static let inquiryEmail = ""
 
     /// 서비스 이용약관 (위치기반서비스 약관 포함)
     static let termsURL = ""

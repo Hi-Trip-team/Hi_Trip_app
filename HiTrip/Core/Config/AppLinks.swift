@@ -17,8 +17,14 @@ enum AppLinks {
     /// 긴급 통역 연결 기관 (기획 확정 2026-09-14)
     static let supportOrganization = "주식회사 픽토리얼"
 
-    /// 로그인 화면 [문의하기] — 전화 앱으로 연결합니다
-    static var inquiry: URL? { telURL(inquiryPhone) }
+    /// 로그인 화면 [문의하기] 이메일
+    static var inquiryEmail: String? { nonEmpty(AppContacts.inquiryEmail) }
+
+    /// 로그인 화면 [문의하기] — 메일 앱으로 연결합니다
+    /// 전화로 바로 걸리면 개인 번호가 노출되고 업무에 방해가 되어 이메일로 바꿨습니다.
+    static var inquiry: URL? {
+        inquiryEmail.flatMap { URL(string: "mailto:\($0)?subject=\("[Hi Trip] 문의".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") }
+    }
 
     /// App Store 페이지 — 강제 업데이트 팝업 [업데이트] (앱 출시 후 생성)
     static let appStore: URL? = nil
