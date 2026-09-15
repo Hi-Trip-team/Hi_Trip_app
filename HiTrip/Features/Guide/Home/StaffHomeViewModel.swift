@@ -130,8 +130,17 @@ final class StaffHomeViewModel: ObservableObject {
         return "안내사 \(name)"
     }
 
-    /// 오늘이 며칠째인지 — 서버 today_day_number (여행 기간이 아니면 nil)
-    var todayDayNumber: Int? { trip?.todayDayNumber }
+    /// 여행 시각 판정 — 여행지 시간대 + 기기 시계 (여행객 홈과 같은 TripClock)
+    var clock: TripClock? {
+        trip.flatMap { TripClock(startDate: $0.startDate, endDate: $0.endDate, timeZoneID: $0.timezone) }
+    }
+
+    /// 지금 시각(분) — 여행지 기준
+    private var nowMinutes: Int { clock?.minutesNow ?? AppDate.minutesNow }
+
+    /// 오늘이 며칠째인지 — 여행지 날짜 기준, 여행 기간이 아니면 nil
+    /// (서버 today_day_number는 UTC라 새벽에 하루 어긋남)
+    var todayDayNumber: Int? { clock?.todayDayNumber }
 
     var todaySchedules: [StaffScheduleDTO] {
         guard let day = todayDayNumber else { return [] }
@@ -143,33 +152,21 @@ final class StaffHomeViewModel: ObservableObject {
         let starts = todaySchedules.compactMap { AppDate.minutes($0.startTime) }
         let ends   = todaySchedules.compactMap { AppDate.minutes($0.endTime) }
         guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
-        return min(max(Double(AppDate.minutesNow - first) / Double(last - first), 0), 1)
+        return min(max(Double(nowMinutes - first) / Double(last - first), 0), 1)
     }
 
     /// 여행 전체 진행률 — 여행 기간(시작일 0시 ~ 종료일 24시) 중 지금 시각의 비율 (여행객 홈과 같은 규칙)
-    var tripProgress: Double {
-        guard let trip,
-              let start = AppDate.day(trip.startDate),
-              let lastDay = AppDate.day(trip.endDate),
-              let end = Calendar.current.date(byAdding: .day, value: 1, to: lastDay) else { return 0 }
-        let total = end.timeIntervalSince(start)
-        guard total > 0 else { return 0 }
-        return min(max(Date().timeIntervalSince(start) / total, 0), 1)
-    }
+    var tripProgress: Double { clock?.progress ?? 0 }
 
     /// 여행 종료까지 남은 일수 — 여행객 진행률 카드와 같은 의미 (마지막 날 0, 끝나면 음수)
-    var remainingDays: Int {
-        guard let end = trip.flatMap({ AppDate.day($0.endDate) }) else { return 0 }
-        let today = Calendar.current.startOfDay(for: Date())
-        return Calendar.current.dateComponents([.day], from: today, to: end).day ?? 0
-    }
+    var remainingDays: Int { clock?.remainingDays ?? 0 }
 
     /// 진행률 카드 오른쪽 목적지
     var destinationText: String { trip?.destination ?? "" }
 
     /// 지금 진행 중이거나 다음에 올 일정
     var currentSchedule: StaffScheduleDTO? {
-        let now = AppDate.minutesNow
+        let now = nowMinutes
         if let ongoing = todaySchedules.first(where: {
             guard let s = AppDate.minutes($0.startTime), let e = AppDate.minutes($0.endTime) else { return false }
             return s <= now && now < e
