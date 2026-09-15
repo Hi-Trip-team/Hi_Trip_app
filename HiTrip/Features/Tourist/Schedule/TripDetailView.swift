@@ -81,7 +81,7 @@ struct TripDetailView: View {
         .animation(.easeInOut(duration: 0.25), value: showAddSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
-        .navigationDestination(item: $selectedSchedule) { place in
+        .navigationDestination(unwrapping: $selectedSchedule) { place in
             NearbySpotDetailView(
                 name: place.name,
                 address: place.address,

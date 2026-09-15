@@ -52,7 +52,7 @@ struct NearbySpotView: View {
         // 위치가 갱신될 때마다 카메라를 옮기면 지도를 둘러볼 수 없어서, 처음 한 번만 맞춥니다
         .onChange(of: viewModel.currentLocation?.latitude) { _, _ in fitInitialCameraIfNeeded() }
         .onChange(of: viewModel.geofence?.radiusM) { _, _ in fitInitialCameraIfNeeded() }
-        .navigationDestination(item: $selectedSpot) { spot in
+        .navigationDestination(unwrapping: $selectedSpot) { spot in
             NearbySpotDetailView(
                 name: spot.name,
                 address: spot.roadAddress ?? spot.address,

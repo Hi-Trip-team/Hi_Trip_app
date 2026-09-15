@@ -73,7 +73,7 @@ struct TripListView: View {
                 TouristChatListView(viewModel: chatViewModel)
             }
             .navigationDestination(isPresented: $showNearbySpot) { NearbySpotView() }
-            .navigationDestination(item: $selectedSpot) { spot in
+            .navigationDestination(unwrapping: $selectedSpot) { spot in
                 NearbySpotDetailView(
                     name: spot.title,
                     address: spot.place.address,
