@@ -12,6 +12,8 @@ struct LoginView: View {
     @StateObject private var viewModel = AppDIContainer.shared.makeLoginViewModel()
     @EnvironmentObject var router: AppRouter
     @Environment(\.openURL) private var openURL
+    /// [문의하기]에서 메일 앱을 열지 못했을 때 안내
+    @State private var inquiryToast: String?
     @FocusState private var focusedField: Field?
 
     enum Field { case id, password }
@@ -67,6 +69,7 @@ struct LoginView: View {
                 copyrightSection
             }
         }
+        .toast($inquiryToast)
         .onChange(of: viewModel.result?.accessToken) { _ in
             guard let result = viewModel.result else { return }
             router.proceedAfterLogin(as: result.user.userType, requiresAgreement: result.requiresAgreement)
@@ -189,7 +192,13 @@ struct LoginView: View {
         HStack {
             Spacer()
             Button {
-                if let url = AppLinks.inquiry { openURL(url) }
+                // 메일 앱이 없으면(열지 못하면) 주소를 복사해 알려줍니다
+                guard let url = AppLinks.inquiry, let email = AppLinks.inquiryEmail else { return }
+                openURL(url) { accepted in
+                    guard !accepted else { return }
+                    UIPasteboard.general.string = email
+                    inquiryToast = "문의 메일 주소를 복사했어요\n\(email)"
+                }
             } label: {
                 Text("문의하기")
                     .font(AppFont.body)
