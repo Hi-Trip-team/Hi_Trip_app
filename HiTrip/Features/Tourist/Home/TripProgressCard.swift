@@ -24,6 +24,10 @@ struct TripProgressCard: View {
     let remainingDays: Int
     /// 목적지 — 없으면 숨김
     let destination: String?
+    /// 제목 줄을 직접 정할 때 — 여행 시작 전("여행 시작까지 D-3")·종료 후
+    var headlineOverride: String? = nil
+    /// 퍼센트 대신 보여줄 문구 — 여행 시작 전·종료 후("여행 완료 · 수고하셨어요!")
+    var statusOverride: String? = nil
 
     /// 트랙 좌우 여백 (카드 기준)
     private let trackInset: CGFloat = 26
@@ -36,6 +40,7 @@ struct TripProgressCard: View {
 
     /// "여행 진행률 · 3일 남음"
     private var headline: String {
+        if let headlineOverride { return headlineOverride }
         if remainingDays > 0  { return "여행 진행률 · \(remainingDays)일 남음" }
         if remainingDays == 0 { return "여행 진행률 · 오늘이 마지막 날" }
         return "여행 진행률 · 일정 종료"
@@ -43,7 +48,7 @@ struct TripProgressCard: View {
 
     /// "65% 완료"
     private var percentText: String {
-        "\(Int((clamped * 100).rounded()))% 완료"
+        statusOverride ?? "\(Int((clamped * 100).rounded()))% 완료"
     }
 
     var body: some View {
