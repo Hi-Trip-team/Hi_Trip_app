@@ -308,17 +308,17 @@ final class TravelerHomeViewModel: ObservableObject {
 
     /// 여행 전체 진행률 (0...1) — 진행률 카드
     ///
-    /// (지난 날수 + 오늘 진행률) ÷ 전체 일수. 시작 전 0, 종료 후 1.
-    /// 오늘 진행률만 쓰면 5일 중 첫날이 지나도 막대가 그대로라, 날짜 진행을 함께 반영합니다.
+    /// 여행 기간(시작일 0시 ~ 종료일 24시) 중 지금 시각의 비율입니다. 시작 전 0, 종료 후 1.
+    /// 오늘 일정 기준으로 계산하면 일정 전·일정 없는 날에는 0%로 멈춰 있어서 전체 기간 기준으로 바꿨습니다.
+    /// 화면을 그릴 때 계산하므로 홈에 들어올 때마다 갱신됩니다.
     var tripProgress: Double {
-        switch phase {
-        case .before:   return 0
-        case .finished: return 1
-        case .during:
-            guard tripTotalDays > 0, todayDayNumber > 0 else { return 0 }
-            let done = Double(todayDayNumber - 1) + todayProgress
-            return min(max(done / Double(tripTotalDays), 0), 1)
-        }
+        guard let trip = home?.trip,
+              let start = AppDate.day(trip.startDate),
+              let lastDay = AppDate.day(trip.endDate),
+              let end = Calendar.current.date(byAdding: .day, value: 1, to: lastDay) else { return 0 }
+        let total = end.timeIntervalSince(start)
+        guard total > 0 else { return 0 }
+        return min(max(Date().timeIntervalSince(start) / total, 0), 1)
     }
 
     // MARK: - 공지

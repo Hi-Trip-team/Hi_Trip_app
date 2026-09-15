@@ -23,6 +23,8 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
     /// - 그 밖의 카테고리는 카카오 로컬 API로 직접 검색합니다 (`kakaoCode`)
     /// 기획의 "할랄"은 서버·카카오 모두 카테고리가 없어 빠져 있습니다.
     enum Category: String, CaseIterable, Identifiable {
+        /// 안내사가 미리 정한 추천·인기 스팟 — 맨 앞, 지도를 열면 기본 선택
+        case popular       = "popular"
         case restaurant    = "restaurant"
         case cafe          = "cafe"
         case convenience   = "convenience"
@@ -40,6 +42,7 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
 
         var label: String {
             switch self {
+            case .popular:       return "인기 스팟"
             case .restaurant:    return "음식점"
             case .cafe:          return "카페"
             case .convenience:   return "편의점"
@@ -65,7 +68,7 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             case .hospital:      return .hospital
             case .subway:        return .subway
             case .accommodation: return .accommodation
-            case .restaurant, .convenience, .mart, .accessibility, .pet: return nil
+            case .popular, .restaurant, .convenience, .mart, .accessibility, .pet: return nil
             }
         }
     }
@@ -74,7 +77,7 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
 
     @Published private(set) var state: LoadState = .idle
     @Published private(set) var spots: [TravelerNearbySpotDTO] = []
-    @Published var selectedCategory: Category = .restaurant
+    @Published var selectedCategory: Category = .popular
     @Published var focusedSpotId: String?
 
     /// 지오펜스(허용 반경) — 없으면 지도에 원을 그리지 않습니다
@@ -99,6 +102,10 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
 
     /// 경계 밖에서 머물기 시작한 시각 — 연속 60초를 재기 위한 기준
     private var outsideSince: Date?
+    /// 안전 구역으로 한 번이라도 판정했는지 — 첫 판정에서 밖이면 바로 알립니다
+    private var hasEvaluatedGeofence = false
+    /// 마지막 위치 — 안전 구역이 위치보다 늦게 도착하면 이 위치로 다시 판정합니다
+    private var lastLocation: CLLocation?
     /// 위치 스냅샷을 서버로 보낸 마지막 시각 (30초 간격)
     private var lastSnapshotAt: Date?
 
@@ -160,6 +167,8 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             .subscribe(onSuccess: { [weak self] summary in
                 guard let self else { return }
                 self.geofence = summary.geofence
+                // 위치를 먼저 받아 두었다면 지금 바로 이탈 여부를 판정합니다 (지도 진입 즉시 팝업)
+                if let location = self.lastLocation { self.evaluateGeofence(for: location) }
                 // 아직 현재 위치가 없으면(권한 대기·시뮬레이터 등) 허용 범위 중심으로 먼저 불러옵니다.
                 // 위치를 받으면 그때 다시 불러옵니다.
                 if self.currentLocation == nil, self.state == .idle { self.loadSpots() }
@@ -172,9 +181,11 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         guard let center = currentLocation ?? geofenceCenter else { return }
         state = .loading
 
-        // 서버 5종은 서버 API(광고 스팟 포함), 나머지는 카카오 로컬 API
+        // 인기 스팟은 안내사가 정한 목록, 서버 5종은 서버 API(광고 스팟 포함), 나머지는 카카오 로컬 API
         let request: Single<[TravelerNearbySpotDTO]>
-        if let code = selectedCategory.kakaoCode {
+        if selectedCategory == .popular {
+            request = guideSpots(around: center)
+        } else if let code = selectedCategory.kakaoCode {
             request = KakaoLocalService.searchCategory(code, latitude: center.latitude, longitude: center.longitude)
         } else {
             request = repository.fetchNearbySpots(
@@ -190,10 +201,15 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         .subscribe(
             onSuccess: { [weak self] spots in
                 guard let self else { return }
-                // 안내사 설정(광고) 스팟이 1순위, 그다음 거리순입니다.
-                self.spots = spots.sorted { a, b in
-                    if (a.isSponsored == true) != (b.isSponsored == true) { return a.isSponsored == true }
-                    return (a.distanceM ?? .max) < (b.distanceM ?? .max)
+                if self.selectedCategory == .popular {
+                    // 인기 스팟은 안내사가 정한 순서 그대로
+                    self.spots = spots
+                } else {
+                    // 안내사 설정(광고) 스팟이 1순위, 그다음 거리순입니다.
+                    self.spots = spots.sorted { a, b in
+                        if (a.isSponsored == true) != (b.isSponsored == true) { return a.isSponsored == true }
+                        return (a.distanceM ?? .max) < (b.distanceM ?? .max)
+                    }
                 }
                 self.focusedSpotId = self.spots.first?.id
                 self.state = .loaded
@@ -203,6 +219,47 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             }
         )
         .disposed(by: disposeBag)
+    }
+
+    /// 안내사가 정한 추천 + 인기 스팟 (홈 "주변 인기 스팟"과 같은 목록) — 지도 스팟 모양으로 바꿉니다
+    ///
+    /// 거리는 서버가 주지 않아 지금 기준점에서 직접 잽니다. 한쪽이 실패해도 다른 쪽은 보여줍니다.
+    private func guideSpots(around center: CLLocationCoordinate2D) -> Single<[TravelerNearbySpotDTO]> {
+        let here = CLLocation(latitude: center.latitude, longitude: center.longitude)
+        return Single.zip(
+            repository.fetchRecommendedSpots().catchAndReturn([]),
+            repository.fetchPopularSpots().catchAndReturn([])
+        )
+        .map { recommended, popular in
+            var seen = Set<Int>()
+            return (recommended + popular)
+                .filter { seen.insert($0.id).inserted }
+                .map { spot in
+                    let lat = spot.place.latitude.flatMap(Double.init)
+                    let lng = spot.place.longitude.flatMap(Double.init)
+                    var distance: Int?
+                    if let lat, let lng {
+                        distance = Int(here.distance(from: CLLocation(latitude: lat, longitude: lng)))
+                    }
+                    return TravelerNearbySpotDTO(
+                        providerObjectId: "guide-\(spot.id)",
+                        name: spot.title,
+                        categoryName: spot.place.categoryName,
+                        categoryGroupCode: nil,
+                        categoryGroupName: nil,
+                        phone: nil,
+                        address: spot.place.address,
+                        roadAddress: nil,
+                        placeUrl: nil,
+                        distanceM: distance,
+                        lat: lat.map(FlexibleDouble.init),
+                        lng: lng.map(FlexibleDouble.init),
+                        isSponsored: spot.isSponsored,
+                        imageUrl: spot.imageUrl.isEmpty ? nil : spot.imageUrl,
+                        description: spot.description.isEmpty ? nil : spot.description
+                    )
+                }
+        }
     }
 
     /// 칩 재탭이면 해제 대신 같은 카테고리를 유지합니다.
@@ -233,7 +290,11 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         let buffer = max(location.horizontalAccuracy, 0)
 
         if distance > radius + buffer {
-            if let since = outsideSince {
+            // 지도에 들어왔을 때(첫 판정) 이미 밖이면 바로 알립니다.
+            // 이후 경계를 오갈 때는 GPS 튐으로 잘못 알리지 않도록 연속 60초로 판정합니다.
+            if !hasEvaluatedGeofence {
+                isOutsideGeofence = true
+            } else if let since = outsideSince {
                 if Date().timeIntervalSince(since) >= outsideThreshold { isOutsideGeofence = true }
             } else {
                 outsideSince = Date()
@@ -243,6 +304,7 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             outsideSince = nil
             isOutsideGeofence = false
         }
+        hasEvaluatedGeofence = true
     }
 
     /// 서버에도 위치를 남깁니다 (안내사 알림·이탈 이력은 서버가 처리)
@@ -281,6 +343,7 @@ extension NearbySpotViewModel: CLLocationManagerDelegate {
         Task { @MainActor in
             let isFirstFix = self.currentLocation == nil
             self.currentLocation = location.coordinate
+            self.lastLocation = location
             self.accuracyM = location.horizontalAccuracy >= 0 ? location.horizontalAccuracy : nil
             self.evaluateGeofence(for: location)
             self.sendSnapshotIfNeeded(location)

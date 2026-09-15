@@ -23,6 +23,8 @@ struct TripDetailView: View {
     @State private var expandedDescriptions: Set<Int> = []
     /// 작성 중 닫기 확인
     @State private var showDiscardConfirm = false
+    /// 키보드가 올라와 있는지 — 시트 아래 여백(홈 인디케이터용)을 줄이는 데 씁니다
+    @State private var isKeyboardVisible = false
     /// 일정 카드 탭 → 스팟 상세
     @State private var selectedSchedule: SchedulePlace?
     /// 삭제 확인 대기 중인 개인 일정
@@ -80,14 +82,13 @@ struct TripDetailView: View {
             }
         }
         .toast($viewModel.toast)
-        // 키보드 위 [완료] — 입력을 마치고 시간·저장 버튼을 누를 수 있게 키보드를 내립니다
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("완료") {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }
-            }
+        // 키보드가 떠 있으면 시트 아래 여백을 줄여 키보드와 붙게 합니다
+        // (키보드 위 [완료] 줄은 시트와 키보드 사이에 빈 간격을 만들어 뺐습니다 — 키보드의 return으로 내림)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
         }
         .animation(.easeInOut(duration: 0.25), value: showAddSheet)
         .navigationBarHidden(true)
@@ -668,7 +669,8 @@ struct TripDetailView: View {
             .disabled(!canSave || viewModel.isSaving)
             .padding(.horizontal, AppSpacing.xl)
             .padding(.top, 18)
-            .padding(.bottom, 34)
+            // 34는 홈 인디케이터 자리 — 키보드가 떠 있으면 필요 없어 줄입니다
+            .padding(.bottom, isKeyboardVisible ? AppSpacing.md : 34)
         }
         .background(Color.white)
         .cornerRadius(24, corners: [.topLeft, .topRight])

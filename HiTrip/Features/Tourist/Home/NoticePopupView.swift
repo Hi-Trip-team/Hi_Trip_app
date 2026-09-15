@@ -41,7 +41,7 @@ struct NoticePopupView: View {
     private var popupCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text(notice.title.isEmpty ? "공지사항" : notice.title)
                         .font(AppFont.headlineBold)
                         .foregroundColor(AppColor.textPrimary)
