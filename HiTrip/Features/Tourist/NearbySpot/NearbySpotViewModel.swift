@@ -152,7 +152,9 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] home in
                 guard let self else { return }
-                guard let today = home.todayDayNumber else {
+                // 오늘 일차는 여행지 날짜로 계산합니다 (서버 today_day_number는 UTC라 새벽에 하루 어긋남)
+                let clock = TripClock(startDate: home.trip.startDate, endDate: home.trip.endDate, timeZoneID: home.trip.timezone)
+                guard let today = clock?.todayDayNumber else {
                     self.geofence = nil
                     return
                 }
@@ -234,13 +236,11 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             var seen = Set<Int>()
             return (recommended + popular)
                 .filter { seen.insert($0.id).inserted }
-                .map { spot in
-                    let lat = spot.place.latitude.flatMap(Double.init)
-                    let lng = spot.place.longitude.flatMap(Double.init)
-                    var distance: Int?
-                    if let lat, let lng {
-                        distance = Int(here.distance(from: CLLocation(latitude: lat, longitude: lng)))
-                    }
+                // 좌표가 없는 스팟(장소 데이터를 찾지 못한 것)은 지도에 핀도 위치도 없어 뺍니다
+                .compactMap { spot -> TravelerNearbySpotDTO? in
+                    guard let lat = spot.place.latitude.flatMap(Double.init),
+                          let lng = spot.place.longitude.flatMap(Double.init) else { return nil }
+                    let distance = Int(here.distance(from: CLLocation(latitude: lat, longitude: lng)))
                     return TravelerNearbySpotDTO(
                         providerObjectId: "guide-\(spot.id)",
                         name: spot.title,
@@ -252,8 +252,8 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
                         roadAddress: nil,
                         placeUrl: nil,
                         distanceM: distance,
-                        lat: lat.map(FlexibleDouble.init),
-                        lng: lng.map(FlexibleDouble.init),
+                        lat: FlexibleDouble(lat),
+                        lng: FlexibleDouble(lng),
                         isSponsored: spot.isSponsored,
                         imageUrl: spot.imageUrl.isEmpty ? nil : spot.imageUrl,
                         description: spot.description.isEmpty ? nil : spot.description
