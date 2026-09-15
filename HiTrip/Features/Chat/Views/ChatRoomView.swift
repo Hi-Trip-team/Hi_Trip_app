@@ -66,7 +66,7 @@ struct ChatRoomView: View {
             }
             .ignoresSafeArea()
         }
-        .onChange(of: photoItem) { _, item in
+        .onChange(of: photoItem) { item in
             guard let item else { return }
             Task { await attach(item) }
         }

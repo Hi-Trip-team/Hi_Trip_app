@@ -63,7 +63,7 @@ struct TouristLocationView: View {
         .task { viewModel.load() }
         .onAppear { viewModel.startPolling() }
         .onDisappear { viewModel.stopPolling() }
-        .onChange(of: viewModel.touristCoordinate?.latitude) { _, _ in
+        .onChange(of: viewModel.touristCoordinate?.latitude) { _ in
             guard !hasFocusedOnce else { return }
             hasFocusedOnce = true
             focusAll()

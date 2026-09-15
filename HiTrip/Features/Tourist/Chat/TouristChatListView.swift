@@ -53,7 +53,7 @@ struct TouristChatListView: View {
         }
         .background(Color.white)
         .navigationBarHidden(true)
-        .navigationDestination(item: $selectedRoom) { room in
+        .navigationDestination(unwrapping: $selectedRoom) { room in
             ChatRoomView(viewModel: viewModel, chatRoom: room)
         }
         .onAppear { viewModel.fetchChatRooms() }

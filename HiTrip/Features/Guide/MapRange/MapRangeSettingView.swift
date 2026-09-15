@@ -38,7 +38,7 @@ struct MapRangeSettingView: View {
         .navigationBarHidden(true)
         .task { viewModel.load() }
         .onDisappear { viewModel.stop() }
-        .onChange(of: viewModel.centerCoordinate?.latitude) { _, _ in focusCenter() }
+        .onChange(of: viewModel.centerCoordinate?.latitude) { _ in focusCenter() }
         .confirmationDialog(
             "변경사항을 저장하지 않고 나가시겠습니까?",
             isPresented: $showLeaveConfirm,
