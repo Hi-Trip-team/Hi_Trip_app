@@ -279,9 +279,22 @@ final class StaffTripDetailViewModel: ObservableObject {
     // MARK: - 헬퍼
 
     /// 카드 제목 — 장소가 있으면 장소, 없으면 메모를 씁니다
+    /// 일정 제목 — 앱에서 직접 쓴 짧은 제목(main_content 한 줄)이 있으면 그것, 없으면 장소명
+    ///
+    /// SaaS 일정은 main_content에 긴 설명이 들어 있어, 길거나 여러 줄이면 장소명을 씁니다.
     static func title(of item: StaffScheduleDTO) -> String {
-        if let place = item.placeName, !place.isEmpty { return place }
-        return item.mainContent ?? "일정"
+        let place = item.placeName?.isEmpty == false ? item.placeName : nil
+        if let content = item.mainContent?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !content.isEmpty, (place == nil || (content.count <= 30 && !content.contains("\n"))) {
+            return content
+        }
+        return place ?? "일정"
+    }
+
+    /// 제목과 다를 때만 보여줄 장소명 한 줄
+    static func placeLine(of item: StaffScheduleDTO) -> String? {
+        guard let place = item.placeName, !place.isEmpty, place != title(of: item) else { return nil }
+        return place
     }
 
     static func timeRange(_ start: String, _ end: String) -> String {
@@ -297,7 +310,8 @@ final class StaffTripDetailViewModel: ObservableObject {
             switch e {
             case .unauthorized, .forbidden: return "로그인이 필요합니다"
             case .noConnection:             return "연결을 확인해주세요"
-            default:                        break
+            // 서버가 거절한 사유(필드 오류·detail)를 그대로 보여줘야 원인을 알 수 있습니다
+            default:                        if let text = e.errorDescription, !text.isEmpty { return text }
             }
         }
         return "저장하지 못했어요"

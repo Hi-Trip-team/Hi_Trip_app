@@ -204,6 +204,19 @@ struct StaffTripDetailView: View {
                     .foregroundColor(AppColor.textPrimary)
                     .lineLimit(1)
 
+                // 직접 쓴 제목을 보여줄 때는 장소명을 아래 줄에
+                if let place = StaffTripDetailViewModel.placeLine(of: item) {
+                    HStack(spacing: AppSpacing.xxs) {
+                        Image(systemName: "mappin")
+                            .font(AppFont.caption2)
+                            .foregroundColor(AppColor.danger)
+                        Text(place)
+                            .font(AppFont.caption)
+                            .foregroundColor(AppColor.textSecondary)
+                            .lineLimit(1)
+                    }
+                }
+
                 Text(StaffTripDetailViewModel.timeRange(item.startTime, item.endTime))
                     .font(AppFont.caption)
                     .foregroundColor(AppColor.textSecondary)
@@ -265,14 +278,7 @@ struct StaffTripDetailView: View {
                     .padding(.top, 6)
 
                     if let field = openPicker {
-                        DatePicker(
-                            "",
-                            selection: field == .start ? $draftStart : $draftEnd,
-                            displayedComponents: .hourAndMinute
-                        )
-                        .datePickerStyle(.wheel)
-                        .labelsHidden()
-                        .frame(height: 140)
+                        SheetTimeWheel(selection: field == .start ? $draftStart : $draftEnd)
                     }
 
                     if isEndBeforeStart {

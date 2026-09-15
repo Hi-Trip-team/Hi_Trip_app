@@ -166,9 +166,8 @@ final class StaffHomeViewModel: ObservableObject {
 
     /// 홈 일정 한 줄 — 장소가 없는 일정(앱에서 추가한 것)은 메모를 제목으로
     private static func item(_ s: StaffScheduleDTO) -> ScheduleSummary {
-        let title = s.placeName?.isEmpty == false ? (s.placeName ?? "") : (s.mainContent ?? "일정")
-        return ScheduleSummary(
-            id: "s\(s.id)", title: title,
+        ScheduleSummary(
+            id: "s\(s.id)", title: StaffTripDetailViewModel.title(of: s),
             startTime: s.startTime, endTime: s.endTime, dayNumber: s.dayNumber
         )
     }
