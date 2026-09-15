@@ -119,15 +119,24 @@ struct TripListView: View {
 
     private var todayScheduleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 여행 중에는 진행률 카드가 먼저 오고 그 아래에 제목이 붙습니다.
-            // 시작 전·종료 후에는 카드가 없어 제목이 맨 위입니다.
+            // 여행 진행률 카드 — 시작 전(D-day)·종료 후(수고하셨어요)에도 보입니다
+            TripProgressCard(
+                progress: viewModel.tripProgress,
+                remainingDays: viewModel.tripTotalDays - viewModel.todayDayNumber,
+                destination: viewModel.destinationText,
+                headlineOverride: viewModel.progressHeadline,
+                statusOverride: viewModel.progressStatus
+            )
+            .padding(.horizontal, 21)
+            .padding(.bottom, AppSpacing.lg)
+
+            sectionTitle
+
             switch viewModel.phase {
             case .before:
-                sectionTitle
-                beforeTripCard
+                scheduleMessage("여행 시작 전이에요 · \(viewModel.departureDateText)")
             case .finished:
-                sectionTitle
-                finishedTripCard
+                scheduleMessage("여행 정보와 계정은 \(viewModel.dataPurgeDateText)에 파기됩니다")
             case .during:
                 inTripSchedule
             }
@@ -153,58 +162,27 @@ struct TripListView: View {
             .padding(.bottom, AppSpacing.md)
     }
 
-    // MARK: - 여행 시작 전
+    // MARK: - 일정 안내 문구
 
-    private var beforeTripCard: some View {
-        VStack(spacing: 6) {
-            Text("여행 시작 전이에요")
-                .font(AppFont.bodyLBold)
-                .foregroundColor(AppColor.accent)
-            Text(viewModel.departureText)
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 92)
-        .background(AppColor.accentSubtle)
-        .cornerRadius(AppRadius.lg)
-        .padding(.horizontal, AppSpacing.xl)
-    }
-
-    // MARK: - 여행 종료 후
-
-    private var finishedTripCard: some View {
-        VStack(spacing: 6) {
-            Text("여행이 종료되었습니다")
-                .font(AppFont.bodyLBold)
-                .foregroundColor(AppColor.textPrimary)
-            Text("여행 정보와 계정은 \(viewModel.dataPurgeDateText)에 파기됩니다")
-                .font(AppFont.label)
-                .foregroundColor(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 92)
-        .background(AppColor.surface)
-        .cornerRadius(AppRadius.lg)
-        .padding(.horizontal, AppSpacing.xl)
+    /// 일정 칸 자리에 보여주는 안내 — 진행 중인 일정 없음 · 여행 시작 전 · 종료 후
+    private func scheduleMessage(_ text: String) -> some View {
+        Text(text)
+            .font(AppFont.body)
+            .foregroundColor(AppColor.textSecondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, AppSpacing.md)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 64)
+            .background(AppColor.surface)
+            .cornerRadius(AppRadius.lg)
+            .padding(.horizontal, AppSpacing.xl)
     }
 
     // MARK: - 여행 중
 
     private var inTripSchedule: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 여행 진행률 카드
-            TripProgressCard(
-                progress: viewModel.todayProgress,
-                remainingDays: viewModel.tripTotalDays - viewModel.todayDayNumber,
-                destination: viewModel.destinationText
-            )            .padding(.horizontal, 21)
-            .padding(.bottom, AppSpacing.lg)
-
-            sectionTitle
-
-            // 현재 일정
+            // 지금 진행 중인 일정 — 없으면 안내 문구 (예정 일정은 아래 "다음 일정"에만)
             if let current = viewModel.currentSchedule {
                 HStack {
                     Text(TravelerHomeViewModel.title(of: current))
@@ -223,16 +201,7 @@ struct TripListView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { showTripDetail = true }
             } else {
-                Text(viewModel.todayState == .finished
-                     ? "오늘 일정이 모두 끝났어요"
-                     : "오늘은 등록된 일정이 없어요")
-                    .font(AppFont.body)
-                    .foregroundColor(AppColor.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 64)
-                    .background(AppColor.surface)
-                    .cornerRadius(AppRadius.lg)
-                    .padding(.horizontal, AppSpacing.xl)
+                scheduleMessage(viewModel.noCurrentScheduleText)
             }
 
             // 다음 일정 — 없으면 레이블째 숨김
