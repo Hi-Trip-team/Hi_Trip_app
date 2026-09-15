@@ -30,6 +30,7 @@ struct ChatRoomView: View {
     @State private var showAttachmentOptions = false
     @State private var photoItem: PhotosPickerItem?
     @State private var showPhotoPicker = false
+    @State private var showCamera = false
     @State private var showPermissionGuide = false
 
     /// 음성 녹음
@@ -51,10 +52,20 @@ struct ChatRoomView: View {
         .navigationBarHidden(true)
         .onTapGesture { isInputFocused = false }
         .confirmationDialog("첨부", isPresented: $showAttachmentOptions, titleVisibility: .visible) {
+            if CameraPicker.isAvailable {
+                Button("카메라로 촬영") { Task { await openCamera() } }
+            }
             Button("사진·동영상") { showPhotoPicker = true }
             Button("취소", role: .cancel) { }
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .any(of: [.images, .videos]))
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { image in
+                showCamera = false
+                if let image { sendPhoto(image) }
+            }
+            .ignoresSafeArea()
+        }
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
             Task { await attach(item) }
@@ -67,7 +78,7 @@ struct ChatRoomView: View {
             }
             Button("닫기", role: .cancel) { }
         } message: {
-            Text("설정에서 사진·마이크 접근을 허용해주세요")
+            Text("설정에서 사진·카메라·마이크 접근을 허용해주세요")
         }
         .toast($viewModel.toast, inset: 90)
         .overlay(alignment: .top) { offlineBanner }
@@ -221,6 +232,30 @@ struct ChatRoomView: View {
             mediaType: isVideo ? "video" : "photo",
             fileName: isVideo ? "video.mp4" : "photo.jpg",
             mimeType: isVideo ? "video/mp4" : "image/jpeg"
+        )
+    }
+
+    /// 권한을 확인하고 카메라를 띄웁니다. 거부 상태면 설정 안내를 보여줍니다.
+    private func openCamera() async {
+        if await CameraPicker.requestAccess() {
+            showCamera = true
+        } else {
+            showPermissionGuide = true
+        }
+    }
+
+    /// 찍은 사진을 JPEG로 줄여 올립니다 (원본은 수 MB라 0.8 품질로 압축)
+    private func sendPhoto(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.8) else {
+            viewModel.toast = "첨부하지 못했어요"
+            return
+        }
+        viewModel.sendAttachment(
+            chatRoomId: chatRoom.id,
+            data: data,
+            mediaType: "photo",
+            fileName: "photo.jpg",
+            mimeType: "image/jpeg"
         )
     }
 
