@@ -487,7 +487,7 @@ extension ChatRoomV1DTO {
         let df = ISO8601DateFormatter()
         df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
-        let lastMsg = latestMessage?["body"]?.value as? String ?? ""
+        let lastMsg = Self.previewText(latestMessage)
         let lastDateStr = latestMessage?["created_at"]?.value as? String ?? updatedAt ?? ""
         let lastDate = df.date(from: lastDateStr) ?? Date()
         let createdDate = df.date(from: createdAt ?? "") ?? Date()
@@ -513,6 +513,28 @@ extension ChatRoomV1DTO {
             isOnline: false,
             createdAt: createdDate
         )
+    }
+
+    /// 목록 미리보기 — 본문이 없는 첨부 메시지는 '사진' · '음성 메시지' · '동영상'
+    static func previewText(_ latest: [String: AnyCodable]?) -> String {
+        guard let latest else { return "" }
+        if let body = latest["body"]?.value as? String, !body.isEmpty { return body }
+
+        var mediaTypes: [String] = []
+        if let list = latest["attachments"]?.value as? [Any] {
+            mediaTypes = list.compactMap {
+                ($0 as? [String: Any])?["media_type"] as? String
+                    ?? ($0 as? [String: AnyCodable])?["media_type"]?.value as? String
+            }
+        }
+        let type = mediaTypes.first ?? (latest["message_type"]?.value as? String) ?? ""
+        switch type {
+        case "photo", "image":  return "사진"
+        case "audio", "voice":  return "음성 메시지"
+        case "video":           return "동영상"
+        case "attachment":      return "첨부 파일"
+        default:                return ""
+        }
     }
 }
 
