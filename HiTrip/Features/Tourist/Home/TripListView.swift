@@ -17,7 +17,6 @@ struct TripListView: View {
     @State private var showChat = false
     @State private var showNotice = false
     @State private var showNearbySpot = false
-    @State private var showNotificationList = false
     @State private var selectedSpot: TravelerSpotDTO?
 
     var body: some View {
@@ -72,7 +71,6 @@ struct TripListView: View {
                 TouristChatListView(viewModel: chatViewModel)
             }
             .navigationDestination(isPresented: $showNearbySpot) { NearbySpotView() }
-            .navigationDestination(isPresented: $showNotificationList) { TouristNotificationListView() }
             .navigationDestination(item: $selectedSpot) { spot in
                 NearbySpotDetailView(
                     name: spot.title,
@@ -107,12 +105,8 @@ struct TripListView: View {
                 .font(AppFont.headlineBold)
                 .foregroundColor(.black)
             Spacer()
-            // 종은 알림함(개별 알림)으로 갑니다. 안 읽은 "공지"는 공지 카드의 빨간 점으로 따로 보여주므로
-            // 여기에 공지 수를 달면 알림함을 열었을 때 비어 있어 혼란스럽습니다.
-            // 알림 목록 API가 생기면 그 안 읽음 수로 뱃지를 붙입니다.
-            Text("🔔")
-                .font(AppFont.title3)
-                .onTapGesture { showNotificationList = true }
+            // 알림함(종 아이콘)은 알림 목록 API가 생길 때까지 숨깁니다 — 항상 빈 화면이라
+            // 심사에서 미완성 기능으로 보일 수 있습니다. 화면(TouristNotificationListView)은 남겨 둡니다.
         }
         .padding(.horizontal, AppSpacing.xl)
         .padding(.top, AppSpacing.md)
