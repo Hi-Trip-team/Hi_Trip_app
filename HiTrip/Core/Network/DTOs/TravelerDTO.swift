@@ -527,7 +527,15 @@ extension ChatMessageV1DTO {
         df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let sentAt = df.date(from: createdAt ?? "") ?? Date()
 
-        let isMine = (senderRole == currentRole)
+        // 서버 sender_role은 tourist | manager | admin 입니다. 앱 역할은 tourist | staff라
+        // 그대로 비교하면 안내사가 보낸 메시지가 상대 말풍선으로 보였습니다.
+        let senderSide = (senderRole == "tourist") ? "tourist" : "staff"
+        // 안내사는 한 방에 여러 명일 수 있어 보낸 사람 id까지 맞아야 내 메시지입니다
+        let isMine: Bool = {
+            guard senderSide == currentRole else { return false }
+            if currentRole == "staff", let sender { return String(sender) == currentUserId }
+            return true
+        }()
         let senderId = isMine ? currentUserId : "\(senderRole ?? "peer")_\(sender ?? 0)"
         let name = senderName ?? (isMine ? "나" : "상대방")
 
