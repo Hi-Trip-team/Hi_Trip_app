@@ -20,7 +20,12 @@ struct SpotImageView: View {
                 RemoteImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
-                        image.resizable().scaledToFill()
+                        // 받은 틀 크기 안에서 채우고 잘라냅니다.
+                        // image를 바로 scaledToFill하면 사진 원래 비율대로 틀보다 커져
+                        // 밖에서 준 높이를 넘어 아래 제목과 겹쳤습니다.
+                        Color.clear
+                            .overlay(image.resizable().scaledToFill())
+                            .clipped()
                     case .failure:
                         placeholder
                     case .empty:
