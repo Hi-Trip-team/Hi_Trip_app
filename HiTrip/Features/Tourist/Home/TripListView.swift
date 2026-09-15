@@ -36,6 +36,8 @@ struct TripListView: View {
                             noticeSection
                             localLanguageCard
                             bottomActionRow
+                            LogoutButton()
+                                .padding(.top, AppSpacing.xl)
                                 .padding(.bottom, AppSpacing.xxl)
                         }
                     }

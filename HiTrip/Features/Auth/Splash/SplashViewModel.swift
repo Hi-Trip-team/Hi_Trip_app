@@ -68,10 +68,18 @@ final class SplashViewModel: ObservableObject {
             return
         }
 
-        // 자동 로그인을 끄고 로그인했던 경우 — 이번 실행에서는 세션을 버립니다.
-        guard keychain.isLoggedIn, keychain.isAutoLoginEnabled else {
+        guard keychain.isLoggedIn else {
             clearSavedSession()
             route = .login
+            return
+        }
+
+        // 자동 로그인을 끄고 로그인했던 경우 — 서버 세션까지 닫고 로그인 화면으로 갑니다.
+        // 로컬만 지우면 서버에 활성 세션이 쌓입니다. 끝난 뒤 이동해야 새 로그인 토큰을 지우지 않습니다.
+        guard keychain.isAutoLoginEnabled else {
+            loginUseCase.logout()
+                .subscribe(onSuccess: { [weak self] in self?.route = .login })
+                .disposed(by: disposeBag)
             return
         }
 
