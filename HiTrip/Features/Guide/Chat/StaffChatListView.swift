@@ -6,45 +6,82 @@ import SwiftUI
 /// - GET /api/v1/chat/rooms/   여행객과 같은 엔드포인트 (세션 쿠키로도 인증됩니다)
 ///
 /// 채팅방 화면은 여행객 것과 동일한 ChatRoomView를 그대로 씁니다.
-/// 단체톡방은 여행 등록 시 자동 생성되고 나가기가 없어 항상 최상단에 고정합니다.
+/// 정렬은 마지막 메시지 최신순이고, 길게 눌러 상단에 고정할 수 있습니다 (고정은 이 기기에만 저장).
 
 struct StaffChatListView: View {
+
+    /// 지금 담당 중인 여행 — "진행중" 필터 기준
+    var currentTripId: Int?
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = AppDIContainer.shared.makeChatViewModel()
 
-    @State private var tab: Tab = .all
+    @State private var tab: Tab = .ongoing
     @State private var selectedRoom: ChatRoom?
     @State private var showMarkAllConfirm = false
+    @State private var searchText = ""
 
-    /// 기획 재정의 — 기존 "최근·이전·확인됨"은 기준이 모호했습니다
+    /// 검색창 포커스 — 목록을 누르면 키보드를 내립니다
+    @FocusState private var isSearchFocused: Bool
+
+    /// 상단 고정한 방의 서버 ID (쉼표 구분) — 서버에 고정 필드가 없어 기기에 저장합니다
+    @AppStorage("staffPinnedChatRoomIds") private var pinnedIdsRaw = ""
+
     private enum Tab: String, CaseIterable, Identifiable {
-        /// 단체 고정 + 최신순
+        /// 지금 담당 중인 여행의 방만
+        case ongoing = "진행중"
+        /// 고정 + 최신순
         case all = "전체"
         /// 안읽음이 있는 방만
         case unread = "미확인"
         /// 단체톡방만
         case group = "단체"
+        /// 1:1 방만
+        case direct = "개인"
 
         var id: String { rawValue }
-        var width: CGFloat { self == .unread ? 76 : 60 }
+        var width: CGFloat { self == .ongoing || self == .unread ? 68 : 56 }
     }
 
     // MARK: - 목록
 
-    /// 단체톡방 최상단 고정, 이하 마지막 메시지 최신순
+    private var pinnedIds: Set<Int> {
+        Set(pinnedIdsRaw.split(separator: ",").compactMap { Int($0) })
+    }
+
+    private func isPinned(_ room: ChatRoom) -> Bool {
+        room.serverId.map(pinnedIds.contains) ?? false
+    }
+
+    private func togglePin(_ room: ChatRoom) {
+        guard let id = room.serverId else { return }
+        var ids = pinnedIds
+        if ids.contains(id) { ids.remove(id) } else { ids.insert(id) }
+        pinnedIdsRaw = ids.sorted().map(String.init).joined(separator: ",")
+    }
+
+    /// 고정한 방 먼저, 이하 마지막 메시지 최신순
     private var sortedRooms: [ChatRoom] {
         viewModel.chatRooms.sorted { a, b in
-            if a.isGroupChat != b.isGroupChat { return a.isGroupChat }
+            let pa = isPinned(a), pb = isPinned(b)
+            if pa != pb { return pa }
             return a.lastMessageDate > b.lastMessageDate
         }
     }
 
     private var rooms: [ChatRoom] {
+        let byTab: [ChatRoom]
         switch tab {
-        case .all:    return sortedRooms
-        case .unread: return sortedRooms.filter { $0.unreadCount > 0 }
-        case .group:  return sortedRooms.filter { $0.isGroupChat }
+        case .ongoing: byTab = sortedRooms.filter { currentTripId != nil && $0.tripId == currentTripId }
+        case .all:     byTab = sortedRooms
+        case .unread:  byTab = sortedRooms.filter { $0.unreadCount > 0 }
+        case .group:   byTab = sortedRooms.filter { $0.isGroupChat }
+        case .direct:  byTab = sortedRooms.filter { !$0.isGroupChat }
+        }
+        guard !searchText.isEmpty else { return byTab }
+        return byTab.filter {
+            $0.participantName.localizedCaseInsensitiveContains(searchText) ||
+            $0.lastMessage.localizedCaseInsensitiveContains(searchText)
         }
     }
 
@@ -52,14 +89,19 @@ struct StaffChatListView: View {
         VStack(spacing: 0) {
             headerSection
 
+            searchBar
+                .padding(.horizontal, AppSpacing.xl)
+                .padding(.top, 3)
+
             tabRow
-                .padding(.top, 36)
+                .padding(.top, AppSpacing.md)
                 .padding(.bottom, AppSpacing.lg)
 
             if rooms.isEmpty {
                 emptyView
             } else {
                 roomList
+                    .scrollDismissesKeyboard(.immediately)
             }
         }
         .background(Color.white)
@@ -67,7 +109,11 @@ struct StaffChatListView: View {
         .navigationDestination(unwrapping: $selectedRoom) { room in
             ChatRoomView(viewModel: viewModel, chatRoom: room)
         }
-        .onAppear { viewModel.fetchChatRooms() }
+        .onAppear {
+            // 담당 여행이 없으면 "진행중"이 비어 있으므로 전체부터
+            if currentTripId == nil, tab == .ongoing { tab = .all }
+            viewModel.fetchChatRooms()
+        }
         .confirmationDialog(
             "모든 채팅을 읽음 처리할까요?",
             isPresented: $showMarkAllConfirm,
@@ -85,6 +131,24 @@ struct StaffChatListView: View {
             // 즉시 실행하지 않고 한 번 확인합니다
             HeaderTextButton("모두 확인") { showMarkAllConfirm = true }
         }
+    }
+
+    // MARK: - 검색바 (여행객 목록과 같은 모양)
+
+    private var searchBar: some View {
+        HStack(spacing: AppSpacing.xs) {
+            Image(systemName: "magnifyingglass")
+                .font(AppFont.body)
+                .foregroundColor(AppColor.textSecondary)
+            TextField("채팅 및 메시지 검색", text: $searchText)
+                .focused($isSearchFocused)
+                .font(AppFont.label)
+                .foregroundColor(AppColor.textPrimary)
+        }
+        .padding(.horizontal, AppSpacing.lg)
+        .frame(height: 44)
+        .background(AppColor.surface)
+        .clipShape(Capsule())
     }
 
     // MARK: - 탭 필터
@@ -114,8 +178,20 @@ struct StaffChatListView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(rooms) { room in
-                    Button { selectedRoom = room } label: { roomRow(room) }
+                    Button {
+                        isSearchFocused = false
+                        selectedRoom = room
+                    } label: { roomRow(room) }
                         .buttonStyle(.plain)
+                        // 길게 눌러 상단 고정/해제
+                        .contextMenu {
+                            Button {
+                                togglePin(room)
+                            } label: {
+                                Label(isPinned(room) ? "고정 해제" : "상단 고정",
+                                      systemImage: isPinned(room) ? "pin.slash" : "pin")
+                            }
+                        }
 
                     Rectangle()
                         .fill(AppColor.divider)
@@ -139,10 +215,17 @@ struct StaffChatListView: View {
                 )
 
             VStack(alignment: .leading, spacing: 5) {
-                Text(room.isGroupChat ? "📌 \(room.participantName)" : room.participantName)
-                    .font(AppFont.bodyBold)
-                    .foregroundColor(AppColor.textPrimary)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(room.participantName)
+                        .font(AppFont.bodyBold)
+                        .foregroundColor(AppColor.textPrimary)
+                        .lineLimit(1)
+                    if isPinned(room) {
+                        Image(systemName: "pin.fill")
+                            .font(AppFont.icon(11))
+                            .foregroundColor(AppColor.textTertiary)
+                    }
+                }
 
                 Text(room.lastMessage.isEmpty ? "새로운 채팅방" : room.lastMessage)
                     .font(AppFont.caption)
@@ -166,6 +249,7 @@ struct StaffChatListView: View {
         }
         .padding(.horizontal, AppSpacing.xl)
         .padding(.vertical, AppSpacing.md)
+        .background(Color.white)
         .contentShape(Rectangle())
     }
 
@@ -174,15 +258,29 @@ struct StaffChatListView: View {
     private var emptyView: some View {
         VStack(spacing: 10) {
             Spacer()
-            Image(systemName: tab == .unread ? "checkmark.circle" : "bubble.left.and.bubble.right")
+            Image(systemName: emptyIcon)
                 .font(AppFont.logo)
                 .foregroundColor(AppColor.borderStrong)
-            Text(tab == .unread ? "미확인 메시지가 없어요" : "메시지가 없어요")
+            Text(emptyText)
                 .font(AppFont.bodyMMedium)
                 .foregroundColor(AppColor.textPrimary)
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var emptyIcon: String {
+        if !searchText.isEmpty { return "magnifyingglass" }
+        return tab == .unread ? "checkmark.circle" : "bubble.left.and.bubble.right"
+    }
+
+    private var emptyText: String {
+        if !searchText.isEmpty { return "검색 결과가 없어요" }
+        switch tab {
+        case .unread:  return "미확인 메시지가 없어요"
+        case .ongoing: return "진행 중인 여행의 채팅이 없어요"
+        default:       return "메시지가 없어요"
+        }
     }
 
 }

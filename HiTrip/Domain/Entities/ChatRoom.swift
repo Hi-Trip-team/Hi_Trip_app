@@ -29,6 +29,9 @@ struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
     /// 단체톡방 여부
     var isGroupChat: Bool
 
+    /// 연결된 여행 ID — 안내사 "진행중" 필터에 씁니다
+    var tripId: Int?
+
     /// 마지막 메시지 내용
     var lastMessage: String
 
@@ -51,6 +54,7 @@ struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
         participantName: String,
         participantType: String = "staff",
         isGroupChat: Bool = false,
+        tripId: Int? = nil,
         lastMessage: String = "",
         lastMessageDate: Date = Date(),
         unreadCount: Int = 0,
@@ -64,6 +68,7 @@ struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
         self.participantName = participantName
         self.participantType = participantType
         self.isGroupChat = isGroupChat
+        self.tripId = tripId
         self.lastMessage = lastMessage
         self.lastMessageDate = lastMessageDate
         self.unreadCount = unreadCount
