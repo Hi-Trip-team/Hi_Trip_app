@@ -8,11 +8,18 @@ import SwiftUI
 ///
 /// 일정 추가 때 장소를 카카오에서 검색해 지정할 수 있습니다 (adopt → place_id, SaaS와 같은 흐름).
 /// 기존 일정의 장소 변경은 SaaS에서 합니다.
+///
+/// 여행 카드·일차 머리·빈 일차·추가 버튼·시트는 여행객 "여행 일정"과 같은 공통 부품입니다.
 
 struct StaffTripDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = StaffTripDetailViewModel()
+    @StateObject private var viewModel: StaffTripDetailViewModel
+
+    /// - Parameter focusDay: 처음 펼칠 일차 — nil이면 여행 중일 때 오늘 일차
+    init(focusDay: Int? = nil) {
+        _viewModel = StateObject(wrappedValue: StaffTripDetailViewModel(focusDay: focusDay))
+    }
 
     /// ⋮ 메뉴 대상
     @State private var menuTarget: StaffScheduleDTO?
@@ -29,7 +36,6 @@ struct StaffTripDetailView: View {
     /// 장소 지정 (일정 추가만) — 카카오 검색 → 서버 장소 등록
     @State private var placeQuery = ""
     @State private var selectedPlace: KakaoPlaceResultDTO?
-    @State private var isKeyboardVisible = false
 
     private enum SheetMode: Equatable {
         case add(day: Int)
@@ -71,19 +77,15 @@ struct StaffTripDetailView: View {
             .background(Color.white)
 
             if showSheet {
-                sheetOverlay
+                BottomSheetOverlay(onDismissRequest: closeSheet) { keyboardVisible in
+                    sheetCard(isKeyboardVisible: keyboardVisible)
+                }
             }
         }
         .toast($viewModel.toast)
-        .animation(.easeInOut(duration: 0.2), value: showSheet)
+        .animation(.easeInOut(duration: 0.25), value: showSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-            isKeyboardVisible = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            isKeyboardVisible = false
-        }
         .confirmationDialog(
             "일정",
             isPresented: Binding(get: { menuTarget != nil }, set: { if !$0 { menuTarget = nil } }),
@@ -119,46 +121,42 @@ struct StaffTripDetailView: View {
     // MARK: - 헤더
 
     private var headerSection: some View {
-        NavigationHeader(title: "전체 일정", style: .compact) { dismiss() }
+        NavigationHeader(title: "전체 일정") { dismiss() }
     }
 
     // MARK: - 본문
 
     private var content: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                tripSummary
-                    .padding(.horizontal, AppSpacing.xl)
-                    .padding(.top, 33)
-                    .padding(.bottom, AppSpacing.lg)
-
-                ForEach(viewModel.days) { day in
-                    daySection(day)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    TripInfoCard(title: viewModel.tripTitle, subtitle: viewModel.tripSubtitle)
                         .padding(.horizontal, AppSpacing.xl)
-                        .padding(.bottom, AppSpacing.md)
-                }
+                        .padding(.top, AppSpacing.md)
+                        .padding(.bottom, AppSpacing.xl)
 
-                Spacer().frame(height: 32)
+                    ForEach(viewModel.days) { day in
+                        daySection(day)
+                            .padding(.horizontal, AppSpacing.xl)
+                            .padding(.bottom, 14)
+                            .id(day.dayNumber)
+                    }
+
+                    Spacer().frame(height: 32)
+                }
             }
+            .refreshable { viewModel.refresh() }
+            // 펼친 일차(홈에서 누른 일정의 일차 / 오늘)가 화면 아래에 있어도 보이도록 스크롤합니다
+            .onAppear { scrollToExpandedDay(proxy) }
+            .onChange(of: viewModel.days.count) { _ in scrollToExpandedDay(proxy) }
         }
-        .refreshable { viewModel.refresh() }
     }
 
-    /// 여행 요약 — SaaS 등록값, 읽기 전용
-    private var tripSummary: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            Text(viewModel.tripTitle)
-                .font(AppFont.bodyMBold)
-                .foregroundColor(AppColor.textPrimary)
-            Text(viewModel.tripSubtitle)
-                .font(AppFont.caption)
-                .foregroundColor(AppColor.textSecondary)
+    private func scrollToExpandedDay(_ proxy: ScrollViewProxy) {
+        guard let day = viewModel.expandedDay else { return }
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(day, anchor: .top) }
         }
-        .padding(.horizontal, AppSpacing.md)
-        .frame(height: 72, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
     }
 
     // MARK: - 일차
@@ -166,49 +164,22 @@ struct StaffTripDetailView: View {
     private func daySection(_ day: StaffTripDetailViewModel.DaySection) -> some View {
         let isExpanded = viewModel.expandedDay == day.dayNumber
 
-        return VStack(spacing: AppSpacing.sm) {
-            Button { withAnimation(.easeInOut(duration: 0.2)) { viewModel.toggle(day: day.dayNumber) } } label: {
-                HStack(spacing: 10) {
-                    Text("\(day.dayNumber)일차")
-                        .font(AppFont.captionBold)
-                        .foregroundColor(isExpanded ? .white : AppColor.textSecondary)
-                        .frame(width: 48, height: 24)
-                        .background(isExpanded ? AppColor.accent : AppColor.divider)
-                        .cornerRadius(AppRadius.xs)
-
-                    Text(day.date)
-                        .font(AppFont.labelMedium)
-                        .foregroundColor(isExpanded ? AppColor.textPrimary : AppColor.textSecondary)
-
-                    Spacer()
-
-                    Text(isExpanded ? "∧" : "∨")
-                        .font(AppFont.body)
-                        .foregroundColor(AppColor.textSecondary)
-                }
-                .padding(.horizontal, 14)
-                .frame(height: 52)
-                .background(isExpanded ? AppColor.accentSubtle : AppColor.surface)
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
+        return VStack(spacing: 0) {
+            DayAccordionHeader(dayNumber: day.dayNumber, date: day.date, isExpanded: isExpanded) {
+                withAnimation(.easeInOut(duration: 0.2)) { viewModel.toggle(day: day.dayNumber) }
             }
-            .buttonStyle(.plain)
 
             if isExpanded {
-                if day.items.isEmpty {
-                    Text("등록된 일정이 없어요")
-                        .font(AppFont.label)
-                        .foregroundColor(AppColor.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 60)
-                        .background(AppColor.surfaceSubtle)
-                        .cornerRadius(AppRadius.lg)
-                }
+                VStack(spacing: AppSpacing.sm) {
+                    if day.items.isEmpty { EmptyDayRow() }
 
-                ForEach(day.items, id: \.id) { item in
-                    scheduleRow(item)
-                }
+                    ForEach(day.items, id: \.id) { item in
+                        scheduleRow(item)
+                    }
 
-                addButton(day: day.dayNumber)
+                    DashedAddButton(title: "+ 일정 추가") { openAddSheet(day: day.dayNumber) }
+                }
+                .padding(.top, AppSpacing.sm)
             }
         }
     }
@@ -246,137 +217,78 @@ struct StaffTripDetailView: View {
         )
     }
 
-    private func addButton(day: Int) -> some View {
-        Button { openAddSheet(day: day) } label: {
-            Text("+ 일정 추가")
-                .font(AppFont.labelMedium)
-                .foregroundColor(AppColor.accent)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48)
-                .background(AppColor.surface)
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.lg)
-                        .strokeBorder(AppColor.textSecondary, style: StrokeStyle(lineWidth: 1, dash: [4]))
-                )
-        }
-        .buttonStyle(.plain)
-    }
-
     // MARK: - 시트
 
-    private var sheetOverlay: some View {
-        ZStack {
-            DimmedBackground { closeSheet() }
+    private func sheetCard(isKeyboardVisible: Bool) -> some View {
+        BottomSheetCard(title: sheetTitle) {
+            VStack(alignment: .leading, spacing: 0) {
+                if needsTitleField {
+                    SheetFieldLabel(isMemoMode ? "메모" : "제목")
 
-            VStack(spacing: 0) {
-                Spacer()
-                sheetCard
-                    .transition(.move(edge: .bottom))
+                    TextField(isMemoMode ? "메모를 입력하세요" : "예: 자유시간", text: $draftTitle)
+                        .focused($isTextFocused)
+                        .font(AppFont.body)
+                        .foregroundColor(AppColor.textPrimary)
+                        .padding(.horizontal, AppSpacing.md)
+                        .frame(height: 48)
+                        .background(AppColor.surface)
+                        .cornerRadius(AppRadius.lg)
+                        .padding(.top, 6)
+                        .padding(.bottom, AppSpacing.sm)
+                }
+
+                if case .add = sheetMode {
+                    placeSection
+                }
+
+                if needsTimeFields {
+                    SheetFieldLabel("시간")
+
+                    HStack(spacing: AppSpacing.sm) {
+                        timeField("시작", value: AppDate.hhmm(draftStart), field: .start)
+                        timeField("종료", value: AppDate.hhmm(draftEnd), field: .end)
+                    }
+                    .padding(.top, 6)
+
+                    if let field = openPicker {
+                        DatePicker(
+                            "",
+                            selection: field == .start ? $draftStart : $draftEnd,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(height: 140)
+                    }
+
+                    if isEndBeforeStart {
+                        Text("종료 시간이 시작 시간보다 빠릅니다")
+                            .font(AppFont.caption2)
+                            .foregroundColor(AppColor.danger)
+                            .padding(.top, 6)
+                    } else if hasOverlap {
+                        Text("기존 일정과 시간이 겹칩니다")
+                            .font(AppFont.caption2)
+                            .foregroundColor(AppColor.warning)
+                            .padding(.top, 6)
+                    }
+                }
             }
-            // .container만 무시해야 키보드가 올라올 때 시트도 함께 올라갑니다
-            .ignoresSafeArea(.container, edges: .bottom)
-            .zIndex(1)
+            .padding(.horizontal, AppSpacing.xl)
+
+            SheetPrimaryButton(
+                isEnabled: canSubmit,
+                isLoading: viewModel.isSaving,
+                isKeyboardVisible: isKeyboardVisible,
+                action: submit
+            )
         }
     }
 
-    private var sheetCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Spacer()
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(AppColor.divider)
-                    .frame(width: 52, height: 5)
-                Spacer()
-            }
-            .padding(.top, 10)
-
-            Text(sheetTitle)
-                .font(AppFont.bodyLBold)
-                .foregroundColor(AppColor.textPrimary)
-                .padding(.top, 22)
-                .padding(.bottom, AppSpacing.md)
-
-            if needsTitleField {
-                Text(isMemoMode ? "메모" : "제목")
-                    .font(AppFont.captionMedium)
-                    .foregroundColor(AppColor.textSecondary)
-
-                TextField(isMemoMode ? "메모를 입력하세요" : "예: 자유시간", text: $draftTitle)
-                    .focused($isTextFocused)
-                    .font(AppFont.body)
-                    .foregroundColor(AppColor.textPrimary)
-                    .padding(.horizontal, AppSpacing.md)
-                    .frame(height: 48)
-                    .background(AppColor.surface)
-                    .cornerRadius(AppRadius.lg)
-                    .padding(.top, 6)
-                    .padding(.bottom, AppSpacing.sm)
-            }
-
-            if case .add = sheetMode {
-                placeSection
-            }
-
-            if needsTimeFields {
-                Text("시간")
-                    .font(AppFont.captionMedium)
-                    .foregroundColor(AppColor.textSecondary)
-
-                HStack(spacing: AppSpacing.sm) {
-                    timeField("시작", value: AppDate.hhmm(draftStart), field: .start)
-                    timeField("종료", value: AppDate.hhmm(draftEnd), field: .end)
-                }
-                .padding(.top, 6)
-
-                if let field = openPicker {
-                    DatePicker(
-                        "",
-                        selection: field == .start ? $draftStart : $draftEnd,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(height: 140)
-                }
-
-                if isEndBeforeStart {
-                    Text("종료 시간이 시작 시간보다 빠릅니다")
-                        .font(AppFont.caption2)
-                        .foregroundColor(AppColor.danger)
-                        .padding(.top, 6)
-                } else if hasOverlap {
-                    Text("기존 일정과 시간이 겹칩니다")
-                        .font(AppFont.caption2)
-                        .foregroundColor(AppColor.warning)
-                        .padding(.top, 6)
-                }
-            }
-
-            Button { submit() } label: {
-                Group {
-                    if viewModel.isSaving {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text("저장")
-                            .font(AppFont.bodyLBold)
-                            .foregroundColor(.white)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(canSubmit ? AppColor.accent : AppColor.borderMuted)
-                .cornerRadius(AppRadius.lg)
-            }
-            .buttonStyle(.plain)
-            .disabled(!canSubmit)
-            .padding(.top, AppSpacing.lg)
-            // 키보드가 올라와 있으면 홈 인디케이터 여백이 필요 없습니다
-            .padding(.bottom, isKeyboardVisible ? AppSpacing.md : 34)
+    private func timeField(_ prefix: String, value: String, field: TimeField) -> some View {
+        SheetTimeField(prefix: prefix, value: value, isActive: openPicker == field) {
+            openPicker = (openPicker == field) ? nil : field
         }
-        .padding(.horizontal, AppSpacing.xl)
-        .background(Color.white)
-        .cornerRadius(24, corners: [.topLeft, .topRight])
     }
 
     // MARK: - 장소 (선택)
@@ -384,9 +296,7 @@ struct StaffTripDetailView: View {
     /// SaaS와 같은 흐름 — 카카오에서 검색해 고르면 저장할 때 서버 장소로 등록합니다
     private var placeSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("장소 (선택)")
-                .font(AppFont.captionMedium)
-                .foregroundColor(AppColor.textSecondary)
+            SheetFieldLabel("장소 (선택)")
 
             if let place = selectedPlace {
                 HStack(spacing: AppSpacing.xs) {
@@ -470,30 +380,6 @@ struct StaffTripDetailView: View {
             }
         }
         .padding(.bottom, AppSpacing.sm)
-    }
-
-    private func timeField(_ prefix: String, value: String, field: TimeField) -> some View {
-        Button { openPicker = (openPicker == field) ? nil : field } label: {
-            HStack(spacing: AppSpacing.xs) {
-                Text(prefix)
-                    .font(AppFont.caption)
-                    .foregroundColor(AppColor.textSecondary)
-                Text(value)
-                    .font(AppFont.bodyMedium)
-                    .foregroundColor(AppColor.textPrimary)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity)
-            .frame(height: 48)
-            .background(AppColor.surface)
-            .cornerRadius(AppRadius.lg)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.lg)
-                    .stroke(openPicker == field ? AppColor.accent : .clear, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - 시트 상태
@@ -604,8 +490,6 @@ struct StaffTripDetailView: View {
         selectedPlace = nil
         viewModel.clearPlaceResults()
     }
-
-    // MARK: - 시각 헬퍼
 
     // MARK: - 상태 화면
 

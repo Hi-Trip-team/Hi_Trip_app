@@ -34,7 +34,14 @@ final class StaffTripDetailViewModel: ObservableObject {
     private let repository: StaffRepositoryProtocol
     private let disposeBag = DisposeBag()
 
-    init(repository: StaffRepositoryProtocol = AppDIContainer.shared.staffRepositoryForGuide) {
+    /// 처음 펼칠 일차 — 홈에서 누른 일정의 일차 (nil이면 오늘 → 첫 일차)
+    private let focusDay: Int?
+
+    init(
+        focusDay: Int? = nil,
+        repository: StaffRepositoryProtocol = AppDIContainer.shared.staffRepositoryForGuide
+    ) {
+        self.focusDay = focusDay
         self.repository = repository
     }
 
@@ -74,7 +81,7 @@ final class StaffTripDetailViewModel: ObservableObject {
                     guard let self else { return }
                     self.schedules = list
                     self.state = .loaded
-                    if self.expandedDay == nil { self.expandedDay = self.todayDayNumber ?? self.days.first?.dayNumber }
+                    if self.expandedDay == nil { self.expandedDay = self.focusDay ?? self.todayDayNumber ?? self.days.first?.dayNumber }
                 },
                 onFailure: { [weak self] error in
                     if self?.schedules.isEmpty ?? true {
@@ -98,8 +105,11 @@ final class StaffTripDetailViewModel: ObservableObject {
         }
     }
 
-    /// 오늘이 며칠째인지 — 서버 today_day_number (여행 기간이 아니면 nil)
-    var todayDayNumber: Int? { trip?.todayDayNumber }
+    /// 오늘이 며칠째인지 — 여행지 날짜 기준 TripClock (여행 기간이 아니면 nil)
+    /// (서버 today_day_number는 UTC라 새벽에 하루 어긋남)
+    var todayDayNumber: Int? {
+        trip.flatMap { TripClock(startDate: $0.startDate, endDate: $0.endDate, timeZoneID: $0.timezone) }?.todayDayNumber
+    }
 
     var tripTitle: String { trip?.title ?? "" }
 
