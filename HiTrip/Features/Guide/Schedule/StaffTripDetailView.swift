@@ -6,8 +6,8 @@ import SwiftUI
 /// 일차 아코디언 + ⋮ 메뉴(시간 변경·메모 수정·삭제) + 일정 추가.
 /// 수정은 즉시 서버에 저장하고, 실패하면 [재시도]를 띄웁니다.
 ///
-/// 앱에서는 당일 운영 조정(시간·메모)만 다룹니다.
-/// 장소 변경·일정 신규 구성은 SaaS 권장 — 서버가 장소를 place_id로만 받습니다.
+/// 일정 추가 때 장소를 카카오에서 검색해 지정할 수 있습니다 (adopt → place_id, SaaS와 같은 흐름).
+/// 기존 일정의 장소 변경은 SaaS에서 합니다.
 
 struct StaffTripDetailView: View {
 
@@ -26,6 +26,10 @@ struct StaffTripDetailView: View {
     @State private var draftStart = Date()
     @State private var draftEnd = Date()
     @State private var openPicker: TimeField?
+    /// 장소 지정 (일정 추가만) — 카카오 검색 → 서버 장소 등록
+    @State private var placeQuery = ""
+    @State private var selectedPlace: KakaoPlaceResultDTO?
+    @State private var isKeyboardVisible = false
 
     private enum SheetMode: Equatable {
         case add(day: Int)
@@ -74,6 +78,12 @@ struct StaffTripDetailView: View {
         .animation(.easeInOut(duration: 0.2), value: showSheet)
         .navigationBarHidden(true)
         .task { viewModel.load() }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
+        }
         .confirmationDialog(
             "일정",
             isPresented: Binding(get: { menuTarget != nil }, set: { if !$0 { menuTarget = nil } }),
@@ -304,6 +314,10 @@ struct StaffTripDetailView: View {
                     .padding(.bottom, AppSpacing.sm)
             }
 
+            if case .add = sheetMode {
+                placeSection
+            }
+
             if needsTimeFields {
                 Text("시간")
                     .font(AppFont.captionMedium)
@@ -357,11 +371,105 @@ struct StaffTripDetailView: View {
             .buttonStyle(.plain)
             .disabled(!canSubmit)
             .padding(.top, AppSpacing.lg)
-            .padding(.bottom, 34)
+            // 키보드가 올라와 있으면 홈 인디케이터 여백이 필요 없습니다
+            .padding(.bottom, isKeyboardVisible ? AppSpacing.md : 34)
         }
         .padding(.horizontal, AppSpacing.xl)
         .background(Color.white)
         .cornerRadius(24, corners: [.topLeft, .topRight])
+    }
+
+    // MARK: - 장소 (선택)
+
+    /// SaaS와 같은 흐름 — 카카오에서 검색해 고르면 저장할 때 서버 장소로 등록합니다
+    private var placeSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("장소 (선택)")
+                .font(AppFont.captionMedium)
+                .foregroundColor(AppColor.textSecondary)
+
+            if let place = selectedPlace {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "mappin.circle.fill")
+                        .foregroundColor(AppColor.accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(place.placeName)
+                            .font(AppFont.bodyMedium)
+                            .foregroundColor(AppColor.textPrimary)
+                            .lineLimit(1)
+                        Text(place.addressText)
+                            .font(AppFont.caption2)
+                            .foregroundColor(AppColor.textSecondary)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    Button { selectedPlace = nil } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(AppColor.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .frame(height: 52)
+                .background(AppColor.accentSubtle)
+                .cornerRadius(AppRadius.lg)
+            } else {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColor.textSecondary)
+                    TextField("장소 검색 (2자 이상)", text: $placeQuery)
+                        .font(AppFont.body)
+                        .foregroundColor(AppColor.textPrimary)
+                        .submitLabel(.search)
+                        .onSubmit { viewModel.searchPlaces(placeQuery) }
+                    if viewModel.isSearchingPlace {
+                        ProgressView()
+                    } else if placeQuery.trimmingCharacters(in: .whitespaces).count >= 2 {
+                        Button("검색") { viewModel.searchPlaces(placeQuery) }
+                            .font(AppFont.labelMedium)
+                            .foregroundColor(AppColor.accent)
+                    }
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .frame(height: 48)
+                .background(AppColor.surface)
+                .cornerRadius(AppRadius.lg)
+
+                if !viewModel.placeResults.isEmpty {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(viewModel.placeResults) { place in
+                                Button {
+                                    selectedPlace = place
+                                    viewModel.clearPlaceResults()
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(place.placeName)
+                                            .font(AppFont.labelMedium)
+                                            .foregroundColor(AppColor.textPrimary)
+                                        Text(place.addressText)
+                                            .font(AppFont.caption2)
+                                            .foregroundColor(AppColor.textSecondary)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, AppSpacing.xs)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.md)
+                    }
+                    .frame(maxHeight: 160)
+                    .background(Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.lg)
+                            .stroke(AppColor.divider, lineWidth: 1)
+                    )
+                }
+            }
+        }
+        .padding(.bottom, AppSpacing.sm)
     }
 
     private func timeField(_ prefix: String, value: String, field: TimeField) -> some View {
@@ -424,7 +532,9 @@ struct StaffTripDetailView: View {
         if viewModel.isSaving { return false }
         switch sheetMode {
         case .add:
-            return !draftTitle.trimmingCharacters(in: .whitespaces).isEmpty && !isEndBeforeStart
+            // 제목이 없어도 장소를 골랐으면 장소명이 제목이 됩니다
+            let hasTitle = !draftTitle.trimmingCharacters(in: .whitespaces).isEmpty || selectedPlace != nil
+            return hasTitle && !isEndBeforeStart
         case .time:
             return !isEndBeforeStart
         case .memo:
@@ -469,10 +579,12 @@ struct StaffTripDetailView: View {
         guard canSubmit else { return }
         switch sheetMode {
         case .add(let day):
+            let title = draftTitle.trimmingCharacters(in: .whitespaces)
             viewModel.addSchedule(
                 dayNumber: day,
-                title: draftTitle.trimmingCharacters(in: .whitespaces),
-                start: AppDate.hhmm(draftStart), end: AppDate.hhmm(draftEnd)
+                title: title.isEmpty ? (selectedPlace?.placeName ?? "") : title,
+                start: AppDate.hhmm(draftStart), end: AppDate.hhmm(draftEnd),
+                place: selectedPlace, placeQuery: placeQuery
             ) { closeSheet() }
 
         case .time(let item):
@@ -488,6 +600,9 @@ struct StaffTripDetailView: View {
         showSheet = false
         openPicker = nil
         draftTitle = ""
+        placeQuery = ""
+        selectedPlace = nil
+        viewModel.clearPlaceResults()
     }
 
     // MARK: - 시각 헬퍼

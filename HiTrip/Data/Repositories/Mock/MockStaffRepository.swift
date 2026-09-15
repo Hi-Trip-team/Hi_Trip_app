@@ -101,7 +101,7 @@ final class MockStaffRepository: StaffRepositoryProtocol {
 
     func createSchedule(
         tripId: Int, dayNumber: Int,
-        startTime: String, endTime: String, content: String
+        startTime: String, endTime: String, content: String, placeId: Int?
     ) -> Single<StaffScheduleDTO> {
         let created = StaffScheduleDTO(
             id: (Self.extraSchedules.map(\.id).max() ?? 900) + 1,
@@ -113,6 +113,13 @@ final class MockStaffRepository: StaffRepositoryProtocol {
         Self.extraSchedules.append(created)
         return .just(created)
     }
+
+    func searchKakaoPlaces(query: String) -> Single<[KakaoPlaceResultDTO]> {
+        .just([KakaoPlaceResultDTO(providerObjectId: "1", placeName: "\(query) 목 장소",
+                                   categoryName: nil, addressName: "서울 중구", roadAddressName: nil)])
+    }
+
+    func adoptKakaoPlace(query: String, providerObjectId: String) -> Single<Int> { .just(1) }
 
     func updateSchedule(
         tripId: Int, id: Int,

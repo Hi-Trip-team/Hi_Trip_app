@@ -138,18 +138,51 @@ final class StaffTripDetailViewModel: ObservableObject {
             }
     }
 
+    // MARK: - 장소 검색
+
+    /// 일정 추가 시트의 카카오 장소 검색 결과
+    @Published private(set) var placeResults: [KakaoPlaceResultDTO] = []
+    @Published private(set) var isSearchingPlace = false
+
+    /// 서버 adopt가 검색어 2자 이상을 요구합니다
+    func searchPlaces(_ query: String) {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard q.count >= 2 else { placeResults = []; return }
+        isSearchingPlace = true
+        repository.searchKakaoPlaces(query: q)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in self?.placeResults = $0; self?.isSearchingPlace = false },
+                onFailure: { [weak self] error in
+                    self?.isSearchingPlace = false
+                    self?.toast = Self.message(for: error)
+                }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    func clearPlaceResults() { placeResults = [] }
+
     func addSchedule(
         dayNumber: Int, title: String, start: String, end: String,
+        place: KakaoPlaceResultDTO? = nil, placeQuery: String = "",
         onSuccess: @escaping () -> Void
     ) {
         guard let tripId = trip?.id else { return }
         isSaving = true
 
-        repository.createSchedule(
-            tripId: tripId, dayNumber: dayNumber,
-            startTime: Self.withSeconds(start), endTime: Self.withSeconds(end),
-            content: title
-        )
+        // 장소를 골랐으면 서버 장소로 먼저 등록해 place_id를 받습니다 (서버는 place_id로만 받음)
+        let placeId: Single<Int?> = place.map { p in
+            repository.adoptKakaoPlace(query: placeQuery, providerObjectId: p.providerObjectId).map { Optional($0) }
+        } ?? .just(nil)
+
+        placeId.flatMap { [repository] placeId in
+            repository.createSchedule(
+                tripId: tripId, dayNumber: dayNumber,
+                startTime: Self.withSeconds(start), endTime: Self.withSeconds(end),
+                content: title, placeId: placeId
+            )
+        }
         .observe(on: MainScheduler.instance)
         .subscribe(
             onSuccess: { [weak self] _ in
