@@ -149,7 +149,8 @@ final class KakaoMapHostController: UIViewController, MapControllerDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .clear
+        // 엔진이 다시 그려지기 전 잠깐 비치는 배경 — 투명이면 아래 화면 색(붉은 톤 등)이 보였습니다
+        view.backgroundColor = .white
 
         let container = KMViewContainer()
         container.translatesAutoresizingMaskIntoConstraints = false

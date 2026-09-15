@@ -45,7 +45,8 @@ struct NearbySpotView: View {
                 outsideBanner
             }
         }
-        .background(AppColor.successSubtle)
+        // 지도 뒤 배경 — 화면을 나갔다 오면 지도가 다시 그려지는 동안 뒤가 비쳐 보여 흰색으로 고정합니다
+        .background(Color.white)
         .navigationBarHidden(true)
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }
