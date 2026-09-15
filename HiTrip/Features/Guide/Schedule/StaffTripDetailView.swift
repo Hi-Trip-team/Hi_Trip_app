@@ -264,7 +264,8 @@ struct StaffTripDetailView: View {
                 sheetCard
                     .transition(.move(edge: .bottom))
             }
-            .ignoresSafeArea(edges: .bottom)
+            // .container만 무시해야 키보드가 올라올 때 시트도 함께 올라갑니다
+            .ignoresSafeArea(.container, edges: .bottom)
             .zIndex(1)
         }
     }
