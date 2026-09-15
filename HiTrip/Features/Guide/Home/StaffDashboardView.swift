@@ -72,6 +72,9 @@ struct StaffDashboardView: View {
 
                 safetyStatusCard
                     .padding(.horizontal, AppSpacing.xl)
+
+                LogoutButton()
+                    .padding(.top, AppSpacing.xl)
                     .padding(.bottom, AppSpacing.xxl)
             }
         }

@@ -22,6 +22,7 @@ protocol AuthRepositoryProtocol {
     /// 관광객 최초 비밀번호 변경 — 발급받은 임시 비밀번호로 처음 로그인하면 서버가 요구합니다
     func changeInitialPassword(username: String, currentPassword: String, newPassword: String) -> Single<Void>
 
-    /// 로그아웃 — 서버 세션 종료 + 로컬 인증 정보 삭제
-    func logout()
+    /// 로그아웃 — 서버 세션 종료 후 로컬 인증 정보 삭제
+    /// 서버 응답(실패·시간 초과 포함)을 기다린 뒤 로컬을 지우고 완료합니다. 실패로 끝나지 않습니다.
+    func logout() -> Single<Void>
 }

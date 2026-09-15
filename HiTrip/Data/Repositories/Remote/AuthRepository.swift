@@ -40,13 +40,7 @@ final class AuthRepository: AuthRepositoryProtocol {
     // MARK: 관광객
 
     private func touristLogin(_ request: LoginRequest) -> Single<LoginResponse> {
-        let endpoint = APIEndpoint.travelerLogin(
-            username: request.id,
-            password: request.password,
-            tripId: request.tripId,
-            force: request.force
-        )
-        return networkService.request(endpoint, type: TravelerAuthResponseDTO.self)
+        touristLoginRequest(request)
             .catch { [weak self] error in
                 // 여행이 여러 개인 계정은 409 + trips 목록이 옵니다 → 진행 중인 여행으로 다시 로그인
                 guard let self,
@@ -55,10 +49,7 @@ final class AuthRepository: AuthRepositoryProtocol {
                       let tripId = Self.currentTripId(fromConflictBody: detail.rawBody) else { throw error }
                 var retry = request
                 retry.tripId = tripId
-                return self.networkService.request(
-                    .travelerLogin(username: retry.id, password: retry.password, tripId: tripId, force: retry.force),
-                    type: TravelerAuthResponseDTO.self
-                )
+                return self.touristLoginRequest(retry)
             }
             .map { [weak self] dto in
                 guard let self else { throw HiTripError.invalidResponse }
@@ -84,6 +75,34 @@ final class AuthRepository: AuthRepositoryProtocol {
                 )
             }
     }
+
+    /// 관광객 로그인 요청 한 번 — 기존 세션이 남아 있으면(409 ACTIVE_SESSION_EXISTS) force_login으로 다시 보냅니다
+    ///
+    /// 앱을 그냥 종료하면 서버 세션이 남아, 같은 계정으로 다시 로그인할 때 409가 옵니다.
+    /// 서버가 기존 세션을 원자적으로 지우고 새로 발급하므로 앱은 묻지 않고 재요청만 합니다.
+    private func touristLoginRequest(_ request: LoginRequest) -> Single<TravelerAuthResponseDTO> {
+        networkService.request(
+            .travelerLogin(username: request.id, password: request.password, tripId: request.tripId, force: request.force),
+            type: TravelerAuthResponseDTO.self
+        )
+        .catch { [weak self] error in
+            guard let self, !request.force, Self.isActiveSessionConflict(error) else { throw error }
+            var retry = request
+            retry.force = true
+            return self.touristLoginRequest(retry)
+        }
+    }
+
+    /// 다른 기기·이전 실행의 세션이 남아 있다는 409인지
+    private static func isActiveSessionConflict(_ error: Error) -> Bool {
+        guard case .conflict(let detail) = ErrorHandler.classify(error) else { return false }
+        // code 필드가 아닌 곳(error 등)에 담겨 와도 알아보도록 본문도 확인합니다
+        if let code = detail.code, activeSessionCodes.contains(code) { return true }
+        return detail.rawBody?.contains(activeSessionCode) == true
+    }
+
+    private static let activeSessionCode = "ACTIVE_SESSION_EXISTS"
+    private static let activeSessionCodes: Set<String> = [activeSessionCode, "CONCURRENT_LOGIN", "SESSION_EXISTS", "ALREADY_LOGGED_IN"]
 
     /// 409 본문의 trips 중 오늘 진행 중 → 가장 가까운 예정 → 가장 최근 순으로 고릅니다.
     private static func currentTripId(fromConflictBody body: String?) -> Int? {
@@ -116,10 +135,7 @@ final class AuthRepository: AuthRepositoryProtocol {
             .catch { _ in .just(CSRFTokenDTO(csrfToken: "")) }
             .flatMap { [weak self] _ -> Single<AuthLoginResponse> in
                 guard let self else { return .error(HiTripError.invalidResponse) }
-                return self.networkService.request(
-                    .login(username: request.id, password: request.password, force: request.force),
-                    type: AuthLoginResponse.self
-                )
+                return self.staffLoginRequest(request)
             }
             .map { [weak self] (dto: AuthLoginResponse) -> LoginResponse in
                 guard let self else { throw HiTripError.invalidResponse }
@@ -145,12 +161,23 @@ final class AuthRepository: AuthRepositoryProtocol {
             }
     }
 
+    /// 안내사 로그인 요청 — 관광객과 같이 남은 세션 409면 force_login으로 한 번 더 보냅니다
+    private func staffLoginRequest(_ request: LoginRequest) -> Single<AuthLoginResponse> {
+        networkService.request(
+            .login(username: request.id, password: request.password, force: request.force),
+            type: AuthLoginResponse.self
+        )
+        .catch { [weak self] error in
+            guard let self, !request.force, Self.isActiveSessionConflict(error) else { throw error }
+            var retry = request
+            retry.force = true
+            return self.staffLoginRequest(retry)
+        }
+    }
+
     static let staffSessionMarker = "session-auth"
 
     // MARK: - 에러 변환
-
-    /// 동시 로그인 감지 코드 — ⚠️ 서버 스펙 미정. 확정되면 이 목록만 맞춥니다.
-    private static let concurrentSessionCodes: Set<String> = ["CONCURRENT_LOGIN", "SESSION_EXISTS", "ALREADY_LOGGED_IN"]
 
     private static func loginError(from error: Error) -> Error {
         if error is LoginError { return error }
@@ -165,7 +192,8 @@ final class AuthRepository: AuthRepositoryProtocol {
             return LoginError.locked(seconds: seconds)
         case .conflict(let detail) where detail.code == "PASSWORD_CHANGE_REQUIRED":
             return LoginError.passwordChangeRequired
-        case .conflict(let detail) where concurrentSessionCodes.contains(detail.code ?? ""):
+        case .conflict where isActiveSessionConflict(error):
+            // force_login 재요청까지 거절된 경우만 여기로 옵니다
             return LoginError.concurrentSession
         case .noConnection, .timeout, .networkFailure:
             return LoginError.network
@@ -177,7 +205,7 @@ final class AuthRepository: AuthRepositoryProtocol {
     // MARK: - 자동 로그인 확인
 
     /// 역할별로 "로그인해야만 성공하는" 가벼운 API를 불러 세션을 확인합니다.
-    /// - 관광객: GET /api/v1/tourist/agreements/ — 약관 동의 필요 여부도 함께 받습니다
+    /// - 관광객: GET /api/v1/tourist/me/ 로 토큰 확인 → GET /api/v1/tourist/agreements/ 로 약관 동의 필요 여부
     /// - 안내사: GET /api/v1/staff/auth/me/
     func validateSession() -> Single<SessionState> {
         let type = UserType(rawValue: keychain.getUserType() ?? "") ?? .tourist
@@ -188,7 +216,11 @@ final class AuthRepository: AuthRepositoryProtocol {
                     message: "로그인 유효기간이 지났습니다.", fieldErrors: [:], rawBody: nil, statusCode: 401
                 )))
             }
-            return networkService.request(.travelerAgreements(), type: TravelerAgreementDTO.self)
+            return networkService.request(.travelerMe(), type: TravelerMeDTO.self)
+                .flatMap { [weak self] _ -> Single<TravelerAgreementDTO> in
+                    guard let self else { return .error(HiTripError.invalidResponse) }
+                    return self.networkService.request(.travelerAgreements(), type: TravelerAgreementDTO.self)
+                }
                 .map { SessionState(userType: .tourist, requiresAgreement: $0.requiresAgreement) }
         }
 
@@ -228,12 +260,27 @@ final class AuthRepository: AuthRepositoryProtocol {
 
     // MARK: - 로그아웃
 
-    /// 서버 로그아웃 호출 + 로컬 인증 정보 삭제 (서버 실패와 무관하게 로컬은 지웁니다)
-    func logout() {
+    /// 서버 로그아웃 호출 → 응답을 기다린 뒤 로컬 인증 정보 삭제
+    ///
+    /// 토큰·쿠키를 먼저 지우면 로그아웃 요청이 인증 없이 나가 서버 세션이 남습니다.
+    /// 서버가 실패하거나 3초 안에 답하지 않아도 로컬은 지우고 완료합니다.
+    func logout() -> Single<Void> {
+        let keychain = self.keychain
+        guard keychain.isLoggedIn else {
+            keychain.clearAll()
+            NetworkService.clearSession()
+            return .just(())
+        }
         let isTourist = keychain.getUserType() == UserType.tourist.rawValue
         let endpoint: APIEndpoint = isTourist ? .travelerLogout() : .staffLogout()
-        _ = networkService.request(endpoint, type: EmptyResponse.self).subscribe()
-        keychain.clearAll()
-        NetworkService.clearSession()
+        return networkService.request(endpoint, type: EmptyResponse.self)
+            .map { _ in () }
+            .timeout(.seconds(3), scheduler: MainScheduler.instance)
+            .catch { _ in .just(()) }
+            .observe(on: MainScheduler.instance)
+            .do(onSuccess: {
+                keychain.clearAll()
+                NetworkService.clearSession()
+            })
     }
 }

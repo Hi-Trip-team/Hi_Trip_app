@@ -29,5 +29,8 @@ final class MockAuthRepository: AuthRepositoryProtocol {
         .just(())
     }
 
-    func logout() { savedToken = nil }
+    func logout() -> Single<Void> {
+        savedToken = nil
+        return .just(())
+    }
 }

@@ -41,7 +41,7 @@ final class LoginUseCase {
 
     // MARK: - 로그아웃
 
-    func logout() {
+    func logout() -> Single<Void> {
         repository.logout()
     }
 }
