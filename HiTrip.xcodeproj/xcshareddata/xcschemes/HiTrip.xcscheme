@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "917DBFCA2F557C9D00D5DAA8"
-               BuildableName = "Hi_Trip.app"
+               BuildableName = "Hi Trip.app"
                BlueprintName = "HiTrip"
                ReferencedContainer = "container:HiTrip.xcodeproj">
             </BuildableReference>
@@ -58,7 +58,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "917DBFCA2F557C9D00D5DAA8"
-            BuildableName = "Hi_Trip.app"
+            BuildableName = "Hi Trip.app"
             BlueprintName = "HiTrip"
             ReferencedContainer = "container:HiTrip.xcodeproj">
          </BuildableReference>
@@ -75,7 +75,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "917DBFCA2F557C9D00D5DAA8"
-            BuildableName = "Hi_Trip.app"
+            BuildableName = "Hi Trip.app"
             BlueprintName = "HiTrip"
             ReferencedContainer = "container:HiTrip.xcodeproj">
          </BuildableReference>
