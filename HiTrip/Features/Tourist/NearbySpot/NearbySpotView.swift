@@ -260,10 +260,9 @@ struct NearbySpotView: View {
                         }
                     }
                     .padding(.horizontal, 14)
-                    .scrollTargetLayout()
+                    .pagingScrollTargetLayout()
                 }
-                .scrollTargetBehavior(.viewAligned)
-                .scrollPosition(id: $viewModel.focusedSpotId)
+                .pagingScrollPosition(id: $viewModel.focusedSpotId)
             }
         }
     }
