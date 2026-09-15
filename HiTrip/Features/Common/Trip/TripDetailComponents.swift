@@ -255,3 +255,18 @@ struct SheetPrimaryButton: View {
         .padding(.bottom, isKeyboardVisible ? AppSpacing.md : 34)
     }
 }
+
+/// 시간 휠 — 휠이 틀 밖으로 넘쳐 위 시간 칸·아래 문구와 겹치지 않게 잘라냅니다
+struct SheetTimeWheel: View {
+    @Binding var selection: Date
+
+    var body: some View {
+        DatePicker("", selection: $selection, displayedComponents: .hourAndMinute)
+            .datePickerStyle(.wheel)
+            .labelsHidden()
+            .frame(maxWidth: .infinity)
+            .frame(height: 140)
+            .clipped()
+            .padding(.vertical, AppSpacing.xs)
+    }
+}

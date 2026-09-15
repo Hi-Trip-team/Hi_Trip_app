@@ -520,15 +520,8 @@ struct TripDetailView: View {
 
                 // 탭한 쪽만 휠 피커를 펼칩니다
                 if let field = openPicker {
-                    DatePicker(
-                        "",
-                        selection: field == .start ? $startDate : $endDate,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(height: 140)
-                    .padding(.horizontal, AppSpacing.xl)
+                    SheetTimeWheel(selection: field == .start ? $startDate : $endDate)
+                        .padding(.horizontal, AppSpacing.xl)
                 }
 
                 if isEndBeforeStart {
