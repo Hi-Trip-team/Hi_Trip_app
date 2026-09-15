@@ -63,16 +63,6 @@ struct LoginView: View {
                     .padding(.top, 13)
                     .padding(.horizontal, 22)
 
-                #if DEBUG
-                HStack(spacing: AppSpacing.sm) {
-                    Button("🧑 Guide") { router.navigateToHomeAs(.guide) }
-                    Button("🧳 Tourist") { router.navigateToHomeAs(.tourist) }
-                }
-                .font(.caption)
-                .foregroundColor(AppColor.textGray)
-                .padding(.top, AppSpacing.xs)
-                #endif
-
                 Spacer(minLength: 16)
                 copyrightSection
             }
