@@ -141,8 +141,14 @@ extension APIEndpoint {
 
     /// 공지사항 목록
     /// GET /api/v1/tourist/notices/
+    ///
+    /// active_only=false — 지난(비활성) 공지까지 받아 팝업의 "이전 공지 보기"에 씁니다.
+    /// 비우면 서버가 활성 공지만 돌려줘 이전 공지가 항상 비어 있었습니다. 활성/지난 구분은 is_active로 합니다.
     static func travelerNotices() -> APIEndpoint {
-        APIEndpoint(path: "/api/v1/tourist/notices/")
+        APIEndpoint(
+            path: "/api/v1/tourist/notices/",
+            queryItems: [URLQueryItem(name: "active_only", value: "false")]
+        )
     }
 
     /// 공지사항 단건 조회
