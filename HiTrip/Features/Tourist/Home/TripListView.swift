@@ -31,8 +31,11 @@ struct TripListView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
                             headerSection
+                            // 섹션(일정 · 주변 인기 스팟 · 공지/현지말) 사이 간격
                             todayScheduleSection
+                                .padding(.bottom, AppSpacing.xs)
                             nearbySpotSection
+                                .padding(.bottom, AppSpacing.xs)
                             noticeSection
                             localLanguageCard
                             bottomActionRow
@@ -150,7 +153,7 @@ struct TripListView: View {
             .buttonStyle(.plain)
             .padding(.horizontal, AppSpacing.xl)
             .padding(.top, 14)
-            .padding(.bottom, 22)
+            .padding(.bottom, 12)
         }
     }
 
@@ -341,7 +344,8 @@ struct TripListView: View {
     private var noticeSection: some View {
         if let notice = viewModel.representativeNotice {
         ZStack(alignment: .topTrailing) {
-            HStack(alignment: .top, spacing: 10) {
+            // 배지와 본문을 세로 가운데로 — .top이면 한 줄 본문이 배지보다 위로 떠 보였습니다
+            HStack(alignment: .center, spacing: 10) {
                 Text("공지")
                     .font(AppFont.caption2Medium)
                     .foregroundColor(.white)
