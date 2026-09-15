@@ -99,6 +99,10 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
 
     /// 경계 밖에서 머물기 시작한 시각 — 연속 60초를 재기 위한 기준
     private var outsideSince: Date?
+    /// 안전 구역으로 한 번이라도 판정했는지 — 첫 판정에서 밖이면 바로 알립니다
+    private var hasEvaluatedGeofence = false
+    /// 마지막 위치 — 안전 구역이 위치보다 늦게 도착하면 이 위치로 다시 판정합니다
+    private var lastLocation: CLLocation?
     /// 위치 스냅샷을 서버로 보낸 마지막 시각 (30초 간격)
     private var lastSnapshotAt: Date?
 
@@ -160,6 +164,8 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             .subscribe(onSuccess: { [weak self] summary in
                 guard let self else { return }
                 self.geofence = summary.geofence
+                // 위치를 먼저 받아 두었다면 지금 바로 이탈 여부를 판정합니다 (지도 진입 즉시 팝업)
+                if let location = self.lastLocation { self.evaluateGeofence(for: location) }
                 // 아직 현재 위치가 없으면(권한 대기·시뮬레이터 등) 허용 범위 중심으로 먼저 불러옵니다.
                 // 위치를 받으면 그때 다시 불러옵니다.
                 if self.currentLocation == nil, self.state == .idle { self.loadSpots() }
@@ -233,7 +239,11 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         let buffer = max(location.horizontalAccuracy, 0)
 
         if distance > radius + buffer {
-            if let since = outsideSince {
+            // 지도에 들어왔을 때(첫 판정) 이미 밖이면 바로 알립니다.
+            // 이후 경계를 오갈 때는 GPS 튐으로 잘못 알리지 않도록 연속 60초로 판정합니다.
+            if !hasEvaluatedGeofence {
+                isOutsideGeofence = true
+            } else if let since = outsideSince {
                 if Date().timeIntervalSince(since) >= outsideThreshold { isOutsideGeofence = true }
             } else {
                 outsideSince = Date()
@@ -243,6 +253,7 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             outsideSince = nil
             isOutsideGeofence = false
         }
+        hasEvaluatedGeofence = true
     }
 
     /// 서버에도 위치를 남깁니다 (안내사 알림·이탈 이력은 서버가 처리)
@@ -281,6 +292,7 @@ extension NearbySpotViewModel: CLLocationManagerDelegate {
         Task { @MainActor in
             let isFirstFix = self.currentLocation == nil
             self.currentLocation = location.coordinate
+            self.lastLocation = location
             self.accuracyM = location.horizontalAccuracy >= 0 ? location.horizontalAccuracy : nil
             self.evaluateGeofence(for: location)
             self.sendSnapshotIfNeeded(location)
