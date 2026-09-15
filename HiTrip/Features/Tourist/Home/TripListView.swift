@@ -12,6 +12,8 @@ struct TripListView: View {
     @EnvironmentObject var router: AppRouter
 
     @State private var showTripDetail = false
+    /// 일정 상세에서 처음 펼칠 일차 — nil이면 여행 중일 때 오늘 일차
+    @State private var tripDetailFocusDay: Int?
     @State private var showEmergency = false
     @State private var showLocalLanguage = false
     @State private var showChat = false
@@ -70,7 +72,7 @@ struct TripListView: View {
             .background(Color.white)
             .navigationBarHidden(true)
             .task { viewModel.load() }
-            .navigationDestination(isPresented: $showTripDetail) { TripDetailView() }
+            .navigationDestination(isPresented: $showTripDetail) { TripDetailView(focusDay: tripDetailFocusDay) }
             .navigationDestination(isPresented: $showLocalLanguage) { LocalLanguageView() }
             .navigationDestination(isPresented: $showChat) {
                 TouristChatListView(viewModel: chatViewModel)
@@ -145,7 +147,7 @@ struct TripListView: View {
             }
 
             // 전체일정 링크
-            Button { showTripDetail = true } label: {
+            Button { openTripDetail(day: nil) } label: {
                 Text("전체일정 확인 및 개인 일정 수정하기  >")
                     .font(AppFont.labelMedium)
                     .foregroundColor(AppColor.accent)
@@ -155,6 +157,12 @@ struct TripListView: View {
             .padding(.top, 14)
             .padding(.bottom, 12)
         }
+    }
+
+    /// 일정 상세로 이동 — 일정을 눌렀으면 그 일정의 일차를, '전체일정 확인'이면 nil(여행 중이면 오늘 일차)을 펼칩니다
+    private func openTripDetail(day: Int?) {
+        tripDetailFocusDay = day
+        showTripDetail = true
     }
 
     private var sectionTitle: some View {
@@ -202,7 +210,7 @@ struct TripListView: View {
                 .cornerRadius(AppRadius.lg)
                 .padding(.horizontal, AppSpacing.xl)
                 .contentShape(Rectangle())
-                .onTapGesture { showTripDetail = true }
+                .onTapGesture { openTripDetail(day: current.dayNumber) }
             } else {
                 scheduleMessage(viewModel.noCurrentScheduleText)
             }
@@ -230,7 +238,7 @@ struct TripListView: View {
                 .background(AppColor.surface)
                 .cornerRadius(AppRadius.lg)
                 .contentShape(Rectangle())
-                .onTapGesture { showTripDetail = true }
+                .onTapGesture { openTripDetail(day: next.dayNumber) }
                 .padding(.horizontal, AppSpacing.xl)
             }
         }
