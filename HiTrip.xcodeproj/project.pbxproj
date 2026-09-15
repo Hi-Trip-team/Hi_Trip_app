@@ -384,6 +384,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hitrip.app;
+				PRODUCT_MODULE_NAME = HiTrip;
 				PRODUCT_NAME = "Hi Trip";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -424,6 +425,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hitrip.app;
+				PRODUCT_MODULE_NAME = HiTrip;
 				PRODUCT_NAME = "Hi Trip";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
