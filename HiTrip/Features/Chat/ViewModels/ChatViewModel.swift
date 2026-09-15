@@ -306,9 +306,11 @@ final class ChatViewModel: ObservableObject {
                 self.messages.append(pending)
                 self.enqueueOrDeliver(pending, attachmentIds: [attachmentId])
             },
-            onFailure: { [weak self] _ in
+            onFailure: { [weak self] error in
                 self?.isUploading = false
-                self?.toast = "첨부하지 못했어요"
+                // 서버 사유(형식·용량 등)가 있으면 함께 보여줍니다
+                let reason = (error as? HiTripError)?.errorDescription
+                self?.toast = reason.map { "첨부하지 못했어요 · \($0)" } ?? "첨부하지 못했어요"
             }
         )
         .disposed(by: disposeBag)
