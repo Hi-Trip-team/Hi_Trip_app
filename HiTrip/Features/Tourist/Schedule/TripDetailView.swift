@@ -3,7 +3,12 @@ import SwiftUI
 struct TripDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = TripScheduleViewModel()
+    @StateObject private var viewModel: TripScheduleViewModel
+
+    /// - Parameter focusDay: 처음 펼칠 일차 — nil이면 여행 중일 때 오늘 일차
+    init(focusDay: Int? = nil) {
+        _viewModel = StateObject(wrappedValue: TripScheduleViewModel(focusDay: focusDay))
+    }
 
     @State private var showAddSheet = false
     @State private var addDayNumber: Int?
@@ -161,6 +166,7 @@ struct TripDetailView: View {
     // MARK: - 본문
 
     private var content: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 0) {
                 tripInfoCard
@@ -181,11 +187,23 @@ struct TripDetailView: View {
                         daySection(day)
                             .padding(.horizontal, AppSpacing.xl)
                             .padding(.bottom, 14)
+                            .id(day.dayNumber)
                     }
                 }
 
                 Spacer().frame(height: 32)
             }
+        }
+        // 펼친 일차(홈에서 누른 일정의 일차 / 오늘)가 화면 아래에 있어도 보이도록 그 섹션으로 스크롤합니다
+        .onAppear { scrollToExpandedDay(proxy) }
+        .onChange(of: viewModel.days.count) { _ in scrollToExpandedDay(proxy) }
+        }
+    }
+
+    private func scrollToExpandedDay(_ proxy: ScrollViewProxy) {
+        guard let day = viewModel.expandedDay else { return }
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(day, anchor: .top) }
         }
     }
 

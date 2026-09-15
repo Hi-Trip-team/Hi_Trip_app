@@ -67,8 +67,15 @@ final class TripScheduleViewModel: ObservableObject {
     private var shared: [TravelerScheduleDTO] = []
     private var personal: [TravelerPersonalScheduleDTO] = []
 
-    init(repository: TravelerRepositoryProtocol = AppDIContainer.shared.travelerRepositoryForHome) {
+    /// 처음 펼칠 일차 — 홈에서 특정 일정을 눌러 들어오면 그 일정의 일차
+    private let focusDay: Int?
+
+    init(
+        repository: TravelerRepositoryProtocol = AppDIContainer.shared.travelerRepositoryForHome,
+        focusDay: Int? = nil
+    ) {
         self.repository = repository
+        self.focusDay = focusDay
     }
 
     // MARK: - Load
@@ -123,9 +130,11 @@ final class TripScheduleViewModel: ObservableObject {
             )
         }
 
-        // 처음 열 때는 오늘 일차를, 없으면 첫 일차를 펼칩니다.
+        // 처음 열 때: 홈에서 누른 일정의 일차 → 여행 중이면 오늘 일차 → 첫 일차
         if expandedDay == nil {
-            expandedDay = todayDayNumber ?? days.first?.dayNumber
+            let preferred = [focusDay, todayDayNumber].compactMap { $0 }
+                .first { day in days.contains { $0.dayNumber == day } }
+            expandedDay = preferred ?? days.first?.dayNumber
         }
     }
 
