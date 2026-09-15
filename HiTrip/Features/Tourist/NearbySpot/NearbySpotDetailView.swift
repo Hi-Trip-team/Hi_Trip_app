@@ -15,6 +15,8 @@ struct NearbySpotDetailView: View {
 
     var name: String
     var address: String?
+    /// 지번 주소 — 도로명 주소(address) 아래에 작게 (카카오 장소 정보)
+    var subAddress: String? = nil
     var description: String?
     /// 서버가 주지 않는 값들 — nil이면 해당 UI를 숨깁니다.
     var distance: String?
@@ -119,7 +121,9 @@ struct NearbySpotDetailView: View {
             } else {
                 // 사진이 없으면 카테고리 기본 썸네일 한 장
                 SpotImageView(imageUrl: photos.first, categoryName: categoryName, iconSize: 52)
+                    .frame(maxWidth: .infinity)
                     .frame(height: 200)
+                    .clipped()
             }
 
             if isSponsored {
@@ -182,6 +186,14 @@ struct NearbySpotDetailView: View {
                     }
                     .buttonStyle(.plain)
                 }
+            }
+
+            // 지번 주소 — 도로명과 다를 때만
+            if let subAddress, !subAddress.isEmpty, subAddress != address {
+                Text("지번 \(subAddress)")
+                    .font(AppFont.caption2)
+                    .foregroundColor(AppColor.textTertiary)
+                    .padding(.leading, 20)
             }
 
             // 카테고리 — "음식점 > 구내식당"처럼 오면 마지막 단계만
