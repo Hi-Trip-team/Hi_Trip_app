@@ -43,9 +43,8 @@ struct NearbySpotView: View {
                     .padding(.bottom, AppSpacing.xl)
             }
 
-            if viewModel.isOutsideGeofence {
-                outsideBanner
-            }
+            // 이탈 안내는 상태 칩(빨간 칩)으로 보여줍니다.
+            // 예전 상단 배너는 안전 영역을 무시해 상태 표시줄 뒤에 붉은 띠로만 보이고 글자가 가려졌습니다.
         }
         // 지도 뒤 배경 — 화면을 나갔다 오면 지도가 다시 그려지는 동안 뒤가 비쳐 보여 흰색으로 고정합니다
         .background(Color.white)
@@ -164,6 +163,9 @@ struct NearbySpotView: View {
 
     private var statusChips: some View {
         HStack(spacing: 7) {
+            if viewModel.isOutsideGeofence {
+                statusChip("⚠ 안전 구역을 벗어났어요", background: AppColor.danger)
+            }
             if viewModel.isAccuracyLow {
                 statusChip("⚠ GPS 정확도 낮음", background: AppColor.gray700)
             }
@@ -183,22 +185,6 @@ struct NearbySpotView: View {
             .frame(height: 26)
             .background(background)
             .clipShape(RoundedRectangle(cornerRadius: 13))
-    }
-
-    // MARK: - 안전 구역 이탈 배너
-
-    private var outsideBanner: some View {
-        VStack {
-            Text("안전 구역을 벗어났어요")
-                .font(AppFont.labelBold)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(AppColor.dangerSoft)
-            Spacer()
-        }
-        .ignoresSafeArea(edges: .top)
-        .transition(.move(edge: .top))
     }
 
     // MARK: - 내 위치 버튼
