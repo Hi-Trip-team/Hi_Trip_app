@@ -17,24 +17,55 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
 
     // MARK: - 카테고리
 
-    /// 서버 enum과 화면 문구를 짝지어 둡니다.
-    /// 기획의 6종 중 "할랄"은 서버 enum에 없어 빠져 있습니다.
+    /// 칩 순서대로 선언합니다.
+    ///
+    /// - 서버 주변 스팟 API 5종: restaurant · accessibility · pet · convenience · mart (광고 스팟 포함)
+    /// - 그 밖의 카테고리는 카카오 로컬 API로 직접 검색합니다 (`kakaoCode`)
+    /// 기획의 "할랄"은 서버·카카오 모두 카테고리가 없어 빠져 있습니다.
     enum Category: String, CaseIterable, Identifiable {
         case restaurant    = "restaurant"
-        case accessibility = "accessibility"
-        case pet           = "pet"
+        case cafe          = "cafe"
         case convenience   = "convenience"
         case mart          = "mart"
+        case attraction    = "attraction"
+        case culture       = "culture"
+        case pharmacy      = "pharmacy"
+        case hospital      = "hospital"
+        case subway        = "subway"
+        case accommodation = "accommodation"
+        case accessibility = "accessibility"
+        case pet           = "pet"
 
         var id: String { rawValue }
 
         var label: String {
             switch self {
             case .restaurant:    return "음식점"
-            case .accessibility: return "무장애"
-            case .pet:           return "반려동물"
+            case .cafe:          return "카페"
             case .convenience:   return "편의점"
             case .mart:          return "마트"
+            case .attraction:    return "관광명소"
+            case .culture:       return "문화시설"
+            case .pharmacy:      return "약국"
+            case .hospital:      return "병원"
+            case .subway:        return "지하철역"
+            case .accommodation: return "숙박"
+            case .accessibility: return "무장애"
+            case .pet:           return "반려동물"
+            }
+        }
+
+        /// 서버가 받지 않는 카테고리 — 카카오 로컬 API로 검색합니다. nil이면 서버 API
+        var kakaoCode: KakaoLocalService.CategoryCode? {
+            switch self {
+            case .cafe:          return .cafe
+            case .attraction:    return .attraction
+            case .culture:       return .culture
+            case .pharmacy:      return .pharmacy
+            case .hospital:      return .hospital
+            case .subway:        return .subway
+            case .accommodation: return .accommodation
+            case .restaurant, .convenience, .mart, .accessibility, .pet: return nil
             }
         }
     }
@@ -141,12 +172,20 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         guard let center = currentLocation ?? geofenceCenter else { return }
         state = .loading
 
-        repository.fetchNearbySpots(
-            category: selectedCategory.rawValue,
-            lat: center.latitude,
-            lng: center.longitude,
-            radius: nil
-        )
+        // 서버 5종은 서버 API(광고 스팟 포함), 나머지는 카카오 로컬 API
+        let request: Single<[TravelerNearbySpotDTO]>
+        if let code = selectedCategory.kakaoCode {
+            request = KakaoLocalService.searchCategory(code, latitude: center.latitude, longitude: center.longitude)
+        } else {
+            request = repository.fetchNearbySpots(
+                category: selectedCategory.rawValue,
+                lat: center.latitude,
+                lng: center.longitude,
+                radius: nil
+            )
+        }
+
+        request
         .observe(on: MainScheduler.instance)
         .subscribe(
             onSuccess: { [weak self] spots in
