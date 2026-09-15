@@ -175,6 +175,12 @@ final class StaffHomeViewModel: ObservableObject {
 
     /// 진행 중인 일정이 없을 때 "오늘의 일정" 칸 문구
     var noCurrentScheduleText: String {
+        // 여행 기간 밖이면 "오늘 일정 없음" 대신 상태를 알려줍니다 (여행객 홈과 같은 기준)
+        switch clock?.phase {
+        case .before?:   return "여행 시작 전이에요 · D-\(clock?.daysUntilStart ?? 0)"
+        case .finished?: return "여행 일정이 모두 끝났어요"
+        default:         break
+        }
         if todaySchedules.isEmpty { return "오늘은 등록된 일정이 없어요" }
         let now = nowMinutes
         let allEnded = todaySchedules.allSatisfy { (AppDate.minutes($0.endTime) ?? 0) <= now }
