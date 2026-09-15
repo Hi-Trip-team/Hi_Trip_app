@@ -23,9 +23,15 @@ struct TouristHomeSkeleton: View {
 
             SkeletonBlock(width: 110, height: 18)
                 .padding(.top, AppSpacing.xl)
-            HStack(spacing: AppSpacing.sm) {
-                ForEach(0..<3, id: \.self) { _ in SkeletonBlock(width: 150, height: 84, radius: AppRadius.lg) }
+            // 카드 3장(150×3 + 간격)은 화면보다 넓어서, 그대로 두면 스켈레톤 전체가 화면 밖으로 넓어져
+            // 좌우 여백이 사라져 보였습니다. 실제 홈처럼 가로 스크롤 틀(스크롤은 막음) 안에 넣어
+            // 주어진 폭만 차지하고 세 번째 카드는 오른쪽 끝에서 잘리게 합니다.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: AppSpacing.sm) {
+                    ForEach(0..<3, id: \.self) { _ in SkeletonBlock(width: 150, height: 84, radius: AppRadius.lg) }
+                }
             }
+            .disabled(true)
             .padding(.top, AppSpacing.sm)
 
             SkeletonBlock(height: 58, radius: AppRadius.lg)
