@@ -9,10 +9,10 @@ import RxSwift
 /// - GET  /api/v1/tourist/personal-schedules/  내가 추가한 일정
 /// - POST /api/v1/tourist/personal-schedules/  개인 일정 추가
 ///
-/// 판정은 서버 값을 그대로 씁니다. 앱에서 다시 계산하지 않습니다.
-/// - 오늘이 몇 일차인지        → home.today_day_number
-/// - 오늘 일정                → home.today_schedules
-/// - 공용 일정과의 시간 겹침    → personal_schedule.overlap_warning
+/// 판정 기준
+/// - 오늘이 몇 일차인지 · 오늘 일정 → TripClock (여행지 시간대 + 기기 시계, 홈과 같은 규칙)
+///   서버 today_day_number·today_schedules는 UTC로 계산돼 새벽에 하루 어긋나 쓰지 않습니다
+/// - 공용 일정과의 시간 겹침        → 서버 personal_schedule.overlap_warning 그대로
 
 @MainActor
 final class TripScheduleViewModel: ObservableObject {
