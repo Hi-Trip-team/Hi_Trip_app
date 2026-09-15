@@ -108,36 +108,38 @@ struct NotificationCenterView: View {
                         .foregroundColor(AppColor.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text(viewModel.metaText(alert))
-                        .font(AppFont.micro)
-                        .foregroundColor(AppColor.textSecondary)
-                        .padding(.top, AppSpacing.xs)
+                    // 시간·재알림 안내 오른쪽 끝에 [확인] 버튼
+                    HStack(alignment: .bottom, spacing: AppSpacing.xs) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(viewModel.metaText(alert))
+                                .font(AppFont.micro)
+                                .foregroundColor(AppColor.textSecondary)
 
-                    if needsAck {
-                        Text("[확인] 전까지 5분 주기 재알림")
-                            .font(AppFont.micro2)
-                            .foregroundColor(AppColor.danger)
-                            .padding(.top, 6)
+                            if needsAck {
+                                Text("[확인] 전까지 5분 주기 재알림")
+                                    .font(AppFont.micro2)
+                                    .foregroundColor(AppColor.danger)
+                            }
+                        }
+
+                        Spacer(minLength: 0)
+
+                        if needsAck {
+                            Button { viewModel.acknowledge(alert) } label: {
+                                Text("확인")
+                                    .font(AppFont.captionBold)
+                                    .foregroundColor(.white)
+                                    .frame(width: 64, height: 28)
+                                    .background(AppColor.danger)
+                                    .cornerRadius(AppRadius.sm)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
+                    .padding(.top, AppSpacing.xs)
                 }
 
                 Spacer(minLength: 0)
-            }
-
-            if needsAck {
-                HStack {
-                    Spacer()
-                    Button { viewModel.acknowledge(alert) } label: {
-                        Text("확인")
-                            .font(AppFont.captionBold)
-                            .foregroundColor(.white)
-                            .frame(width: 80, height: 28)
-                            .background(AppColor.danger)
-                            .cornerRadius(AppRadius.sm)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.top, AppSpacing.xs)
             }
         }
         .padding(14)

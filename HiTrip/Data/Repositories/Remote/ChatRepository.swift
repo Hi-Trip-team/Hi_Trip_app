@@ -196,8 +196,12 @@ final class ChatRepository: ChatRepositoryProtocol {
         let keychain = KeychainManager.shared
         if keychain.getUserType() == UserType.tourist.rawValue, let token = keychain.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        } else if let csrf = NetworkService.csrfToken ?? Self.csrfCookie(for: url) {
+        } else if let csrf = Self.csrfCookie(for: url) ?? NetworkService.csrfToken {
+            // HTTPS에서 Django CSRF는 Referer도 검사합니다 — 없으면 "Referer checking failed - no Referer"
             request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+            if let scheme = url.scheme, let host = url.host {
+                request.setValue("\(scheme)://\(host)/", forHTTPHeaderField: "Referer")
+            }
         }
 
         return Single.create { single in

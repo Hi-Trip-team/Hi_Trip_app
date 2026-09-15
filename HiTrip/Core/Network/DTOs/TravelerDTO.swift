@@ -506,6 +506,7 @@ extension ChatRoomV1DTO {
             participantName: name,
             participantType: roomType ?? "direct",
             isGroupChat: isGroup,
+            tripId: trip,
             lastMessage: lastMsg,
             lastMessageDate: lastDate,
             unreadCount: unreadCount,

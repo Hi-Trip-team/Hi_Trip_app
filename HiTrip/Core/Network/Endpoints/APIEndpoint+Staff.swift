@@ -88,6 +88,22 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/trips/\(tripId)/schedules/\(id)/", method: .delete)
     }
 
+    /// 카카오 장소 검색 (서버 프록시)
+    /// GET /api/v1/publicdata/kakao/places/?q=
+    static func kakaoPlaceSearch(query: String) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/publicdata/kakao/places/", queryItems: [URLQueryItem(name: "q", value: query)])
+    }
+
+    /// 카카오 장소를 서버 장소로 등록 — 이미 있으면 기존 place_id
+    /// POST /api/v1/publicdata/kakao/places/adopt/
+    static func kakaoPlaceAdopt(query: String, providerObjectId: String) -> APIEndpoint {
+        APIEndpoint(
+            path: "/api/v1/publicdata/kakao/places/adopt/",
+            method: .post,
+            body: ["query": query, "provider_object_id": providerObjectId]
+        )
+    }
+
     // MARK: - Monitoring (안전 관리 / 위치 확인 / 알림)
 
     /// 안전 현황 요약 — total·safe·warning·danger·stale·offline·unknown

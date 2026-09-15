@@ -43,7 +43,7 @@ struct StaffDashboardView: View {
             .navigationDestination(isPresented: $showSafety) {
                 SafetyManagementView(onDismiss: { showSafety = false })
             }
-            .navigationDestination(isPresented: $showChat) { StaffChatListView() }
+            .navigationDestination(isPresented: $showChat) { StaffChatListView(currentTripId: viewModel.trip?.id) }
             .navigationDestination(isPresented: $showNotification) { NotificationCenterView() }
             .navigationDestination(isPresented: $showFullSchedule) { StaffTripDetailView() }
             .navigationDestination(isPresented: $showNotice) { NoticeSettingView() }
@@ -55,16 +55,7 @@ struct StaffDashboardView: View {
             VStack(alignment: .leading, spacing: 0) {
                 headerSection
                 todayScheduleSection
-
-                Button { showFullSchedule = true } label: {
-                    Text("전체일정 확인 및 일정 수정하기  >")
-                        .font(AppFont.labelMedium)
-                        .foregroundColor(AppColor.accent)
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, AppSpacing.xl)
-                .padding(.top, AppSpacing.xl)
-                .padding(.bottom, 18)
+                    .padding(.bottom, AppSpacing.xs)
 
                 quickMenuGrid
                     .padding(.horizontal, AppSpacing.xl)
@@ -75,7 +66,7 @@ struct StaffDashboardView: View {
 
                 LogoutButton()
                     .padding(.top, AppSpacing.xl)
-                    .padding(.bottom, AppSpacing.xxl)
+                    .padding(.bottom, AppSpacing.xs)
             }
         }
         .refreshable { viewModel.refreshSafety() }
@@ -125,56 +116,74 @@ struct StaffDashboardView: View {
 
     private var todayScheduleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("오늘의 일정")
-                .font(AppFont.bodyLBold)
-                .foregroundColor(AppColor.textPrimary)
-                .padding(.horizontal, AppSpacing.xl)
-
-            // 여행 진행률 카드 — 여행객 홈과 같은 카드·같은 규칙(당일 시각 비율)
+            // 여행 진행률 카드 → "오늘의 일정" → 일정 카드 → 전체일정 링크 (여행객 홈과 같은 순서·여백)
             TripProgressCard(
                 progress: viewModel.tripProgress,
                 remainingDays: viewModel.remainingDays,
                 destination: viewModel.destinationText
             )
-            .padding(.horizontal, AppSpacing.xl)
-            .padding(.top, AppSpacing.sm)
-            .padding(.bottom, AppSpacing.xs)
+            .padding(.horizontal, 21)
+            .padding(.bottom, AppSpacing.lg)
 
+            Text("오늘의 일정")
+                .font(AppFont.bodyLBold)
+                .foregroundColor(AppColor.textPrimary)
+                .padding(.horizontal, AppSpacing.xl)
+                .padding(.bottom, AppSpacing.md)
+
+            // 지금 진행 중인 일정 — 없으면 안내 문구. 예정 일정은 "다음 일정"에만 (여행객 홈과 같은 카드)
             if let current = viewModel.currentSchedule {
-                scheduleRow(current, height: 56, titleSize: 14)
+                scheduleRow(current, height: 64, titleFont: AppFont.bodyMMedium)
                     .padding(.horizontal, AppSpacing.xl)
-                    .padding(.top, AppSpacing.xxs)
             } else {
-                Text(viewModel.todaySchedules.isEmpty
-                     ? "오늘은 등록된 일정이 없어요"
-                     : "오늘 일정이 모두 끝났어요")
+                Text(viewModel.noCurrentScheduleText)
                     .font(AppFont.body)
                     .foregroundColor(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, AppSpacing.md)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .frame(minHeight: 64)
                     .background(AppColor.surface)
                     .cornerRadius(AppRadius.lg)
                     .padding(.horizontal, AppSpacing.xl)
-                    .padding(.top, AppSpacing.xxs)
             }
 
+            // 다음 일정 — 없으면 레이블째 숨김
             if let next = viewModel.nextSchedule {
-                scheduleRow(next, height: 48, titleSize: 13)
+                Text("다음 일정")
+                    .font(AppFont.label)
+                    .foregroundColor(AppColor.textSecondary)
                     .padding(.horizontal, AppSpacing.xl)
-                    .padding(.top, AppSpacing.xs)
+                    .padding(.top, 14)
+                    .padding(.bottom, 6)
+
+                scheduleRow(next, height: 48, titleFont: AppFont.bodyMedium)
+                    .padding(.horizontal, AppSpacing.xl)
             }
+
+            // 전체일정 링크
+            Button { showFullSchedule = true } label: {
+                Text("전체일정 확인 및 일정 수정하기  >")
+                    .font(AppFont.labelMedium)
+                    .foregroundColor(AppColor.accent)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
         }
     }
 
-    private func scheduleRow(_ item: StaffScheduleDTO, height: CGFloat, titleSize: CGFloat) -> some View {
-        HStack {
+    private func scheduleRow(_ item: StaffScheduleDTO, height: CGFloat, titleFont: Font) -> some View {
+        HStack(spacing: AppSpacing.xs) {
             // 장소가 없는 일정(앱에서 추가한 것)은 메모를 제목으로 씁니다
             Text(item.placeName?.isEmpty == false ? (item.placeName ?? "") : (item.mainContent ?? "일정"))
-                .font(.pretendard(.medium, size: titleSize))
+                .font(titleFont)
                 .foregroundColor(AppColor.textPrimary)
+                .lineLimit(1)
             Spacer()
             Text(StaffHomeViewModel.timeRange(item.startTime, item.endTime))
-                .font(AppFont.caption)
+                .font(AppFont.label)
                 .foregroundColor(AppColor.textSecondary)
         }
         .padding(.horizontal, AppSpacing.md)
@@ -264,11 +273,10 @@ struct StaffDashboardView: View {
                     .font(AppFont.caption)
                     .foregroundColor(AppColor.textSecondary)
                     .padding(.top, 10)
-
-                Spacer(minLength: 0)
             }
+            // 고정 높이 대신 위아래 같은 여백 — 마지막 줄 아래가 좁아 보이던 문제
             .padding(.horizontal, AppSpacing.md)
-            .frame(height: 90, alignment: .top)
+            .padding(.bottom, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColor.accentSubtle)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
