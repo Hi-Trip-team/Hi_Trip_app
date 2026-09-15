@@ -226,13 +226,20 @@ struct ChatRoomView: View {
         }
 
         let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .movie) }
-        viewModel.sendAttachment(
-            chatRoomId: chatRoom.id,
-            data: data,
-            mediaType: isVideo ? "video" : "photo",
-            fileName: isVideo ? "video.mp4" : "photo.jpg",
-            mimeType: isVideo ? "video/mp4" : "image/jpeg"
-        )
+        if isVideo {
+            viewModel.sendAttachment(
+                chatRoomId: chatRoom.id,
+                data: data,
+                mediaType: "video",
+                fileName: "video.mp4",
+                mimeType: "video/mp4"
+            )
+        } else if let image = UIImage(data: data) {
+            // 앨범 사진은 대부분 HEIC입니다. 서버는 jpeg·png·gif·webp만 받으므로 JPEG로 바꿔 보냅니다.
+            sendPhoto(image)
+        } else {
+            viewModel.toast = "첨부하지 못했어요"
+        }
     }
 
     /// 권한을 확인하고 카메라를 띄웁니다. 거부 상태면 설정 안내를 보여줍니다.
