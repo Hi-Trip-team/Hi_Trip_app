@@ -55,16 +55,7 @@ struct StaffDashboardView: View {
             VStack(alignment: .leading, spacing: 0) {
                 headerSection
                 todayScheduleSection
-
-                Button { showFullSchedule = true } label: {
-                    Text("전체일정 확인 및 일정 수정하기  >")
-                        .font(AppFont.labelMedium)
-                        .foregroundColor(AppColor.accent)
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, AppSpacing.xl)
-                .padding(.top, AppSpacing.xl)
-                .padding(.bottom, 18)
+                    .padding(.bottom, AppSpacing.xs)
 
                 quickMenuGrid
                     .padding(.horizontal, AppSpacing.xl)
@@ -125,20 +116,20 @@ struct StaffDashboardView: View {
 
     private var todayScheduleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("오늘의 일정")
-                .font(AppFont.bodyLBold)
-                .foregroundColor(AppColor.textPrimary)
-                .padding(.horizontal, AppSpacing.xl)
-
-            // 여행 진행률 카드 — 여행객 홈과 같은 카드·같은 규칙(당일 시각 비율)
+            // 여행 진행률 카드 → "오늘의 일정" → 일정 카드 → 전체일정 링크 (여행객 홈과 같은 순서·여백)
             TripProgressCard(
                 progress: viewModel.tripProgress,
                 remainingDays: viewModel.remainingDays,
                 destination: viewModel.destinationText
             )
-            .padding(.horizontal, AppSpacing.xl)
-            .padding(.top, AppSpacing.sm)
-            .padding(.bottom, AppSpacing.xs)
+            .padding(.horizontal, 21)
+            .padding(.bottom, AppSpacing.lg)
+
+            Text("오늘의 일정")
+                .font(AppFont.bodyLBold)
+                .foregroundColor(AppColor.textPrimary)
+                .padding(.horizontal, AppSpacing.xl)
+                .padding(.bottom, AppSpacing.md)
 
             // 지금 진행 중인 일정 — 없으면 안내 문구. 예정 일정은 "다음 일정"에만 (여행객 홈과 같은 카드)
             if let current = viewModel.currentSchedule {
@@ -169,6 +160,17 @@ struct StaffDashboardView: View {
                 scheduleRow(next, height: 48, titleFont: AppFont.bodyMedium)
                     .padding(.horizontal, AppSpacing.xl)
             }
+
+            // 전체일정 링크
+            Button { showFullSchedule = true } label: {
+                Text("전체일정 확인 및 일정 수정하기  >")
+                    .font(AppFont.labelMedium)
+                    .foregroundColor(AppColor.accent)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
         }
     }
 
