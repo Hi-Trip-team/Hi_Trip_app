@@ -275,13 +275,21 @@ final class TripScheduleViewModel: ObservableObject {
 
     // MARK: - 오늘의 일정 (서버 계산값)
 
-    /// 오늘이 몇 일차인지 — 서버가 판정해 내려줍니다.
-    var todayDayNumber: Int? { home?.todayDayNumber }
+    /// 여행 시각 판정 — 여행지 시간대 + 기기 시계 (홈과 같은 TripClock)
+    var clock: TripClock? {
+        home.flatMap { TripClock(startDate: $0.trip.startDate, endDate: $0.trip.endDate, timeZoneID: $0.trip.timezone) }
+    }
 
-    /// 오늘 일정 — 서버가 골라 준 것을 그대로 씁니다.
-    /// 홈 화면과 같은 값을 쓰므로 두 화면이 서로 다른 "오늘"을 보여줄 일이 없습니다.
+    /// 지금 시각(분) — 여행지 기준
+    private var nowMinutes: Int { clock?.minutesNow ?? AppDate.minutesNow }
+
+    /// 오늘이 몇 일차인지 — 여행지 날짜 기준 (서버 today_day_number는 UTC라 새벽에 하루 어긋남)
+    var todayDayNumber: Int? { clock?.todayDayNumber }
+
+    /// 오늘 일정 — 전체 공용 일정 중 오늘 일차 (홈과 같은 규칙이라 두 화면의 "오늘"이 같습니다)
     var todaySchedules: [TravelerScheduleDTO] {
-        (home?.todaySchedules ?? []).sorted { $0.startTime < $1.startTime }
+        guard let today = todayDayNumber else { return [] }
+        return shared.filter { $0.dayNumber == today }.sorted { $0.startTime < $1.startTime }
     }
 
     /// 여행이 오늘을 포함하는지 — 상단 "오늘의 일정" 섹션 표시 여부
@@ -289,7 +297,7 @@ final class TripScheduleViewModel: ObservableObject {
 
     /// 지금 진행 중인 일정. 없으면 다음 예정 일정, 오늘 일정이 끝났으면 nil.
     var todayCurrentSchedule: TravelerScheduleDTO? {
-        let now = AppDate.minutesNow
+        let now = nowMinutes
         if let ongoing = todaySchedules.first(where: { s in
             guard let st = AppDate.minutes(s.startTime), let et = AppDate.minutes(s.endTime) else { return false }
             return st <= now && now < et
@@ -306,7 +314,7 @@ final class TripScheduleViewModel: ObservableObject {
         let starts = todaySchedules.compactMap { AppDate.minutes($0.startTime) }
         let ends   = todaySchedules.compactMap { AppDate.minutes($0.endTime) }
         guard let first = starts.min(), let last = ends.max(), last > first else { return 0 }
-        return min(max(Double(AppDate.minutesNow - first) / Double(last - first), 0), 1)
+        return min(max(Double(nowMinutes - first) / Double(last - first), 0), 1)
     }
 
     /// "1일차 2025.04.24" 헤더용

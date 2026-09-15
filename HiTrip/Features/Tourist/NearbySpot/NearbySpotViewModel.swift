@@ -152,7 +152,9 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] home in
                 guard let self else { return }
-                guard let today = home.todayDayNumber else {
+                // 오늘 일차는 여행지 날짜로 계산합니다 (서버 today_day_number는 UTC라 새벽에 하루 어긋남)
+                let clock = TripClock(startDate: home.trip.startDate, endDate: home.trip.endDate, timeZoneID: home.trip.timezone)
+                guard let today = clock?.todayDayNumber else {
                     self.geofence = nil
                     return
                 }
