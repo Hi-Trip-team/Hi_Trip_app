@@ -180,7 +180,7 @@ struct SafetyManagementView: View {
         Text(text)
             .font(AppFont.caption2Bold)
             .foregroundColor(AppColor.textSecondary)
-            .frame(width: width, alignment: .leading)
+            .frame(width: width, alignment: .center)
     }
 
     private func participantRow(_ p: ParticipantLatestDTO) -> some View {
@@ -188,13 +188,13 @@ struct SafetyManagementView: View {
             Text(p.travelerName)
                 .font(AppFont.labelMedium)
                 .foregroundColor(AppColor.accent)
-                .frame(width: 72, alignment: .leading)
+                .frame(width: 72, alignment: .center)
                 .lineLimit(1)
 
             Text(viewModel.profile(for: p)?.phone ?? "—")
                 .font(AppFont.micro)
                 .foregroundColor(AppColor.textSecondary)
-                .frame(width: 84, alignment: .leading)
+                .frame(width: 84, alignment: .center)
                 .lineLimit(1)
 
             // 이탈 거리 — 빨간 셀을 누르면 위치 확인으로 이동합니다
@@ -218,7 +218,7 @@ struct SafetyManagementView: View {
                                          ? AppColor.textSecondary : AppColor.textBody)
                 }
             }
-            .frame(width: 74, alignment: .leading)
+            .frame(width: 74, alignment: .center)
 
             metricCell(viewModel.heartRateText(p), level: viewModel.heartRateLevel(p), width: 64)
             metricCell(viewModel.spo2Text(p), level: viewModel.spo2Level(p), width: 44)
@@ -255,7 +255,7 @@ struct SafetyManagementView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.xs))
             }
         }
-        .frame(width: width, alignment: .leading)
+        .frame(width: width, alignment: .center)
     }
 
     private var legend: some View {
