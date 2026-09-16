@@ -81,6 +81,14 @@ extension APIEndpoint {
 
     // MARK: - Tourists (매니저측 관광객 관리)
 
+    // MARK: - App Config
+
+    /// 앱 공개 설정 — 최소 지원 iOS 버전·스토어 주소 (로그인 불필요)
+    /// GET /api/publicdata/config/
+    static func appConfig() -> APIEndpoint {
+        APIEndpoint(path: "/api/publicdata/config/")
+    }
+
 }
 
 // MARK: - Phase별 Endpoint 확장 가이드
