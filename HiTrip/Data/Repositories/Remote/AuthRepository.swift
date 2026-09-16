@@ -202,6 +202,10 @@ final class AuthRepository: AuthRepositoryProtocol {
             return LoginError.locked(seconds: seconds)
         case .conflict(let detail) where detail.code == "PASSWORD_CHANGE_REQUIRED":
             return LoginError.passwordChangeRequired
+        case .forbidden(let detail) where detail.code == "TRIP_ACCESS_EXPIRED":
+            return LoginError.tripAccessExpired
+        case .forbidden(let detail) where detail.code == "TRIP_NOT_AVAILABLE":
+            return LoginError.tripNotAvailable
         case .conflict where isActiveSessionConflict(error):
             // force_login 재요청까지 거절된 경우만 여기로 옵니다
             return LoginError.concurrentSession
