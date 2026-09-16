@@ -32,6 +32,10 @@ final class TravelerRepository: TravelerRepositoryProtocol {
 
     func fetchMe() -> Single<TravelerMeDTO> {
         networkService.request(.travelerMe(), type: TravelerMeDTO.self)
+            .do(onSuccess: { me in
+                // 채팅 말풍선 판정용 사용자 번호 — 서버 user_id는 메시지 sender와 같습니다
+                if let userId = me.traveler.userId { ChatRepository.saveMyChatUserId(userId) }
+            })
     }
 
     // MARK: - Agreements

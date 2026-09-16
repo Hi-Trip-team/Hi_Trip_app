@@ -58,6 +58,8 @@ final class AuthRepository: AuthRepositoryProtocol {
                 if let expiresAt = dto.expiresAt { self.keychain.saveTokenExpiry(expiresAt) }
                 self.keychain.saveUserId(String(traveler.id))
                 self.keychain.saveUserType(UserType.tourist.rawValue)
+                // 채팅 말풍선 판정용 — 서버 user_id는 메시지 sender와 같은 번호입니다
+                if let userId = traveler.userId { ChatRepository.saveMyChatUserId(userId) }
                 self.keychain.saveUserName(traveler.fullNameKr)
                 self.keychain.saveUserEmail(traveler.email)
 
@@ -217,6 +219,10 @@ final class AuthRepository: AuthRepositoryProtocol {
                 )))
             }
             return networkService.request(.travelerMe(), type: TravelerMeDTO.self)
+                // 이미 로그인된 기기도 재로그인 없이 채팅 사용자 번호를 받도록
+                .do(onSuccess: { me in
+                    if let userId = me.traveler.userId { ChatRepository.saveMyChatUserId(userId) }
+                })
                 .flatMap { [weak self] _ -> Single<TravelerAgreementDTO> in
                     guard let self else { return .error(HiTripError.invalidResponse) }
                     return self.networkService.request(.travelerAgreements(), type: TravelerAgreementDTO.self)
