@@ -29,8 +29,16 @@ final class AuthRepository: AuthRepositoryProtocol {
         touristLogin(request)
             .catch { [weak self] error in
                 guard let self else { throw error }
-                if case .unauthorized = ErrorHandler.classify(error) {
+                if case .unauthorized(let touristDetail) = ErrorHandler.classify(error) {
                     return self.staffLogin(request)
+                        .catch { staffError in
+                            // 관광객 계정의 비밀번호가 틀린 경우 안내사 401이 남은 횟수(n/5)를 덮지 않도록
+                            if touristDetail.numbers["remaining_attempts"] != nil,
+                               case .unauthorized = ErrorHandler.classify(staffError) {
+                                throw error
+                            }
+                            throw staffError
+                        }
                 }
                 throw error
             }
