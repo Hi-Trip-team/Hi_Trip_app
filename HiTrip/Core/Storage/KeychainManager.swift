@@ -135,8 +135,8 @@ final class KeychainManager {
     /// 3. SecItemAdd로 새 값 저장
     ///
     /// kSecAttrAccessible 옵션:
-    /// - kSecAttrAccessibleAfterFirstUnlock: 첫 잠금 해제 후 접근 가능
-    ///   → 백그라운드에서도 토큰 사용 가능 (푸시 처리 등)
+    /// - kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly: 첫 잠금 해제 후 접근 가능, 이 기기에만 보관
+    ///   → 백그라운드에서도 토큰 사용 가능 (푸시 처리 등), 백업·기기 이전으로 토큰이 복사되지 않음
     private func save(key: String, value: String) {
         guard let data = value.data(using: .utf8) else { return }
         delete(key: key) // 기존 값 삭제 후 저장
@@ -145,7 +145,7 @@ final class KeychainManager {
             kSecClass as String:       kSecClassGenericPassword,
             kSecAttrAccount as String: key,
             kSecValueData as String:   data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
         SecItemAdd(query as CFDictionary, nil)
     }
