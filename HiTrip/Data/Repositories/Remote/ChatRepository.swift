@@ -272,7 +272,8 @@ final class ChatRepository: ChatRepositoryProtocol {
         KeychainManager.shared.getUserId().map { "chatSenderUserId.\($0)" }
     }
 
-    private static func saveMyChatUserId(_ id: Int) {
+    /// 로그인 때 서버가 준 user_id도 같은 자리에 저장합니다
+    static func saveMyChatUserId(_ id: Int) {
         guard let key = myChatUserIdKey else { return }
         UserDefaults.standard.set(id, forKey: key)
     }

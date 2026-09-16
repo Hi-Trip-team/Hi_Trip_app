@@ -19,6 +19,8 @@ struct TravelerLogoutResponseDTO: Decodable {
 
 struct TravelerPublicDTO: Decodable {
     let id: Int
+    /// 채팅 메시지의 sender와 같은 사용자 번호 — 내가 보낸 메시지 판별에 씁니다
+    var userId: Int? = nil
     let lastNameKr: String
     let firstNameKr: String
     let fullNameKr: String
@@ -58,7 +60,7 @@ struct TravelerTripDTO: Decodable {
     let managerContact: [String: String]?
     let dDay: Int
     let durationDays: Int
-    /// 여행지 시간대(IANA, 예: "Asia/Seoul") — 서버 추가 예정. 없으면 TripClock이 한국 시간대로 계산
+    /// 여행지 시간대(IANA, 예: "Asia/Seoul") — 비어 있으면 TripClock이 한국 시간대로 계산
     var timezone: String? = nil
 }
 
