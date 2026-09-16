@@ -19,8 +19,8 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
 
     /// 칩 순서대로 선언합니다.
     ///
-    /// - 서버 주변 스팟 API 5종: restaurant · accessibility · pet · convenience · mart (광고 스팟 포함)
-    /// - 그 밖의 카테고리는 카카오 로컬 API로 직접 검색합니다 (`kakaoCode`)
+    /// - 인기 스팟을 뺀 모든 카테고리는 서버 주변 스팟 API로 검색합니다 (광고 스팟 포함).
+    ///   앱에 카카오 REST 키를 넣지 않도록 카카오 로컬 검색은 서버가 대신합니다.
     /// 기획의 "할랄"은 서버·카카오 모두 카테고리가 없어 빠져 있습니다.
     enum Category: String, CaseIterable, Identifiable {
         /// 안내사가 미리 정한 추천·인기 스팟 — 맨 앞, 지도를 열면 기본 선택
@@ -55,20 +55,6 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
             case .accommodation: return "숙박"
             case .accessibility: return "무장애"
             case .pet:           return "반려동물"
-            }
-        }
-
-        /// 서버가 받지 않는 카테고리 — 카카오 로컬 API로 검색합니다. nil이면 서버 API
-        var kakaoCode: KakaoLocalService.CategoryCode? {
-            switch self {
-            case .cafe:          return .cafe
-            case .attraction:    return .attraction
-            case .culture:       return .culture
-            case .pharmacy:      return .pharmacy
-            case .hospital:      return .hospital
-            case .subway:        return .subway
-            case .accommodation: return .accommodation
-            case .popular, .restaurant, .convenience, .mart, .accessibility, .pet: return nil
             }
         }
     }
@@ -183,12 +169,10 @@ final class NearbySpotViewModel: NSObject, ObservableObject {
         guard let center = currentLocation ?? geofenceCenter else { return }
         state = .loading
 
-        // 인기 스팟은 안내사가 정한 목록, 서버 5종은 서버 API(광고 스팟 포함), 나머지는 카카오 로컬 API
+        // 인기 스팟은 안내사가 정한 목록, 나머지는 서버 주변 스팟 API(광고 스팟 포함)
         let request: Single<[TravelerNearbySpotDTO]>
         if selectedCategory == .popular {
             request = guideSpots(around: center)
-        } else if let code = selectedCategory.kakaoCode {
-            request = KakaoLocalService.searchCategory(code, latitude: center.latitude, longitude: center.longitude)
         } else {
             request = repository.fetchNearbySpots(
                 category: selectedCategory.rawValue,
