@@ -102,7 +102,7 @@ final class NetworkService {
         let base = Single<T>.create { [weak self] single in
             guard let self,
                   let request = self.buildRequest(endpoint) else {
-                print("❌ [Network] URL 생성 실패 | path: \(endpoint.path)")
+                Self.log("❌ [Network] URL 생성 실패 | path: \(endpoint.path)")
                 single(.failure(HiTripError.invalidURL))
                 return Disposables.create()
             }
@@ -110,16 +110,16 @@ final class NetworkService {
             // 디버그: 모든 API 요청 로깅
             let method = endpoint.method.rawValue
             let url = request.url?.absoluteString ?? ""
-            print("🌐 [Network] \(method) \(url)")
+            Self.log("🌐 [Network] \(method) \(url)")
             if let body = endpoint.body {
-                print("   📦 Body: \(Self.redacted(body))")
+                Self.log("   📦 Body: \(Self.redacted(body))")
             }
 
             let task = self.session.dataTask(with: request) { data, response, error in
                 // 1) 네트워크 에러 (인터넷 끊김, 타임아웃 등)
                 if let error {
                     let hiTripError = HiTripError.from(urlError: error)
-                    print("❌ [Network] \(hiTripError.debugDescription) | \(url)")
+                    Self.log("❌ [Network] \(hiTripError.debugDescription) | \(url)")
                     single(.failure(hiTripError))
                     return
                 }
@@ -137,7 +137,7 @@ final class NetworkService {
                         data: data,
                         retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")
                     )
-                    print("❌ [Network] \(hiTripError.debugDescription) | URL: \(url)")
+                    Self.log("❌ [Network] \(hiTripError.debugDescription) | URL: \(url)")
 
                     // 401 토큰 만료 시 자동 로그아웃 알림 (NotificationCenter)
                     if hiTripError.requiresReauth {
@@ -162,7 +162,7 @@ final class NetworkService {
 
                 // 디버그: 성공 응답 본문 출력
                 if let body = String(data: data, encoding: .utf8) {
-                    print("✅ [Network] HTTP \(httpResponse.statusCode) | URL: \(url) | Body: \(body.prefix(500))")
+                    Self.log("✅ [Network] HTTP \(httpResponse.statusCode) | URL: \(url) | Body: \(Self.redacted(String(body.prefix(500))))")
                 }
 
                 // 5) 본문 없는 성공 응답 (204 No Content, DELETE 등)
@@ -184,7 +184,7 @@ final class NetworkService {
                     let decoded = try decoder.decode(T.self, from: data)
                     single(.success(decoded))
                 } catch {
-                    print("❌ [Network] 디코딩 실패 | Type: \(T.self) | Error: \(error)")
+                    Self.log("❌ [Network] 디코딩 실패 | Type: \(T.self) | Error: \(error)")
                     single(.failure(HiTripError.decodingFailed(error.localizedDescription)))
                 }
             }
@@ -341,6 +341,23 @@ final class NetworkService {
             let key = pair.key.lowercased()
             result[pair.key] = (key.contains("password") || key.contains("token")) ? "••••" : pair.value
         }
+    }
+
+    /// 네트워크 로그 — Release 빌드에서는 아무것도 출력하지 않습니다 (기기 콘솔에 개인정보·토큰이 남지 않게)
+    static func log(_ message: @autoclosure () -> String) {
+        #if DEBUG
+        print(message())
+        #endif
+    }
+
+    /// 응답 본문(JSON 문자열)에서 비밀번호·토큰 값을 가립니다
+    static func redacted(_ text: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: #""([A-Za-z_]*(?:token|password)[A-Za-z_]*)"\s*:\s*"[^"]*""#,
+            options: [.caseInsensitive]
+        ) else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: #""$1":"••••""#)
     }
 
     /// 안내사 세션 쿠키·CSRF를 지웁니다 (로그아웃, 자동 로그인 해제 시)
