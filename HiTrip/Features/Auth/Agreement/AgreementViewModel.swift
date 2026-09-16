@@ -68,7 +68,11 @@ final class AgreementViewModel: ObservableObject {
         let locationGranted = location == .authorizedWhenInUse || location == .authorizedAlways
         do {
             if userType == .tourist {
-                try await saveTouristAgreement(location: locationGranted, notification: notification)
+                // 푸시 수신은 선택 약관 동의와 OS 알림 허용이 모두 있어야 서버가 발송합니다
+                try await saveTouristAgreement(
+                    location: locationGranted,
+                    notification: notification && checked.contains(.push)
+                )
             }
             AgreementRecordStore.record(optionalAccepted: checked.contains(.push))
             return true
