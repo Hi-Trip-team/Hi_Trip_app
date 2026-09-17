@@ -158,6 +158,36 @@ final class ChatRepository: ChatRepositoryProtocol {
         }
     }
 
+    // MARK: - 신고 · 차단
+
+    func reportChat(roomId: Int, touristId: Int, messageId: Int?, reason: String, detail: String?) -> Single<Void> {
+        var body: [String: Any] = ["room_id": roomId, "tourist_id": touristId, "reason": reason]
+        if let messageId { body["message_id"] = messageId }
+        if let detail, !detail.isEmpty { body["detail"] = detail }
+        return networkService.request(.chatReport(body: body), type: EmptyResponse.self).map { _ in () }
+    }
+
+    func fetchBlockedTouristIds() -> Single<[Int]> {
+        networkService.request(.chatBlocks(), type: [ChatBlockDTO].self)
+            .map { $0.map(\.touristId) }
+    }
+
+    func blockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        networkService.request(
+            .chatBlockCreate(body: ["trip_id": tripId, "tourist_id": touristId]),
+            type: EmptyResponse.self
+        )
+        .map { _ in () }
+    }
+
+    func unblockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        networkService.request(
+            .chatBlockDelete(touristId: touristId, tripId: tripId),
+            type: EmptyResponse.self
+        )
+        .map { _ in () }
+    }
+
     // MARK: - 첨부 업로드
 
     /// 1) presign으로 업로드 주소를 받고 2) 그 주소에 파일 본문을 PUT 합니다.

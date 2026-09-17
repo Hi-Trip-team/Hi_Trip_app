@@ -119,6 +119,26 @@ final class MockChatRepository: ChatRepositoryProtocol {
         return fetchMessages(chatRoomId: chatRoomId).map { ($0, nil) }
     }
 
+    // MARK: - 신고 · 차단
+
+    private static var blockedIds: Set<Int> = []
+
+    func reportChat(roomId: Int, touristId: Int, messageId: Int?, reason: String, detail: String?) -> Single<Void> {
+        .just(())
+    }
+
+    func fetchBlockedTouristIds() -> Single<[Int]> { .just(Array(Self.blockedIds)) }
+
+    func blockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        Self.blockedIds.insert(touristId)
+        return .just(())
+    }
+
+    func unblockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        Self.blockedIds.remove(touristId)
+        return .just(())
+    }
+
     func sendMessage(message: Message) -> Single<Message> {
         // 전송 실패 화면을 확인할 수 있게 남겨둔 통로
         if message.content.hasPrefix("실패") || message.content.lowercased().hasPrefix("fail") {

@@ -353,4 +353,29 @@ extension APIEndpoint {
         APIEndpoint(path: "/api/v1/chat/rooms/\(roomId)/messages/", method: .post, body: body)
     }
 
+    /// 채팅 신고 — 심사 가이드라인 1.2 (사용자 생성 콘텐츠 신고 수단)
+    /// POST /api/v1/chat/reports/
+    static func chatReport(body: [String: Any]) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/chat/reports/", method: .post, body: body)
+    }
+
+    /// 차단한 관광객 목록
+    /// GET /api/v1/chat/blocks/
+    static func chatBlocks() -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/chat/blocks/")
+    }
+
+    /// 차단
+    /// POST /api/v1/chat/blocks/
+    static func chatBlockCreate(body: [String: Any]) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/chat/blocks/", method: .post, body: body)
+    }
+
+    /// 차단 해제
+    /// DELETE /api/v1/chat/blocks/{tourist_id}/?trip_id=
+    static func chatBlockDelete(touristId: Int, tripId: Int) -> APIEndpoint {
+        APIEndpoint(path: "/api/v1/chat/blocks/\(touristId)/", method: .delete, queryItems: [URLQueryItem(name: "trip_id", value: String(tripId))])
+    }
+
 }
+
