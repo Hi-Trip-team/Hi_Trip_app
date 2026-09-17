@@ -406,6 +406,13 @@ struct ChatRoomV1DTO: Decodable {
     let updatedAt: String?
 }
 
+/// GET /api/v1/chat/blocks/ — 차단한 관광객
+struct ChatBlockDTO: Decodable {
+    let touristId: Int
+    let touristName: String?
+    let trip: Int?
+}
+
 struct ChatMessageV1DTO: Decodable {
     let id: Int
     let room: Int
@@ -509,12 +516,28 @@ extension ChatRoomV1DTO {
             participantType: roomType ?? "direct",
             isGroupChat: isGroup,
             tripId: trip,
+            peerTouristId: touristId,
+            peerTourists: Self.peers(peerTourists),
             lastMessage: lastMsg,
             lastMessageDate: lastDate,
             unreadCount: unreadCount,
             isOnline: false,
             createdAt: createdDate
         )
+    }
+
+    /// 단체방 참여자 — 키 표기가 바뀌어도 읽히도록 두 가지를 모두 확인합니다
+    static func peers(_ raw: [[String: AnyCodable]]?) -> [ChatPeerTourist] {
+        (raw ?? []).compactMap { item in
+            let id = (item["tourist_id"]?.value as? Int)
+                ?? (item["touristId"]?.value as? Int)
+                ?? (item["id"]?.value as? Int)
+            let name = (item["tourist_name"]?.value as? String)
+                ?? (item["touristName"]?.value as? String)
+                ?? (item["name"]?.value as? String)
+            guard let id, let name, !name.isEmpty else { return nil }
+            return ChatPeerTourist(id: id, name: name)
+        }
     }
 
     /// 목록 미리보기 — 본문이 없는 첨부 메시지는 '사진' · '음성 메시지' · '동영상'

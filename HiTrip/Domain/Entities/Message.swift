@@ -67,6 +67,7 @@ struct Message: Identifiable, Codable, Equatable {
             id: id.uuidString,
             content: content,
             isMine: isMyMessage(currentUserId: currentUserId),
+            senderName: senderName,
             sendStatus: sendStatus,
             sentAt: sentAt,
             attachments: attachments
@@ -110,6 +111,8 @@ struct ChatMessage: Identifiable {
     let id: String
     let content: String
     let isMine: Bool
+    /// 보낸 사람 이름 — 상대 메시지를 신고할 때 대상을 찾는 데 씁니다
+    var senderName: String = ""
     var sendStatus: MessageSendStatus
     let sentAt: Date
     var attachments: [MessageAttachment] = []

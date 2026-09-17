@@ -119,6 +119,68 @@ final class ChatViewModel: ObservableObject {
         queued.forEach { deliver($0.message, attachmentIds: $0.attachmentIds) }
     }
 
+    // MARK: - 신고 · 차단 (심사 가이드라인 1.2)
+
+    /// 차단한 관광객 번호 — 차단/차단 해제 메뉴 표시에 씁니다
+    @Published private(set) var blockedTouristIds: Set<Int> = []
+
+    func loadBlockedTourists() {
+        chatUseCase.fetchBlockedTouristIds()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] in self?.blockedTouristIds = Set($0) }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    /// 화면의 메시지 id(문자열)로 서버 메시지 번호를 찾습니다 — 신고에 함께 보냅니다
+    func serverId(ofMessage id: String) -> Int? {
+        messages.first { $0.id.uuidString == id }?.serverId
+    }
+
+    /// 신고 대상 관광객 번호 — 1:1 방은 상대, 단체방은 보낸 사람 이름으로 찾습니다
+    func touristId(in room: ChatRoom, senderName: String) -> Int? {
+        if let peer = room.peerTourists.first(where: { $0.name == senderName }) { return peer.id }
+        return room.peerTouristId
+    }
+
+    func report(room: ChatRoom, touristId: Int, messageId: Int?, reason: String) {
+        guard let roomId = room.serverId else { return }
+        chatUseCase.reportChat(roomId: roomId, touristId: touristId, messageId: messageId, reason: reason, detail: nil)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in self?.toast = "신고를 접수했어요" },
+                onFailure: { [weak self] _ in self?.toast = "신고하지 못했어요" }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    func block(room: ChatRoom, touristId: Int) {
+        guard let tripId = room.tripId else { return }
+        chatUseCase.blockTourist(tripId: tripId, touristId: touristId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in
+                    self?.blockedTouristIds.insert(touristId)
+                    self?.toast = "차단했어요. 이 사용자의 메시지가 보이지 않습니다"
+                },
+                onFailure: { [weak self] _ in self?.toast = "차단하지 못했어요" }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    func unblock(room: ChatRoom, touristId: Int) {
+        guard let tripId = room.tripId else { return }
+        chatUseCase.unblockTourist(tripId: tripId, touristId: touristId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in
+                    self?.blockedTouristIds.remove(touristId)
+                    self?.toast = "차단을 해제했어요"
+                },
+                onFailure: { [weak self] _ in self?.toast = "차단을 해제하지 못했어요" }
+            )
+            .disposed(by: disposeBag)
+    }
+
     // MARK: - ChatRoom (채팅방)
 
     /// 전체 채팅방 목록 불러오기

@@ -44,6 +44,17 @@ protocol ChatRepositoryProtocol {
     /// 메시지 읽음 처리 — 특정 채팅방의 모든 메시지를 읽음으로
     func markAsRead(chatRoomId: UUID) -> Single<Void>
 
+    // MARK: - 신고 · 차단 (심사 가이드라인 1.2)
+
+    /// 메시지·사용자 신고 — reason: harassment | spam | safety | other
+    func reportChat(roomId: Int, touristId: Int, messageId: Int?, reason: String, detail: String?) -> Single<Void>
+
+    /// 차단한 관광객 번호 목록
+    func fetchBlockedTouristIds() -> Single<[Int]>
+
+    func blockTourist(tripId: Int, touristId: Int) -> Single<Void>
+    func unblockTourist(tripId: Int, touristId: Int) -> Single<Void>
+
     // MARK: - 첨부
 
     /// 파일을 업로드하고 attachment_id를 돌려줍니다.

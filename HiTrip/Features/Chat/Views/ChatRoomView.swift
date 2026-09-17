@@ -23,6 +23,27 @@ struct ChatRoomView: View {
     /// 전송 실패 메시지를 탭했을 때 뜨는 선택 시트
     @State private var failedMessageId: UUID?
 
+    /// 신고 대상 — 길게 누른 상대 메시지
+    @State private var reportTarget: ReportTarget?
+    /// 차단 확인
+    @State private var showBlockConfirm = false
+
+    /// 신고 사유 선택에 필요한 정보
+    private struct ReportTarget: Identifiable {
+        let id = UUID()
+        /// 서버 메시지 번호 — 아직 전송 중이면 nil
+        let messageId: Int?
+        let senderName: String
+    }
+
+    /// 이 방에서 신고·차단할 상대 관광객 번호 (없으면 메뉴를 숨깁니다)
+    private var peerTouristId: Int? { chatRoom.peerTouristId }
+
+    private var isPeerBlocked: Bool {
+        guard let peerTouristId else { return false }
+        return viewModel.blockedTouristIds.contains(peerTouristId)
+    }
+
     /// 상대 연락처 — 없으면 전화 버튼을 숨깁니다 (서버가 아직 주지 않습니다)
     var peerPhoneNumber: String?
 
@@ -100,10 +121,36 @@ struct ChatRoomView: View {
             }
             Button("취소", role: .cancel) { failedMessageId = nil }
         }
+        // 신고 — 사유를 고르면 바로 접수됩니다
+        .confirmationDialog(
+            "신고 사유를 선택해주세요",
+            isPresented: Binding(
+                get: { reportTarget != nil },
+                set: { if !$0 { reportTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("괴롭힘·욕설", role: .destructive) { submitReport(reason: "harassment") }
+            Button("스팸·광고", role: .destructive) { submitReport(reason: "spam") }
+            Button("안전 위협", role: .destructive) { submitReport(reason: "safety") }
+            Button("기타") { submitReport(reason: "other") }
+            Button("취소", role: .cancel) { reportTarget = nil }
+        } message: {
+            Text("신고 내용은 여행사와 운영자가 확인합니다")
+        }
+        .confirmationDialog("이 사용자를 차단할까요?", isPresented: $showBlockConfirm, titleVisibility: .visible) {
+            Button("차단", role: .destructive) {
+                if let peerTouristId { viewModel.block(room: chatRoom, touristId: peerTouristId) }
+            }
+            Button("취소", role: .cancel) { }
+        } message: {
+            Text("차단하면 이 사용자의 메시지를 받지 않습니다. 언제든 해제할 수 있어요")
+        }
         .onAppear {
             viewModel.fetchMessages(chatRoomId: chatRoom.id)
             viewModel.markAsRead(chatRoomId: chatRoom.id)
             viewModel.startRealtime(chatRoomId: chatRoom.id)
+            viewModel.loadBlockedTourists()
         }
         .onDisappear { viewModel.stopRealtime() }
     }
@@ -158,7 +205,39 @@ struct ChatRoomView: View {
                         .font(AppFont.headline)
                         .foregroundColor(AppColor.textStrong)
                 }
-                .padding(.trailing, AppSpacing.xxl)
+                .padding(.trailing, AppSpacing.md)
+            }
+
+            // 신고·차단 — 상대 관광객을 알 수 있는 방에서만 (심사 가이드라인 1.2)
+            if let peerTouristId {
+                Menu {
+                    Button(role: .destructive) {
+                        reportTarget = ReportTarget(messageId: nil, senderName: chatRoom.participantName)
+                    } label: {
+                        Label("신고하기", systemImage: "exclamationmark.bubble")
+                    }
+
+                    if isPeerBlocked {
+                        Button {
+                            viewModel.unblock(room: chatRoom, touristId: peerTouristId)
+                        } label: {
+                            Label("차단 해제", systemImage: "person.crop.circle.badge.checkmark")
+                        }
+                    } else {
+                        Button(role: .destructive) {
+                            showBlockConfirm = true
+                        } label: {
+                            Label("차단하기", systemImage: "person.crop.circle.badge.xmark")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(AppFont.headline)
+                        .foregroundColor(AppColor.textStrong)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .padding(.trailing, AppSpacing.lg)
             }
         }
         .frame(height: 62)
@@ -189,6 +268,19 @@ struct ChatRoomView: View {
                             failedMessageId = UUID(uuidString: msg.id)
                         }
                         .id(msg.id)
+                        // 상대 메시지는 길게 눌러 신고할 수 있습니다 (심사 가이드라인 1.2)
+                        .contextMenu {
+                            if !msg.isMine {
+                                Button(role: .destructive) {
+                                    reportTarget = ReportTarget(
+                                        messageId: viewModel.serverId(ofMessage: msg.id),
+                                        senderName: msg.senderName
+                                    )
+                                } label: {
+                                    Label("신고하기", systemImage: "exclamationmark.bubble")
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(.vertical, AppSpacing.md)
@@ -300,6 +392,23 @@ struct ChatRoomView: View {
                 .frame(height: 32)
                 .background(AppColor.textSecondary)
         }
+    }
+
+    /// 고른 사유로 신고를 보냅니다 — 신고 대상은 방 상대(1:1) 또는 메시지를 보낸 사람(단체방)
+    private func submitReport(reason: String) {
+        guard let target = reportTarget else { return }
+        reportTarget = nil
+
+        guard let touristId = viewModel.touristId(in: chatRoom, senderName: target.senderName) else {
+            viewModel.toast = "이 대화는 신고 대상을 확인할 수 없어요"
+            return
+        }
+        viewModel.report(
+            room: chatRoom,
+            touristId: touristId,
+            messageId: target.messageId,
+            reason: reason
+        )
     }
 
     /// OS 다이얼러로 넘깁니다 (인앱 통화가 아닙니다)

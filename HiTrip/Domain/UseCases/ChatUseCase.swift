@@ -100,6 +100,22 @@ final class ChatUseCase {
     func markAsRead(chatRoomId: UUID) -> Single<Void> {
         return repository.markAsRead(chatRoomId: chatRoomId)
     }
+
+    // MARK: - 신고 · 차단
+
+    func reportChat(roomId: Int, touristId: Int, messageId: Int?, reason: String, detail: String?) -> Single<Void> {
+        repository.reportChat(roomId: roomId, touristId: touristId, messageId: messageId, reason: reason, detail: detail)
+    }
+
+    func fetchBlockedTouristIds() -> Single<[Int]> { repository.fetchBlockedTouristIds() }
+
+    func blockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        repository.blockTourist(tripId: tripId, touristId: touristId)
+    }
+
+    func unblockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        repository.unblockTourist(tripId: tripId, touristId: touristId)
+    }
 }
 
 // MARK: - ChatError
