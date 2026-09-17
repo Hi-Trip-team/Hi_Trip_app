@@ -61,18 +61,17 @@ final class AgreementViewModel: ObservableObject {
             }
         }
 
-        // ② 알림 — 거부해도 진행
-        let notification = await permissions.requestNotification()
+        // 알림(푸시)은 1차 출시에서 빠져 OS 권한을 요청하지 않습니다.
+        // 보내는 기능 없이 권한만 요구하면 심사에서 지적받습니다.
+        // 약관의 "푸시 수신(선택)" 동의는 그대로 받아 두고, 푸시를 넣을 때 권한을 요청합니다.
 
         // 동의 이력 저장
         let locationGranted = location == .authorizedWhenInUse || location == .authorizedAlways
         do {
             if userType == .tourist {
-                // 푸시 수신은 선택 약관 동의와 OS 알림 허용이 모두 있어야 서버가 발송합니다
-                try await saveTouristAgreement(
-                    location: locationGranted,
-                    notification: notification && checked.contains(.push)
-                )
+                // OS 알림 권한을 아직 받지 않으므로 서버에는 false로 보냅니다.
+                // 푸시를 넣을 때 권한을 요청하고 이 값을 갱신합니다.
+                try await saveTouristAgreement(location: locationGranted, notification: false)
             }
             AgreementRecordStore.record(optionalAccepted: checked.contains(.push))
             return true

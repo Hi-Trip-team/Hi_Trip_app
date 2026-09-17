@@ -55,10 +55,8 @@ final class PermissionCoordinator: NSObject, ObservableObject {
         }
     }
 
-    func requestNotification() async -> Bool {
-        (try? await UNUserNotificationCenter.current()
-            .requestAuthorization(options: [.alert, .sound, .badge])) ?? false
-    }
+    // 알림 권한 요청은 푸시를 넣을 때 추가합니다.
+    // 보내는 기능이 없는 채로 권한만 요구하면 심사에서 지적받습니다.
 
     func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
