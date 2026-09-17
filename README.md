@@ -6,6 +6,25 @@ App Store 심사 제출 버전 **1.0.0 (빌드 8)** · 태그 `v1.0.0` · iOS 16
 
 <br>
 
+<table>
+  <tr>
+    <td><img src="docs/screenshots/01-home.png" width="200" alt="여행객 홈 — 오늘·다음 일정과 진행률"></td>
+    <td><img src="docs/screenshots/02-schedule.png" width="200" alt="전체 일정 — 날짜별 일정과 개인 일정"></td>
+    <td><img src="docs/screenshots/03-nearby.png" width="200" alt="주변 스팟 — 사진·주소·지도·길찾기"></td>
+    <td><img src="docs/screenshots/04-chat.png" width="200" alt="메시지 — 단체방과 1:1 대화"></td>
+    <td><img src="docs/screenshots/05-staff.png" width="200" alt="안내사 화면 — 오늘의 안전 현황"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>홈</sub></td>
+    <td align="center"><sub>전체 일정</sub></td>
+    <td align="center"><sub>주변 스팟</sub></td>
+    <td align="center"><sub>메시지</sub></td>
+    <td align="center"><sub>안내사 화면</sub></td>
+  </tr>
+</table>
+
+<br>
+
 ## 프로젝트 소개
 
 여행사에서 발급한 계정으로 로그인하면 그 여행의 일정·공지·안전 안내를 한 곳에서 확인합니다.
