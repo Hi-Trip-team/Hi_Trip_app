@@ -29,8 +29,16 @@ final class AuthRepository: AuthRepositoryProtocol {
         touristLogin(request)
             .catch { [weak self] error in
                 guard let self else { throw error }
-                if case .unauthorized = ErrorHandler.classify(error) {
+                if case .unauthorized(let touristDetail) = ErrorHandler.classify(error) {
                     return self.staffLogin(request)
+                        .catch { staffError in
+                            // 관광객 계정의 비밀번호가 틀린 경우 안내사 401이 남은 횟수(n/5)를 덮지 않도록
+                            if touristDetail.numbers["remaining_attempts"] != nil,
+                               case .unauthorized = ErrorHandler.classify(staffError) {
+                                throw error
+                            }
+                            throw staffError
+                        }
                 }
                 throw error
             }
@@ -194,6 +202,10 @@ final class AuthRepository: AuthRepositoryProtocol {
             return LoginError.locked(seconds: seconds)
         case .conflict(let detail) where detail.code == "PASSWORD_CHANGE_REQUIRED":
             return LoginError.passwordChangeRequired
+        case .forbidden(let detail) where detail.code == "TRIP_ACCESS_EXPIRED":
+            return LoginError.tripAccessExpired
+        case .forbidden(let detail) where detail.code == "TRIP_NOT_AVAILABLE":
+            return LoginError.tripNotAvailable
         case .conflict where isActiveSessionConflict(error):
             // force_login 재요청까지 거절된 경우만 여기로 옵니다
             return LoginError.concurrentSession

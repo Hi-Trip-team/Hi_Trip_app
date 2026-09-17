@@ -251,8 +251,10 @@ extension APIEndpoint {
         locationPermissionAccepted: Bool? = nil,
         notificationPermissionAccepted: Bool? = nil
     ) -> APIEndpoint {
-        var body: [String: Any] = ["terms_accepted": termsAccepted]
-        if let loc  = locationPermissionAccepted       { body["location_permission_accepted"]     = loc }
+        // 개인정보 수집·이용은 서비스 약관과 함께 필수 동의라 같은 값을 보냅니다.
+        // 빠지면 서버 requires_agreement가 계속 true로 남습니다.
+        var body: [String: Any] = ["terms_accepted": termsAccepted, "privacy_accepted": termsAccepted]
+        if let loc  = locationPermissionAccepted      { body["location_permission_accepted"]     = loc }
         if let notif = notificationPermissionAccepted  { body["notification_permission_accepted"] = notif }
         return APIEndpoint(path: "/api/v1/tourist/agreements/", method: .post, body: body)
     }

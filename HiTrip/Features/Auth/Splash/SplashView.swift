@@ -96,7 +96,7 @@ struct SplashView: View {
                     .foregroundColor(AppColor.textGray)
                     .multilineTextAlignment(.center)
                 Button {
-                    if let url = AppLinks.appStore { UIApplication.shared.open(url) }
+                    if let url = AppVersionChecker.storeURL { UIApplication.shared.open(url) }
                 } label: {
                     Text("업데이트")
                         .font(AppFont.bodyLSemiBold)

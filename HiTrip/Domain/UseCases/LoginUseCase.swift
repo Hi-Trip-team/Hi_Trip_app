@@ -61,6 +61,10 @@ enum LoginError: LocalizedError, Equatable {
     case concurrentSession
     /// 발급받은 임시 비밀번호 — 새 비밀번호로 바꿔야 로그인됩니다
     case passwordChangeRequired
+    /// 여행 종료 후 이용 기간이 지남 (서버 403 TRIP_ACCESS_EXPIRED)
+    case tripAccessExpired
+    /// 이용할 수 있는 여행이 없음 (서버 403 TRIP_NOT_AVAILABLE)
+    case tripNotAvailable
     /// 네트워크 연결 없음 / 서버 응답 없음
     case network
     /// 기타 서버 에러
@@ -74,6 +78,8 @@ enum LoginError: LocalizedError, Equatable {
         case .locked:             return "로그인이 일시적으로 잠겼습니다."
         case .concurrentSession:  return "동일한 아이디로 접속중인 기기가 있습니다."
         case .passwordChangeRequired: return "처음 로그인하셨어요. 비밀번호를 변경해주세요."
+        case .tripAccessExpired:  return "여행이 종료되어 이용 기간이 끝났습니다. 여행사에 문의해주세요."
+        case .tripNotAvailable:   return "이용할 수 있는 여행이 없습니다. 여행사에 문의해주세요."
         case .network:            return "네트워크 연결을 확인해주세요."
         case .serverError(let m): return m
         }
