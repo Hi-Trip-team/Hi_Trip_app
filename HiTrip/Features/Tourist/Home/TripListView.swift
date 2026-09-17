@@ -44,6 +44,10 @@ struct TripListView: View {
                             LogoutButton()
                                 .padding(.top, AppSpacing.xl)
                                 .padding(.bottom, AppSpacing.xs)
+
+                            // 로그인 뒤에도 약관·개인정보처리방침을 다시 볼 수 있어야 합니다
+                            PolicyLinksFooter()
+                                .padding(.bottom, AppSpacing.lg)
                         }
                     }
                     .refreshable { viewModel.refresh() }
