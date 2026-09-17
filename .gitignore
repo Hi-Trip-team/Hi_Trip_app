@@ -21,6 +21,9 @@ Pods/
 # API Keys (민감 정보)
 **/APIKeys.swift
 
+# 연락처·약관 주소 (개인 번호 포함) — AppContacts.example.txt 참고
+**/AppContacts.swift
+
 # Misc
 *.swp
 *~

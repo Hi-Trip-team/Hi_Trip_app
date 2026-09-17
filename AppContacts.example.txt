@@ -1,0 +1,23 @@
+// 아래 내용을 HiTrip/Core/Config/AppContacts.swift 로 저장한 뒤 값을 채우세요.
+// 이 파일(AppContacts.swift)은 개인 연락처가 들어 있어 .gitignore로 커밋하지 않습니다.
+// 빈 문자열이면 해당 버튼은 동작하지 않습니다.
+
+import Foundation
+
+enum AppContacts {
+
+    /// 긴급 즉시 연락 — 통역 연결 번호
+    static let interpreterPhone = ""
+
+    /// 로그인 화면 [문의하기] 번호 (지금은 사용하지 않음 — 이메일로 연결)
+    static let inquiryPhone = ""
+
+    /// 로그인 화면 [문의하기] 이메일
+    static let inquiryEmail = ""
+
+    /// 서비스 이용약관 (위치기반서비스 약관 포함)
+    static let termsURL = ""
+
+    /// 개인정보처리방침
+    static let privacyURL = ""
+}

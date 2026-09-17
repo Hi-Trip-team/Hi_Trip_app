@@ -28,6 +28,30 @@ final class ChatViewModel: ObservableObject {
     /// 메시지 입력 — TextField와 바인딩
     @Published var messageText: String = ""
 
+    /// 입력 상한 (자)
+    let messageLimit = 1_000
+
+    /// 상한을 넘겼는지 — 넘기면 전송을 막습니다.
+    /// 입력 중에 잘라내면 한국어·일본어·중국어 조합이 깨지므로 자르지 않습니다.
+    var isOverMessageLimit: Bool { messageText.count > messageLimit }
+
+    /// 첨부 업로드 중 — 진행 표시
+    @Published private(set) var isUploading = false
+
+    /// 첨부 관련 안내 (용량 초과·권한 등)
+    @Published var toast: String?
+
+    /// 오프라인 상태 — 상단 배너
+    @Published private(set) var isOffline = false
+
+    /// 파일당 최대 용량 (서버 제한과 동일)
+    let attachmentSizeLimit = 50 * 1024 * 1024
+
+    /// 과거 메시지 커서 — nil이면 더 불러올 게 없습니다
+    @Published private(set) var olderCursor: Int?
+    @Published private(set) var isLoadingOlder = false
+    var hasOlderMessages: Bool { olderCursor != nil }
+
     // MARK: - 채팅방 생성 폼
 
     /// 상대방 이름 입력
@@ -58,12 +82,103 @@ final class ChatViewModel: ObservableObject {
     /// 현재 로그인한 사용자 이름
     private(set) var currentUserName: String
 
+    /// 오프라인일 때 쌓아 두는 전송 대기 큐 — 재연결되면 순서대로 보냅니다
+    private var pendingQueue: [(message: Message, attachmentIds: [Int])] = []
+
     init(chatUseCase: ChatUseCase) {
         self.chatUseCase = chatUseCase
         // Keychain에서 현재 로그인 유저 정보 가져오기
         let keychain = KeychainManager.shared
         self.currentUserId = keychain.getUserId() ?? "guest"
         self.currentUserName = keychain.getUserName() ?? keychain.getUserId() ?? "사용자"
+
+        isOffline = !NetworkMonitor.shared.isConnected
+        NetworkMonitor.shared.onReconnect = { [weak self] in
+            self?.isOffline = false
+            self?.flushPendingQueue()
+        }
+    }
+
+    // MARK: - 오프라인 전송 큐
+
+    /// 연결이 없으면 서버로 보내지 않고 큐에 담아 둡니다.
+    /// 메시지는 .sending 상태로 화면에 남아 있다가 재연결 시 전송됩니다.
+    private func enqueueOrDeliver(_ message: Message, attachmentIds: [Int] = []) {
+        guard NetworkMonitor.shared.isConnected else {
+            isOffline = true
+            pendingQueue.append((message, attachmentIds))
+            return
+        }
+        deliver(message, attachmentIds: attachmentIds)
+    }
+
+    /// 재연결되면 쌓인 것을 순서대로 내보냅니다
+    private func flushPendingQueue() {
+        let queued = pendingQueue
+        pendingQueue.removeAll()
+        queued.forEach { deliver($0.message, attachmentIds: $0.attachmentIds) }
+    }
+
+    // MARK: - 신고 · 차단 (심사 가이드라인 1.2)
+
+    /// 차단한 관광객 번호 — 차단/차단 해제 메뉴 표시에 씁니다
+    @Published private(set) var blockedTouristIds: Set<Int> = []
+
+    func loadBlockedTourists() {
+        chatUseCase.fetchBlockedTouristIds()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] in self?.blockedTouristIds = Set($0) }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    /// 화면의 메시지 id(문자열)로 서버 메시지 번호를 찾습니다 — 신고에 함께 보냅니다
+    func serverId(ofMessage id: String) -> Int? {
+        messages.first { $0.id.uuidString == id }?.serverId
+    }
+
+    /// 신고 대상 관광객 번호 — 1:1 방은 상대, 단체방은 보낸 사람 이름으로 찾습니다
+    func touristId(in room: ChatRoom, senderName: String) -> Int? {
+        if let peer = room.peerTourists.first(where: { $0.name == senderName }) { return peer.id }
+        return room.peerTouristId
+    }
+
+    func report(room: ChatRoom, touristId: Int, messageId: Int?, reason: String) {
+        guard let roomId = room.serverId else { return }
+        chatUseCase.reportChat(roomId: roomId, touristId: touristId, messageId: messageId, reason: reason, detail: nil)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in self?.toast = "신고를 접수했어요" },
+                onFailure: { [weak self] _ in self?.toast = "신고하지 못했어요" }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    func block(room: ChatRoom, touristId: Int) {
+        guard let tripId = room.tripId else { return }
+        chatUseCase.blockTourist(tripId: tripId, touristId: touristId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in
+                    self?.blockedTouristIds.insert(touristId)
+                    self?.toast = "차단했어요. 이 사용자의 메시지가 보이지 않습니다"
+                },
+                onFailure: { [weak self] _ in self?.toast = "차단하지 못했어요" }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    func unblock(room: ChatRoom, touristId: Int) {
+        guard let tripId = room.tripId else { return }
+        chatUseCase.unblockTourist(tripId: tripId, touristId: touristId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] in
+                    self?.blockedTouristIds.remove(touristId)
+                    self?.toast = "차단을 해제했어요"
+                },
+                onFailure: { [weak self] _ in self?.toast = "차단을 해제하지 못했어요" }
+            )
+            .disposed(by: disposeBag)
     }
 
     // MARK: - ChatRoom (채팅방)
@@ -146,6 +261,8 @@ final class ChatViewModel: ObservableObject {
                 onSuccess: { [weak self] messages in
                     self?.isLoading = false
                     self?.messages = messages
+                    // 가장 오래된 메시지를 다음 페이지 커서로 잡아둡니다
+                    self?.olderCursor = messages.first?.serverId
                 },
                 onFailure: { [weak self] error in
                     self?.isLoading = false
@@ -157,28 +274,191 @@ final class ChatViewModel: ObservableObject {
 
     /// 메시지 전송
     /// - 입력창의 텍스트로 Message 생성 후 전송
+    /// 위로 스크롤했을 때 과거 메시지 30개를 앞에 붙입니다.
+    func loadOlderMessages(chatRoomId: UUID) {
+        guard !isLoadingOlder, let cursor = olderCursor else { return }
+        isLoadingOlder = true
+
+        chatUseCase.fetchOlderMessages(chatRoomId: chatRoomId, before: cursor)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onSuccess: { [weak self] page in
+                    guard let self else { return }
+                    self.isLoadingOlder = false
+                    guard !page.messages.isEmpty else {
+                        self.olderCursor = nil
+                        return
+                    }
+                    self.messages.insert(contentsOf: page.messages, at: 0)
+                    self.olderCursor = page.nextCursor
+                },
+                onFailure: { [weak self] _ in self?.isLoadingOlder = false }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    /// 메시지 전송
+    ///
+    /// 화면에 먼저 붙이고(.sending) 결과에 따라 .sent / .failed 로 바꿉니다.
+    /// 실패한 메시지를 목록에서 지우지 않아야 사용자가 재전송할 수 있습니다.
     func sendMessage(chatRoomId: UUID) {
-        let newMessage = Message(
+        let text = messageText.trimmed
+        guard !text.isEmpty, !isOverMessageLimit else { return }
+
+        let pending = Message(
             chatRoomId: chatRoomId,
             senderId: currentUserId,
             senderName: currentUserName,
-            content: messageText.trimmed
+            content: text,
+            sendStatus: .sending
         )
 
         errorMessage = nil
+        messages.append(pending)
+        messageText = ""
 
-        chatUseCase.sendMessage(message: newMessage)
+        enqueueOrDeliver(pending)
+    }
+
+    // MARK: - 첨부
+
+    /// 사진·동영상·음성을 올리고 첨부 메시지로 보냅니다.
+    /// - Parameter duration: 음성일 때 초 단위 길이 (서버 최대 180초)
+    func sendAttachment(
+        chatRoomId: UUID,
+        data: Data,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        duration: Int? = nil
+    ) {
+        guard data.count <= attachmentSizeLimit else {
+            toast = "50MB 이하 파일만 첨부할 수 있어요"
+            return
+        }
+        guard NetworkMonitor.shared.isConnected else {
+            // 업로드는 연결이 있어야 시작할 수 있습니다
+            isOffline = true
+            toast = "연결되면 다시 시도해주세요"
+            return
+        }
+
+        isUploading = true
+        chatUseCase.uploadAttachment(
+            chatRoomId: chatRoomId, data: data, mediaType: mediaType,
+            fileName: fileName, mimeType: mimeType, duration: duration
+        )
+        .observe(on: MainScheduler.instance)
+        .subscribe(
+            onSuccess: { [weak self] attachmentId in
+                guard let self else { return }
+                self.isUploading = false
+
+                let pending = Message(
+                    chatRoomId: chatRoomId,
+                    senderId: self.currentUserId,
+                    senderName: self.currentUserName,
+                    content: "",
+                    sendStatus: .sending,
+                    attachments: [MessageAttachment(
+                        id: attachmentId, mediaType: mediaType,
+                        downloadUrl: nil, originalName: fileName, duration: duration
+                    )]
+                )
+                self.messages.append(pending)
+                self.enqueueOrDeliver(pending, attachmentIds: [attachmentId])
+            },
+            onFailure: { [weak self] error in
+                self?.isUploading = false
+                // 서버 사유(형식·용량 등)가 있으면 함께 보여줍니다.
+                // networkFailure의 errorDescription은 고정 문구라, 업로드가 담아 둔 사유를 직접 꺼냅니다.
+                let reason: String? = {
+                    guard let e = error as? HiTripError else { return nil }
+                    if case .networkFailure(let message) = e { return message }
+                    return e.errorDescription
+                }()
+                self?.toast = reason.map { "첨부하지 못했어요 · \($0)" } ?? "첨부하지 못했어요"
+            }
+        )
+        .disposed(by: disposeBag)
+    }
+
+    /// 실패한 메시지 재전송
+    ///
+    /// Message.id를 client_message_id로 그대로 다시 보내므로,
+    /// 서버에 이미 저장됐다면 중복 생성되지 않습니다.
+    func retry(messageId: UUID) {
+        guard let idx = messages.firstIndex(where: { $0.id == messageId }),
+              messages[idx].sendStatus == .failed else { return }
+
+        messages[idx].sendStatus = .sending
+        let attachmentIds = messages[idx].attachments.map(\.id)
+        enqueueOrDeliver(messages[idx], attachmentIds: attachmentIds)
+    }
+
+    /// 실패한 메시지 삭제 (로컬)
+    func discard(messageId: UUID) {
+        messages.removeAll { $0.id == messageId && $0.sendStatus == .failed }
+    }
+
+    private func deliver(_ message: Message, attachmentIds: [Int] = []) {
+        chatUseCase.sendMessage(message: message, attachmentIds: attachmentIds)
             .observe(on: MainScheduler.instance)
             .subscribe(
-                onSuccess: { [weak self] message in
-                    self?.messages.append(message)
-                    self?.messageText = ""  // 입력창 비우기
+                onSuccess: { [weak self] saved in
+                    guard let self,
+                          let idx = self.messages.firstIndex(where: { $0.id == message.id }) else { return }
+                    // 로컬 id는 그대로 둡니다. 이 값이 client_message_id로 나가므로
+                    // 바꾸면 재전송 시 멱등키가 달라져 메시지가 중복될 수 있습니다.
+                    self.messages[idx].serverId = saved.serverId
+                    self.messages[idx].sendStatus = .sent
                 },
                 onFailure: { [weak self] error in
-                    self?.errorMessage = error.localizedDescription
+                    guard let self,
+                          let idx = self.messages.firstIndex(where: { $0.id == message.id }) else { return }
+                    // 연결이 끊긴 것이면 실패로 두지 않고 큐에 넣어 재연결 때 보냅니다
+                    if !NetworkMonitor.shared.isConnected {
+                        self.isOffline = true
+                        self.pendingQueue.append((message, attachmentIds))
+                        return
+                    }
+                    self.messages[idx].sendStatus = .failed
+                    self.errorMessage = error.localizedDescription
                 }
             )
             .disposed(by: disposeBag)
+    }
+
+    // MARK: - 실시간 (WebSocket)
+
+    /// 채팅방에 들어와 있는 동안의 실시간 연결 — 화면을 나가면 끊습니다
+    private var realtimeDisposable: Disposable?
+
+    func startRealtime(chatRoomId: UUID) {
+        realtimeDisposable?.dispose()
+        realtimeDisposable = chatUseCase.observeMessages(chatRoomId: chatRoomId)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] in self?.receive($0) })
+    }
+
+    func stopRealtime() {
+        realtimeDisposable?.dispose()
+        realtimeDisposable = nil
+    }
+
+    /// 실시간으로 받은 메시지를 목록에 합칩니다.
+    /// 내가 보낸 메시지는 로컬 id(= client_message_id)가 같아 새로 붙이지 않고 전송 완료로만 바꿉니다.
+    private func receive(_ incoming: Message) {
+        if let idx = messages.firstIndex(where: {
+            $0.id == incoming.id || ($0.serverId != nil && $0.serverId == incoming.serverId)
+        }) {
+            messages[idx].serverId = incoming.serverId
+            messages[idx].sendStatus = .sent
+            return
+        }
+        messages.append(incoming)
+        // 보고 있는 방이므로 바로 읽음 처리합니다
+        markAsRead(chatRoomId: incoming.chatRoomId)
     }
 
     /// 메시지 읽음 처리
@@ -195,6 +475,22 @@ final class ChatViewModel: ObservableObject {
                 onFailure: { _ in }
             )
             .disposed(by: disposeBag)
+    }
+
+    /// 모든 채팅방 읽음 처리 — "모두 확인"
+    ///
+    /// 뱃지는 즉시 지우고, 서버에도 방마다 읽음을 보냅니다.
+    /// 실패해도 다음 목록 조회 때 서버 값으로 되돌아옵니다.
+    func markAllAsRead() {
+        let unreadIds = chatRooms.filter { $0.unreadCount > 0 }.map(\.id)
+        for i in chatRooms.indices {
+            chatRooms[i].unreadCount = 0
+        }
+        for id in unreadIds {
+            chatUseCase.markAsRead(chatRoomId: id)
+                .subscribe(onSuccess: { _ in }, onFailure: { _ in })
+                .disposed(by: disposeBag)
+        }
     }
 
     // MARK: - 내 메시지인지 확인

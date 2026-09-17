@@ -35,7 +35,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         let token = deviceToken
             .map { String(format: "%02.2hhx", $0) }
             .joined()
+        #if DEBUG
         print("[Push] Token: \(token)")
+        #endif
     }
 
     func application(

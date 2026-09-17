@@ -3,11 +3,6 @@ import Foundation
 // MARK: - AuthLoginRequest
 /// POST /api/auth/login/ 요청 바디
 
-struct AuthLoginRequest: Encodable {
-    let username: String
-    let password: String
-}
-
 // MARK: - AuthLoginResponse
 /// POST /api/auth/login/ 응답
 ///
@@ -57,32 +52,8 @@ struct AuthLoginResponse: Decodable {
 // MARK: - AuthRegisterRequest
 /// POST /api/auth/register/ 요청 바디
 
-struct AuthRegisterRequest: Encodable {
-    let username: String
-    let password: String
-    let email: String?
-    let firstName: String?
-    let lastName: String?
-}
-
 // MARK: - StaffDTO
 /// GET /api/auth/staff/ 응답 모델
-
-struct StaffDTO: Decodable, Identifiable {
-    let id: Int
-    let role: String?               // "super_admin", "coordinator", etc.
-    let email: String?
-    let phone: String?
-    let username: String?
-    let lastName: String?
-    let firstName: String?
-    let isApproved: Bool?
-    let fullNameEn: String?
-    let fullNameKr: String?
-    let lastNameKr: String?
-    let firstNameKr: String?
-    let roleDisplay: String?
-}
 
 // MARK: - ProfileDTO
 /// GET /api/auth/profile/ 응답 모델
@@ -104,24 +75,8 @@ struct ProfileDTO: Decodable {
 
 extension ProfileDTO {
 
-    func toUser() -> User {
-        User(
-            id: UUID(),
-            nickname: fullNameKr ?? username ?? "사용자",
-            email: email ?? "",
-            profileImageName: nil
-        )
-    }
 }
 
 // MARK: - TravelerDTO
 /// GET /api/auth/travelers/ 응답 모델
 
-struct TravelerDTO: Decodable, Identifiable {
-    let id: Int
-    let username: String?
-    let email: String?
-    let firstName: String?
-    let lastName: String?
-    let phone: String?
-}

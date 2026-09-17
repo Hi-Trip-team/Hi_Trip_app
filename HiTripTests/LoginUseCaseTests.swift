@@ -3,183 +3,174 @@ import RxSwift
 @testable import HiTrip
 
 // MARK: - LoginUseCaseTests
-/// LoginUseCase의 비즈니스 로직 검증
+/// LoginUseCase 검증 — Repository는 StubAuthRepository로 바꿔 끼웁니다
 ///
-/// 테스트 대상:
-/// 1. 빈 ID 입력 시 emptyId 에러
-/// 2. 공백만 있는 ID 입력 시 emptyId 에러
-/// 3. 빈 비밀번호 입력 시 emptyPassword 에러
-/// 4. 유효한 입력 시 로그인 성공
-/// 5. 서버 에러 시 에러 전달
-/// 6. 자동 로그인 확인 (토큰 유/무)
-///
-/// 면접 포인트:
-/// "테스트 코드를 왜 작성하셨나요?"
-/// → "UseCase의 입력 검증 로직이 올바르게 동작하는지 자동으로 검증합니다.
-///    기능 추가나 리팩토링 후에도 기존 로직이 깨지지 않았음을 보장할 수 있습니다."
+/// 1. 입력 검증: 빈 아이디·공백 아이디·빈 비밀번호는 서버에 보내지 않음
+/// 2. 로그인: 아이디 앞뒤 공백 제거, 강제 로그인(force) 전달, 서버 에러 그대로 전달
+/// 3. 자동 로그인: 세션 확인 결과(역할·약관 필요 여부) 전달
+/// 4. 최초 비밀번호 변경: 아이디 공백 제거 후 전달, 실패 전달
+/// 5. 로그아웃: Repository 로그아웃이 끝나면 완료
 
 final class LoginUseCaseTests: XCTestCase {
 
-    // MARK: - Properties
-
-    /// 테스트 대상 (System Under Test)
     private var sut: LoginUseCase!
-    /// 가짜 Repository
-    private var mockRepository: MockAuthRepository!
-    /// RxSwift 구독 해제용
-    private var disposeBag: DisposeBag!
+    private var repository: StubAuthRepository!
 
-    // MARK: - Setup / Teardown
-
-    /// 각 테스트 메서드 실행 전에 호출
-    /// - 매번 새로운 Mock + UseCase를 생성 → 테스트 간 상태 격리
     override func setUp() {
         super.setUp()
-        mockRepository = MockAuthRepository()
-        sut = LoginUseCase(repository: mockRepository)
-        disposeBag = DisposeBag()
+        repository = StubAuthRepository()
+        sut = LoginUseCase(repository: repository)
     }
 
-    /// 각 테스트 메서드 실행 후에 호출
-    /// - 메모리 해제로 테스트 간 간섭 방지
     override func tearDown() {
         sut = nil
-        mockRepository = nil
-        disposeBag = nil
+        repository = nil
         super.tearDown()
     }
 
-    // MARK: - 입력 검증 테스트
+    // MARK: - 1. 입력 검증
 
-    /// 빈 ID → emptyId 에러
-    func test_빈_아이디_입력시_emptyId_에러() {
-        // given: Mock 설정 불필요 (검증 단계에서 걸러짐)
-        let expectation = expectation(description: "emptyId 에러 발생")
+    func test_빈_아이디면_emptyId_에러이고_서버에_보내지_않는다() {
+        let error = awaitFailure(sut.execute(id: "", password: "pw"))
 
-        // when: 빈 ID로 로그인 시도
-        sut.execute(id: "", password: "990101")
-            .subscribe(
-                onSuccess: { _ in
-                    XCTFail("성공하면 안 됨")
-                },
-                onFailure: { error in
-                    // then: emptyId 에러인지 확인
-                    XCTAssertTrue(error is LoginError)
-                    XCTAssertEqual(error as? LoginError, .emptyId)
-                    expectation.fulfill()
-                }
-            )
-            .disposed(by: disposeBag)
-
-        wait(for: [expectation], timeout: 1.0)
-
-        // Repository가 호출되지 않았는지 확인 (검증 단계에서 이미 차단)
-        XCTAssertEqual(mockRepository.loginCallCount, 0)
+        XCTAssertEqual(error as? LoginError, .emptyId)
+        XCTAssertEqual(repository.loginCallCount, 0)
     }
 
-    /// 공백만 있는 ID → emptyId 에러 (.trimmed 동작 확인)
-    func test_공백만_있는_아이디_입력시_emptyId_에러() {
-        let expectation = expectation(description: "공백 ID 에러")
+    func test_공백만_있는_아이디는_빈_아이디로_본다() {
+        let error = awaitFailure(sut.execute(id: "   ", password: "pw"))
 
-        sut.execute(id: "   ", password: "990101")
-            .subscribe(
-                onSuccess: { _ in XCTFail("성공하면 안 됨") },
-                onFailure: { error in
-                    XCTAssertEqual(error as? LoginError, .emptyId)
-                    expectation.fulfill()
-                }
-            )
-            .disposed(by: disposeBag)
-
-        wait(for: [expectation], timeout: 1.0)
-        XCTAssertEqual(mockRepository.loginCallCount, 0)
+        XCTAssertEqual(error as? LoginError, .emptyId)
+        XCTAssertEqual(repository.loginCallCount, 0)
     }
 
-    /// 빈 비밀번호 → emptyPassword 에러
-    func test_빈_비밀번호_입력시_emptyPassword_에러() {
-        let expectation = expectation(description: "emptyPassword 에러")
+    func test_빈_비밀번호면_emptyPassword_에러이고_서버에_보내지_않는다() {
+        let error = awaitFailure(sut.execute(id: "tourist01", password: ""))
 
-        sut.execute(id: "홍길동", password: "")
-            .subscribe(
-                onSuccess: { _ in XCTFail("성공하면 안 됨") },
-                onFailure: { error in
-                    XCTAssertEqual(error as? LoginError, .emptyPassword)
-                    expectation.fulfill()
-                }
-            )
-            .disposed(by: disposeBag)
-
-        wait(for: [expectation], timeout: 1.0)
-        XCTAssertEqual(mockRepository.loginCallCount, 0)
+        XCTAssertEqual(error as? LoginError, .emptyPassword)
+        XCTAssertEqual(repository.loginCallCount, 0)
     }
 
-    // MARK: - 로그인 성공 테스트
+    // MARK: - 2. 로그인
 
-    /// 유효한 입력 → 로그인 성공 → UserInfo 반환
-    func test_유효한_입력시_로그인_성공() {
-        // given: Mock에 성공 응답 설정
-        mockRepository.loginResult = .success(TestFixtures.loginSuccess)
+    func test_로그인_성공시_응답을_그대로_전달한다() {
+        repository.loginResult = .success(TestFixtures.loginSuccess)
 
-        let expectation = expectation(description: "로그인 성공")
+        let response = awaitSuccess(sut.execute(id: "tourist01", password: "pw"))
 
-        // when
-        sut.execute(id: "홍길동", password: "990101")
-            .subscribe(
-                onSuccess: { userInfo in
-                    // then: UserInfo가 올바르게 반환되는지 확인
-                    XCTAssertEqual(userInfo.id, "user123")
-                    XCTAssertEqual(userInfo.name, "테스트유저")
-                    XCTAssertEqual(userInfo.userType, .tourist)
-                    expectation.fulfill()
-                },
-                onFailure: { error in
-                    XCTFail("실패하면 안 됨: \(error)")
-                }
-            )
-            .disposed(by: disposeBag)
-
-        wait(for: [expectation], timeout: 1.0)
-
-        // Repository가 정확히 1번 호출되었는지 확인
-        XCTAssertEqual(mockRepository.loginCallCount, 1)
+        XCTAssertEqual(response?.user.id, "user123")
+        XCTAssertEqual(response?.user.userType, .tourist)
+        XCTAssertEqual(repository.loginCallCount, 1)
     }
 
-    // MARK: - 서버 에러 테스트
+    func test_아이디_앞뒤_공백을_지우고_보낸다() {
+        repository.loginResult = .success(TestFixtures.loginSuccess)
 
-    /// 서버 에러 시 에러가 그대로 전달되는지 확인
-    func test_서버_에러시_에러_전달() {
-        // given: Mock에 실패 응답 설정
-        mockRepository.loginResult = .failure(LoginError.invalidCredentials)
+        _ = awaitSuccess(sut.execute(id: "  tourist01 ", password: "pw"))
 
-        let expectation = expectation(description: "서버 에러")
-
-        // when
-        sut.execute(id: "홍길동", password: "000000")
-            .subscribe(
-                onSuccess: { _ in XCTFail("성공하면 안 됨") },
-                onFailure: { error in
-                    // then
-                    XCTAssertEqual(error as? LoginError, .invalidCredentials)
-                    expectation.fulfill()
-                }
-            )
-            .disposed(by: disposeBag)
-
-        wait(for: [expectation], timeout: 1.0)
-        XCTAssertEqual(mockRepository.loginCallCount, 1)
+        XCTAssertEqual(repository.loginRequests.first?.id, "tourist01")
     }
 
-    // MARK: - 자동 로그인 테스트
+    func test_기본_로그인은_force_없이_보낸다() {
+        repository.loginResult = .success(TestFixtures.loginSuccess)
 
-    /// 토큰이 있으면 자동 로그인 가능
-    func test_토큰_있으면_자동로그인_true() {
-        mockRepository.savedToken = "some-token"
-        XCTAssertTrue(sut.checkAutoLogin())
+        _ = awaitSuccess(sut.execute(id: "tourist01", password: "pw"))
+
+        XCTAssertEqual(repository.loginRequests.first?.force, false)
     }
 
-    /// 토큰이 없으면 자동 로그인 불가
-    func test_토큰_없으면_자동로그인_false() {
-        mockRepository.savedToken = nil
-        XCTAssertFalse(sut.checkAutoLogin())
+    func test_강제_로그인_요청은_force를_그대로_전달한다() {
+        repository.loginResult = .success(TestFixtures.loginSuccess)
+
+        _ = awaitSuccess(sut.execute(id: "tourist01", password: "pw", force: true))
+
+        XCTAssertEqual(repository.loginRequests.first?.force, true)
+    }
+
+    func test_서버_에러는_그대로_전달한다() {
+        repository.loginResult = .failure(LoginError.invalidCredentials(remaining: 2))
+
+        let error = awaitFailure(sut.execute(id: "tourist01", password: "wrong"))
+
+        XCTAssertEqual(error as? LoginError, .invalidCredentials(remaining: 2))
+        XCTAssertEqual(repository.loginCallCount, 1)
+    }
+
+    // MARK: - 3. 자동 로그인 (세션 확인)
+
+    func test_세션_확인_결과를_그대로_전달한다() {
+        repository.sessionResult = .success(SessionState(userType: .guide, requiresAgreement: true))
+
+        let state = awaitSuccess(sut.validateSession())
+
+        XCTAssertEqual(state?.userType, .guide)
+        XCTAssertEqual(state?.requiresAgreement, true)
+        XCTAssertEqual(repository.validateSessionCallCount, 1)
+    }
+
+    func test_세션이_만료되면_에러를_전달한다() {
+        repository.sessionResult = .failure(StubError.notConfigured)
+
+        let error = awaitFailure(sut.validateSession())
+
+        XCTAssertNotNil(error)
+    }
+
+    // MARK: - 4. 최초 비밀번호 변경
+
+    func test_비밀번호_변경시_아이디_공백을_지우고_보낸다() {
+        _ = awaitSuccess(sut.changeInitialPassword(username: " tourist01 ", currentPassword: "temp", newPassword: "new-pw"))
+
+        let call = repository.passwordChanges.first
+        XCTAssertEqual(call?.username, "tourist01")
+        XCTAssertEqual(call?.currentPassword, "temp")
+        XCTAssertEqual(call?.newPassword, "new-pw")
+    }
+
+    func test_비밀번호_변경_실패_문구를_그대로_전달한다() {
+        repository.passwordChangeResult = .failure(PasswordChangeError.rejected("사용할 수 없는 비밀번호예요."))
+
+        let error = awaitFailure(sut.changeInitialPassword(username: "tourist01", currentPassword: "temp", newPassword: "1"))
+
+        XCTAssertEqual(error?.localizedDescription, "사용할 수 없는 비밀번호예요.")
+    }
+
+    // MARK: - 5. 로그아웃
+
+    func test_로그아웃은_Repository_로그아웃이_끝나면_완료된다() {
+        let done = awaitSuccess(sut.logout())
+
+        XCTAssertNotNil(done)
+        XCTAssertEqual(repository.logoutCallCount, 1)
+    }
+}
+
+// MARK: - Rx 헬퍼
+/// Single을 기다려 성공값이나 에러를 꺼냅니다 (Stub은 동기로 끝나 짧은 대기로 충분)
+
+private extension XCTestCase {
+
+    func awaitSuccess<T>(_ single: Single<T>, file: StaticString = #filePath, line: UInt = #line) -> T? {
+        var value: T?
+        let done = expectation(description: "success")
+        let disposable = single.subscribe(
+            onSuccess: { value = $0; done.fulfill() },
+            onFailure: { XCTFail("성공해야 하는데 실패: \($0)", file: file, line: line); done.fulfill() }
+        )
+        wait(for: [done], timeout: 1)
+        disposable.dispose()
+        return value
+    }
+
+    func awaitFailure<T>(_ single: Single<T>, file: StaticString = #filePath, line: UInt = #line) -> Error? {
+        var error: Error?
+        let done = expectation(description: "failure")
+        let disposable = single.subscribe(
+            onSuccess: { _ in XCTFail("실패해야 하는데 성공", file: file, line: line); done.fulfill() },
+            onFailure: { error = $0; done.fulfill() }
+        )
+        wait(for: [done], timeout: 1)
+        disposable.dispose()
+        return error
     }
 }

@@ -13,50 +13,80 @@ import RxSwift
 protocol TravelerRepositoryProtocol {
 
     // MARK: - Auth
-    func travelerLogin(phone: String, birthDate: String, inviteCode: String) -> Single<TravelerAuthResponseDTO>
+    func travelerLogin(username: String, password: String, tripId: Int?) -> Single<TravelerAuthResponseDTO>
     func logout() -> Single<TravelerLogoutResponseDTO>
 
     // MARK: - Profile
     func fetchMe() -> Single<TravelerMeDTO>
-    func updateMe(_ request: TravelerProfileUpdateRequest) -> Single<TravelerPublicDTO>
 
-    // MARK: - Agreements
-    func fetchAgreements() -> Single<TravelerAgreementDTO>
     func updateAgreements(
         termsAccepted: Bool,
         locationAccepted: Bool?,
         notificationAccepted: Bool?
     ) -> Single<TravelerAgreementDTO>
 
-    // MARK: - Trip & Home
-    func fetchTrip() -> Single<TravelerTripDTO>
     func fetchHome() -> Single<TravelerHomeDTO>
-    func fetchCalendar() -> Single<TravelerCalendarDTO>
 
     // MARK: - Schedules
+    // MARK: - 개인 일정
+
+    /// 개인 일정 목록
+    func fetchPersonalSchedules() -> Single<[TravelerPersonalScheduleDTO]>
+
+    /// 개인 일정 생성 — 응답의 overlapWarning으로 공용 일정 겹침을 알 수 있습니다.
+    func createPersonalSchedule(_ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO>
+
+    /// 개인 일정 수정
+    func updatePersonalSchedule(id: Int, _ request: TravelerPersonalScheduleRequest) -> Single<TravelerPersonalScheduleDTO>
+
+    /// 개인 일정 삭제
+    func deletePersonalSchedule(id: Int) -> Single<Void>
+
+    /// 현지 표현 — 여행 목적지 언어의 회화 목록
+    func fetchLocalPhrases() -> Single<TravelerLocalPhrasesDTO>
+
     func fetchSchedules() -> Single<[TravelerScheduleDTO]>
-    func fetchSchedule(id: Int) -> Single<TravelerScheduleDTO>
 
     // MARK: - Notices
     func fetchNotices() -> Single<[TravelerNoticeDTO]>
-    func fetchNotice(id: Int) -> Single<TravelerNoticeDTO>
 
-    // MARK: - Checklist
-    func fetchChecklists() -> Single<[TravelerChecklistItemDTO]>
-    func toggleChecklist(itemId: Int, isChecked: Bool) -> Single<TravelerChecklistItemDTO>
+    /// 공지 읽음 처리 — 홈의 빨간 점을 없애는 기준
+    func markNoticeRead(id: Int) -> Single<Void>
 
-    // MARK: - Spots
-    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]>
     func fetchPopularSpots() -> Single<[TravelerSpotDTO]>
-    func fetchSpot(id: Int) -> Single<TravelerSpotDTO>
 
-    // MARK: - Map & Manager
-    func fetchMapPlaces() -> Single<[TravelerMapPlaceDTO]>
-    func fetchManagerContact() -> Single<TravelerManagerContactDTO>
+    /// 안내사(여행사)가 여행에 등록한 추천 스팟
+    func fetchRecommendedSpots() -> Single<[TravelerSpotDTO]>
+
+    // MARK: - 주변 스팟 / 안전
+
+    /// 상황별 검색 — 카테고리는 서버 enum (restaurant/accessibility/pet/convenience/mart)
+    func fetchNearbySpots(
+        category: String,
+        lat: Double,
+        lng: Double,
+        radius: Int?
+    ) -> Single<[TravelerNearbySpotDTO]>
+
+    /// 안전 요약 — 지도에 그릴 지오펜스(허용 반경)를 포함합니다
+    /// - Parameter dayNumber: 몇 일차의 허용 범위인지. nil이면 서버가 오늘로 판단합니다
+    ///   (여행 기간 밖이면 서버가 판단하지 못하고 실패합니다)
+    func fetchSafetySummary(dayNumber: Int?) -> Single<TravelerSafetySummaryDTO>
+
+    /// 위치 스냅샷 전송 — 이탈 판정은 서버가 합니다
+    func sendLocationSnapshot(
+        latitude: Double,
+        longitude: Double,
+        accuracyM: Double?
+    ) -> Single<Void>
+
     func sendEmergencyRequest(
         message: String,
         latitude: String?,
         longitude: String?,
         accuracyM: String?
     ) -> Single<TravelerEmergencyRequestDTO>
+
+    /// 공지 변경 알림 — 이벤트가 오면 REST로 공지를 다시 불러옵니다
+    func observeNoticeEvents() -> Observable<Void>
 }

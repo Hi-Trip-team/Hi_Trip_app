@@ -1,0 +1,214 @@
+import SwiftUI
+
+// MARK: - ChatBubbleView
+/// 채팅 말풍선
+///
+/// 피그마 채팅방 (1:1 / 단체) 기준
+/// - 내 말풍선 #0C46C0 / 상대 말풍선 #F7F7F9 / 전송 실패 #E5F4FF
+/// - 모서리 12, 보내는 쪽 아래 모서리만 각짐
+/// - 좌우 여백: 상대 30, 나 24
+///
+/// "읽음" 표시는 하지 않습니다. 디자인에는 읽음이면 시각이 초록(#219E4D)에
+/// 겹친 체크로 표시되지만, 서버가 메시지별 읽음 여부를 주지 않습니다.
+/// 앱이 확실히 아는 전송 상태만 회색으로 보여줍니다.
+
+struct ChatBubbleView: View {
+
+    let message: ChatMessage
+    /// 전송 실패한 메시지를 탭했을 때
+    var onRetry: (() -> Void)?
+
+    private var isMine: Bool { message.isMine }
+
+    /// 음성 메시지 재생 — 방 전체에서 하나만 재생되도록 공유
+    @ObservedObject private var audioPlayer = ChatAudioPlayer.shared
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: AppSpacing.xs) {
+            if isMine {
+                Spacer(minLength: 40)
+                if message.sendFailed {
+                    failureBadge
+                } else {
+                    statusColumn
+                }
+                bubbleColumn
+            } else {
+                bubbleColumn
+                timeText
+                Spacer(minLength: 40)
+            }
+        }
+        .padding(.leading, isMine ? 20 : 30)
+        .padding(.trailing, isMine ? 24 : 20)
+    }
+
+    // MARK: - 말풍선
+
+    /// 말풍선과, 실패했을 때 그 아래 붙는 안내 문구
+    private var bubbleColumn: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            bubble
+
+            if message.sendFailed {
+                Text("전송 실패 — 탭하여 재전송·삭제")
+                    .font(AppFont.micro)
+                    .foregroundColor(AppColor.danger)
+                    .padding(.leading, 10)
+            }
+        }
+    }
+
+    private var bubble: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            ForEach(message.attachments) { attachment in
+                attachmentView(attachment)
+            }
+
+            if !message.content.isEmpty {
+                Text(message.content)
+                    .font(AppFont.body)
+                    .lineSpacing(6)
+                    .foregroundColor(textColor)
+            }
+        }
+            // 사진만 보낸 메시지는 여백을 줄여 사진이 말풍선을 채우게 합니다
+            .padding(.horizontal, isPhotoOnly ? 4 : 12)
+            .padding(.vertical, isPhotoOnly ? 4 : 10)
+            .background(bubbleColor)
+            .clipShape(bubbleShape)
+            .opacity(message.isSending ? 0.6 : 1)
+            .contentShape(Rectangle())
+            .onTapGesture { if message.sendFailed { onRetry?() } }
+    }
+
+    /// 보내는 쪽 아래 모서리만 각진 형태
+    private var bubbleShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 12,
+            bottomLeadingRadius: 12,
+            bottomTrailingRadius: 0,
+            topTrailingRadius: 12
+        )
+    }
+
+    /// 사진은 그대로, 동영상·음성은 아이콘 줄로 보여줍니다.
+    @ViewBuilder
+    private func attachmentView(_ attachment: MessageAttachment) -> some View {
+        if attachment.isPhoto {
+            // 다운로드 주소는 도메인 없는 경로이고 로그인이 필요해 RemoteImage로 받습니다
+            RemoteImage(url: RemoteImageCache.resolve(attachment.downloadUrl)) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFill()
+                } else {
+                    Rectangle().fill(AppColor.divider)
+                }
+            }
+            .frame(width: 180, height: 180)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+        } else if attachment.isAudio {
+            // 누르면 재생, 다시 누르면 멈춤
+            Button { audioPlayer.toggle(attachment) } label: {
+                HStack(spacing: AppSpacing.xs) {
+                    if audioPlayer.loadingId == attachment.id {
+                        ProgressView().tint(textColor)
+                    } else {
+                        Image(systemName: audioPlayer.playingId == attachment.id ? "stop.circle.fill" : "play.circle.fill")
+                            .font(AppFont.title3)
+                    }
+                    Image(systemName: "waveform")
+                        .font(AppFont.bodyL)
+                    Text(attachmentLabel(attachment))
+                        .font(AppFont.label)
+                }
+                .foregroundColor(textColor)
+                .padding(.vertical, 2)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(audioPlayer.playingId == attachment.id ? "음성 메시지 정지" : "음성 메시지 재생")
+        } else {
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: "play.rectangle.fill")
+                    .font(AppFont.bodyL)
+                Text(attachmentLabel(attachment))
+                    .font(AppFont.label)
+            }
+            .foregroundColor(textColor)
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func attachmentLabel(_ attachment: MessageAttachment) -> String {
+        if attachment.isAudio {
+            let seconds = attachment.duration ?? 0
+            return String(format: "음성 %d:%02d", seconds / 60, seconds % 60)
+        }
+        return attachment.originalName ?? "동영상"
+    }
+
+    /// 사진 한 장만 있고 본문이 없는 메시지
+    private var isPhotoOnly: Bool {
+        message.content.isEmpty && message.attachments.allSatisfy(\.isPhoto)
+            && !message.attachments.isEmpty
+    }
+
+    private var bubbleColor: Color {
+        if message.sendFailed { return AppColor.infoSubtle }
+        return isMine ? AppColor.brand : AppColor.surfaceMuted
+    }
+
+    private var textColor: Color {
+        if message.sendFailed { return AppColor.textStrong }
+        return isMine ? .white : AppColor.textStrong
+    }
+
+    // MARK: - 시각 / 전송 상태
+
+    private var timeText: some View {
+        Text(message.timeString)
+            .font(AppFont.caption)
+            .foregroundColor(AppColor.textMuted)
+    }
+
+    /// 내 메시지 왼쪽에 붙는 시각과 전송 상태
+    private var statusColumn: some View {
+        HStack(spacing: AppSpacing.xxs) {
+            timeText
+            Image(systemName: message.isSending ? "clock" : "checkmark")
+                .font(AppFont.microSemiBold)
+                .foregroundColor(AppColor.textMuted)
+        }
+    }
+
+    /// 전송 실패 표시 — 말풍선 왼쪽 바깥에 붙습니다
+    private var failureBadge: some View {
+        ZStack {
+            Circle()
+                .fill(AppColor.danger)
+                .frame(width: 22, height: 22)
+            Text("!")
+                .font(AppFont.labelBold)
+                .foregroundColor(.white)
+        }
+        // 실패 안내 문구 높이만큼 위로 올려 말풍선과 나란히 둡니다
+        .padding(.bottom, AppSpacing.lg)
+    }
+}
+
+// MARK: - 날짜 구분선
+
+struct ChatDateSeparatorView: View {
+
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(AppFont.label)
+            .foregroundColor(AppColor.textMuted)
+            .padding(.horizontal, 14)
+            .frame(height: 32)
+            .background(AppColor.surfaceMuted)
+            .cornerRadius(AppRadius.sm)
+    }
+}

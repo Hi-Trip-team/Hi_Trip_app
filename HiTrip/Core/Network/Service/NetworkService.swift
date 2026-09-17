@@ -1,0 +1,420 @@
+import Foundation
+import RxSwift
+
+// MARK: - NetworkService
+/// URLSession 기반 네트워크 서비스
+///
+/// 설계 의도:
+/// - Moya/Alamofire 없이 URLSession을 직접 래핑하여 네트워크 통신 구현
+/// - RxSwift Single과 async/await 두 가지 인터페이스 제공
+/// - 테스트 시 URLSession을 교체할 수 있도록 생성자 주입 지원
+///
+/// 면접 포인트:
+/// "왜 Moya를 안 쓰셨나요?"
+/// → "URLSession의 동작 원리(Request 빌드, Response 파싱, 에러 핸들링)를
+///    직접 구현하여 네트워크 레이어의 기본기를 이해하고자 했습니다."
+
+final class NetworkService {
+
+    // MARK: - Singleton (프로덕션용)
+
+    static let shared = NetworkService()
+
+    // MARK: - Properties
+
+    private let baseURL: String
+    private let session: URLSession
+
+    /// 관리자 세션용 CSRF 토큰
+    /// GET /api/v1/staff/auth/csrf/ 응답으로 채우고, 로그아웃 시 nil로 되돌립니다.
+    static var csrfToken: String?
+
+    // MARK: - Init
+
+    /// 프로덕션 전용 싱글턴 초기화
+    /// - private으로 외부에서 직접 생성 방지
+    private init() {
+        self.baseURL = APIEnvironment.current.baseURL
+        self.session = URLSession(configuration: Self.defaultConfiguration)
+    }
+
+    /// 테스트용 초기화 — Mock URLSession 주입 가능
+    /// - Parameters:
+    ///   - baseURL: 테스트 서버 URL
+    ///   - session: URLProtocol을 등록한 테스트용 URLSession
+    init(baseURL: String, session: URLSession = .shared) {
+        self.baseURL = baseURL
+        self.session = session
+    }
+
+    // MARK: - 연결 정책
+
+    /// 응답 대기 15초 — 기본 60초면 서버가 멈췄을 때 사용자가 1분 동안 로딩만 보게 됩니다
+    private static let defaultConfiguration: URLSessionConfiguration = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 60
+        config.waitsForConnectivity = false
+        return config
+    }()
+
+    /// 조회(GET)만 자동 재시도 — 저장·전송은 성공 여부가 불분명할 때 반복하면 안 됩니다
+    private static let maxRetryCount = 2
+
+    /// 금방 실패하는 연결 오류만 재시도합니다. 응답 대기 초과(timeout)는 이미 15초를 기다렸으므로 재시도하지 않습니다.
+    private static func isTransient(_ error: Error) -> Bool {
+        switch error as? HiTripError {
+        case .noConnection?, .networkFailure?: return true
+        default: return false
+        }
+    }
+
+    private func retryingIfSafe<T>(_ single: Single<T>, method: APIEndpoint.HTTPMethod) -> Single<T> {
+        guard method == .get else { return single }
+        return single.retry(when: { errors in
+            errors.enumerated().flatMap { attempt, error -> Observable<Int> in
+                guard attempt < Self.maxRetryCount, Self.isTransient(error) else { return .error(error) }
+                // 1초 → 2초 간격
+                return Observable<Int>.timer(.seconds(attempt + 1), scheduler: MainScheduler.instance)
+            }
+        })
+    }
+
+    // MARK: - RxSwift 요청 (메인 API)
+
+    /// Single<T>로 API 호출 결과를 반환
+    ///
+    /// 동작 흐름:
+    /// 1. APIEndpoint → URLRequest 변환
+    /// 2. URLSession.dataTask 실행
+    /// 3. HTTP 상태코드 검증 (200~299)
+    /// 4. JSON → T 디코딩
+    /// 5. Single.success 또는 Single.failure 반환
+    ///
+    /// - Parameters:
+    ///   - endpoint: 요청할 API 엔드포인트
+    ///   - type: 디코딩할 응답 타입
+    /// - Returns: 디코딩된 응답을 담은 Single
+    func request<T: Decodable>(
+        _ endpoint: APIEndpoint,
+        type: T.Type
+    ) -> Single<T> {
+        let base = Single<T>.create { [weak self] single in
+            guard let self,
+                  let request = self.buildRequest(endpoint) else {
+                Self.log("❌ [Network] URL 생성 실패 | path: \(endpoint.path)")
+                single(.failure(HiTripError.invalidURL))
+                return Disposables.create()
+            }
+
+            // 디버그: 모든 API 요청 로깅
+            let method = endpoint.method.rawValue
+            let url = request.url?.absoluteString ?? ""
+            Self.log("🌐 [Network] \(method) \(url)")
+            if let body = endpoint.body {
+                Self.log("   📦 Body: \(Self.redacted(body))")
+            }
+
+            let task = self.session.dataTask(with: request) { data, response, error in
+                // 1) 네트워크 에러 (인터넷 끊김, 타임아웃 등)
+                if let error {
+                    let hiTripError = HiTripError.from(urlError: error)
+                    Self.log("❌ [Network] \(hiTripError.debugDescription) | \(url)")
+                    single(.failure(hiTripError))
+                    return
+                }
+
+                // 2) HTTPURLResponse 캐스팅 확인
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    single(.failure(HiTripError.invalidResponse))
+                    return
+                }
+
+                // 3) HTTP 상태코드 검증 — 서버 에러 body를 파싱하여 구체적인 에러 생성
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    let hiTripError = HiTripError.from(
+                        statusCode: httpResponse.statusCode,
+                        data: data,
+                        retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    )
+                    Self.log("❌ [Network] \(hiTripError.debugDescription) | URL: \(url)")
+
+                    // 401 토큰 만료 시 자동 로그아웃 알림 (NotificationCenter)
+                    if hiTripError.requiresReauth {
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(
+                                name: .hiTripTokenExpired,
+                                object: nil,
+                                userInfo: ["error": hiTripError]
+                            )
+                        }
+                    }
+
+                    single(.failure(hiTripError))
+                    return
+                }
+
+                // 4) 데이터 존재 확인
+                guard let data else {
+                    single(.failure(HiTripError.noData))
+                    return
+                }
+
+                // 디버그: 성공 응답 본문 출력
+                if let body = String(data: data, encoding: .utf8) {
+                    Self.log("✅ [Network] HTTP \(httpResponse.statusCode) | URL: \(url) | Body: \(Self.redacted(String(body.prefix(500))))")
+                }
+
+                // 5) 본문 없는 성공 응답 (204 No Content, DELETE 등)
+                //    빈 바디를 JSON으로 파싱하려 하면 실패하므로 여기서 끊습니다.
+                if data.isEmpty || httpResponse.statusCode == 204 {
+                    if let empty = EmptyResponse() as? T {
+                        single(.success(empty))
+                    } else {
+                        single(.failure(HiTripError.noData))
+                    }
+                    return
+                }
+
+                // 6) JSON 디코딩
+                do {
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .custom(NetworkService.flexibleDateDecoder)
+                    decoder.keyDecodingStrategy = .convertFromSnakeCase
+                    let decoded = try decoder.decode(T.self, from: data)
+                    single(.success(decoded))
+                } catch {
+                    Self.log("❌ [Network] 디코딩 실패 | Type: \(T.self) | Error: \(error)")
+                    single(.failure(HiTripError.decodingFailed(error.localizedDescription)))
+                }
+            }
+
+            task.resume()
+
+            // Disposable: 구독 해제 시 네트워크 요청 취소
+            return Disposables.create { task.cancel() }
+        }
+        return retryingIfSafe(base, method: endpoint.method)
+    }
+
+    // MARK: - async/await 요청 (Swift Concurrency)
+
+    /// async/await 방식의 API 호출
+    /// - RxSwift와 병행하여 Swift Concurrency도 지원
+    /// - 향후 Combine이나 순수 async 코드에서 활용 가능
+    func request<T: Decodable>(
+        _ endpoint: APIEndpoint,
+        type: T.Type
+    ) async throws -> T {
+        guard let request = buildRequest(endpoint) else {
+            throw HiTripError.invalidURL
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw HiTripError.from(urlError: error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw HiTripError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let hiTripError = HiTripError.from(
+                        statusCode: httpResponse.statusCode,
+                        data: data,
+                        retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    )
+            if hiTripError.requiresReauth {
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .hiTripTokenExpired, object: nil)
+                }
+            }
+            throw hiTripError
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .custom(NetworkService.flexibleDateDecoder)
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw HiTripError.decodingFailed(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Date Decoder
+
+    /// 백엔드에서 오는 다양한 날짜 포맷을 유연하게 파싱
+    /// - ISO 8601 datetime: "2025-03-08T02:46:56.037Z"
+    /// - Date only: "2025-03-08"
+    static func flexibleDateDecoder(_ decoder: Decoder) throws -> Date {
+        let container = try decoder.singleValueContainer()
+        let dateString = try container.decode(String.self)
+
+        // ISO 8601 with fractional seconds
+        let iso8601Formatter = ISO8601DateFormatter()
+        iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso8601Formatter.date(from: dateString) {
+            return date
+        }
+
+        // ISO 8601 without fractional seconds
+        iso8601Formatter.formatOptions = [.withInternetDateTime]
+        if let date = iso8601Formatter.date(from: dateString) {
+            return date
+        }
+
+        // Date only (yyyy-MM-dd)
+        let dateOnly = DateFormatter()
+        dateOnly.dateFormat = "yyyy-MM-dd"
+        dateOnly.locale = Locale(identifier: "en_US_POSIX")
+        if let date = dateOnly.date(from: dateString) {
+            return date
+        }
+
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Cannot decode date: \(dateString)"
+        )
+    }
+
+    // MARK: - Private: URLRequest 빌드
+
+    /// APIEndpoint 정보를 URLRequest로 변환
+    ///
+    /// 구성 요소:
+    /// - baseURL + endpoint.path → URL
+    /// - queryItems → URL 쿼리 파라미터
+    /// - method → HTTP 메서드
+    /// - body → JSON 직렬화된 HTTP Body
+    /// - Authorization → Keychain에서 토큰 자동 주입
+    private func buildRequest(_ endpoint: APIEndpoint) -> URLRequest? {
+        // URL 조합
+        var components = URLComponents(string: baseURL + endpoint.path)
+        components?.queryItems = endpoint.queryItems
+
+        guard let url = components?.url else { return nil }
+
+        // URLRequest 설정
+        var request = URLRequest(url: url)
+        request.httpMethod = endpoint.method.rawValue
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // 인증 주입 — 여행객은 Bearer token, 관리자는 세션 쿠키 + CSRF
+        //
+        // 관리자 API(/api/v1/staff/, /api/monitoring/, /api/v1/notices/, /api/trips/)는
+        // sessionid 쿠키 기반이라 URLSession의 공유 쿠키 저장소가 자동으로 붙습니다.
+        // 쓰기 요청에만 X-CSRFToken 헤더를 추가로 실어야 Django가 통과시킵니다.
+        // 안내사의 Keychain 토큰은 로그인 표시용 값이라 Bearer로 보내면 토큰 인증이 거절합니다.
+        let keychain = KeychainManager.shared
+        if keychain.getUserType() != UserType.guide.rawValue, let token = keychain.getToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        // Django는 로그인할 때 CSRF 토큰을 새로 발급합니다(rotate).
+        // 로그인 전에 받아 둔 값보다 쿠키의 최신 값을 먼저 써야 쓰기 요청이 403으로 막히지 않습니다.
+        if endpoint.method != .get, let csrf = csrfCookieValue() ?? NetworkService.csrfToken {
+            request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+            request.setValue(baseURL, forHTTPHeaderField: "Referer")
+        }
+
+        // HTTP Body 직렬화
+        if let body = endpoint.body {
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        }
+
+        return request
+    }
+
+    /// 쿠키 저장소에 있는 csrftoken을 읽습니다.
+    ///
+    /// 정적 프로퍼티에만 담아두면 앱을 재시작했을 때 사라져서
+    /// 세션 쿠키는 살아 있는데 쓰기 요청만 "CSRF token missing"으로 막힙니다.
+    /// Django는 csrftoken 쿠키를 HttpOnly로 내리지 않으므로 여기서 읽을 수 있습니다.
+    /// 로그에 비밀번호·토큰이 남지 않도록 값을 가립니다
+    static func redacted(_ body: [String: Any]) -> [String: Any] {
+        body.reduce(into: [:]) { result, pair in
+            let key = pair.key.lowercased()
+            result[pair.key] = (key.contains("password") || key.contains("token")) ? "••••" : pair.value
+        }
+    }
+
+    /// 네트워크 로그 — Release 빌드에서는 아무것도 출력하지 않습니다 (기기 콘솔에 개인정보·토큰이 남지 않게)
+    static func log(_ message: @autoclosure () -> String) {
+        #if DEBUG
+        print(message())
+        #endif
+    }
+
+    /// 응답 본문(JSON 문자열)에서 비밀번호·토큰 값을 가립니다
+    static func redacted(_ text: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: #""([A-Za-z_]*(?:token|password)[A-Za-z_]*)"\s*:\s*"[^"]*""#,
+            options: [.caseInsensitive]
+        ) else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: #""$1":"••••""#)
+    }
+
+    /// 안내사 세션 쿠키·CSRF를 지웁니다 (로그아웃, 자동 로그인 해제 시)
+    static func clearSession() {
+        csrfToken = nil
+        let storage = HTTPCookieStorage.shared
+        guard let url = URL(string: APIEnvironment.current.baseURL),
+              let cookies = storage.cookies(for: url) else { return }
+        cookies.forEach(storage.deleteCookie)
+    }
+
+    private func csrfCookieValue() -> String? {
+        guard let url = URL(string: baseURL),
+              let cookies = HTTPCookieStorage.shared.cookies(for: url) else { return nil }
+        return cookies.first { $0.name == "csrftoken" }?.value
+    }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    /// 토큰 만료 시 발송 — AppDelegate/SceneDelegate에서 수신하여 로그인 화면으로 전환
+    static let hiTripTokenExpired = Notification.Name("hiTripTokenExpired")
+}
+
+// MARK: - NetworkError (Deprecated — 호환용)
+
+/// 기존 네트워크 에러 타입 (HiTripError로 마이그레이션 권장)
+/// @available(*, deprecated, message: "Use HiTripError instead")
+enum NetworkError: LocalizedError {
+    /// URL 조합 실패
+    case invalidURL
+    /// 네트워크 요청 실패 (인터넷 끊김, 타임아웃 등)
+    case requestFailed(String)
+    /// HTTPURLResponse 캐스팅 실패
+    case invalidResponse
+    /// 2xx 외의 HTTP 상태코드
+    case httpError(Int)
+    /// 응답 데이터 없음
+    case noData
+    /// JSON 디코딩 실패
+    case decodingFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "잘못된 URL입니다."
+        case .requestFailed(let msg):
+            return "요청 실패: \(msg)"
+        case .invalidResponse:
+            return "서버 응답이 올바르지 않습니다."
+        case .httpError(let code):
+            return "서버 오류 (HTTP \(code))"
+        case .noData:
+            return "데이터가 없습니다."
+        case .decodingFailed(let msg):
+            return "데이터 파싱 실패: \(msg)"
+        }
+    }
+}

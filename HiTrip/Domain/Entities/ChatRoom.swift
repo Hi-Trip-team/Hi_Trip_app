@@ -29,6 +29,15 @@ struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
     /// 단체톡방 여부
     var isGroupChat: Bool
 
+    /// 연결된 여행 ID — 안내사 "진행중" 필터, 신고·차단에 씁니다
+    var tripId: Int?
+
+    /// 1:1 방 상대 관광객 번호 — 신고·차단 대상
+    var peerTouristId: Int?
+
+    /// 단체방 참여자(관광객) — 번호와 이름. 메시지를 보낸 사람을 신고할 때 씁니다
+    var peerTourists: [ChatPeerTourist] = []
+
     /// 마지막 메시지 내용
     var lastMessage: String
 
@@ -51,6 +60,9 @@ struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
         participantName: String,
         participantType: String = "staff",
         isGroupChat: Bool = false,
+        tripId: Int? = nil,
+        peerTouristId: Int? = nil,
+        peerTourists: [ChatPeerTourist] = [],
         lastMessage: String = "",
         lastMessageDate: Date = Date(),
         unreadCount: Int = 0,
@@ -64,10 +76,21 @@ struct ChatRoom: Identifiable, Codable, Equatable, Hashable {
         self.participantName = participantName
         self.participantType = participantType
         self.isGroupChat = isGroupChat
+        self.tripId = tripId
+        self.peerTouristId = peerTouristId
+        self.peerTourists = peerTourists
         self.lastMessage = lastMessage
         self.lastMessageDate = lastMessageDate
         self.unreadCount = unreadCount
         self.isOnline = isOnline
         self.createdAt = createdAt
     }
+}
+
+// MARK: - 단체방 참여자
+/// 신고·차단은 관광객 번호(tourist_id)로 하는데, 메시지에는 사용자 번호만 있어
+/// 보낸 사람 이름으로 이 목록에서 찾습니다.
+struct ChatPeerTourist: Codable, Equatable, Hashable, Identifiable {
+    let id: Int
+    let name: String
 }

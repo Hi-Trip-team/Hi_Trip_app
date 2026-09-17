@@ -33,6 +33,47 @@ protocol ChatRepositoryProtocol {
     /// 메시지 조회 — 특정 채팅방의 모든 메시지 (시간순)
     func fetchMessages(chatRoomId: UUID) -> Single<[Message]>
 
+    /// 과거 메시지 페이지 — `before`보다 오래된 것부터 최대 limit개.
+    /// nextCursor가 nil이면 더 불러올 게 없습니다.
+    func fetchMessages(
+        chatRoomId: UUID,
+        before: Int?,
+        limit: Int
+    ) -> Single<(messages: [Message], nextCursor: Int?)>
+
     /// 메시지 읽음 처리 — 특정 채팅방의 모든 메시지를 읽음으로
     func markAsRead(chatRoomId: UUID) -> Single<Void>
+
+    // MARK: - 신고 · 차단 (심사 가이드라인 1.2)
+
+    /// 메시지·사용자 신고 — reason: harassment | spam | safety | other
+    func reportChat(roomId: Int, touristId: Int, messageId: Int?, reason: String, detail: String?) -> Single<Void>
+
+    /// 차단한 관광객 번호 목록
+    func fetchBlockedTouristIds() -> Single<[Int]>
+
+    func blockTourist(tripId: Int, touristId: Int) -> Single<Void>
+    func unblockTourist(tripId: Int, touristId: Int) -> Single<Void>
+
+    // MARK: - 첨부
+
+    /// 파일을 업로드하고 attachment_id를 돌려줍니다.
+    /// presign → PUT 업로드 두 단계를 저장소가 감춥니다.
+    func uploadAttachment(
+        chatRoomId: UUID,
+        data: Data,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        duration: Int?
+    ) -> Single<Int>
+
+    /// 첨부가 붙은 메시지 전송
+    func sendMessage(message: Message, attachmentIds: [Int]) -> Single<Message>
+
+    // MARK: - 실시간
+
+    /// 방에 새로 올라온 메시지 — 구독하는 동안 WebSocket을 유지합니다.
+    /// 내가 보낸 메시지도 오며, Message.id가 client_message_id라 전송 중인 말풍선과 맞출 수 있습니다.
+    func observeMessages(chatRoomId: UUID) -> Observable<Message>
 }

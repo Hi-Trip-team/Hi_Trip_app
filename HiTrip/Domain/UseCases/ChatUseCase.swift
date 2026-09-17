@@ -68,8 +68,53 @@ final class ChatUseCase {
 
     /// 메시지 읽음 처리
     /// - 검증 불필요 → 바로 Repository 호출
+    /// 과거 메시지 페이지 — 상단 스크롤 시 30개씩 불러옵니다.
+    func fetchOlderMessages(
+        chatRoomId: UUID,
+        before: Int?,
+        limit: Int = 30
+    ) -> Single<(messages: [Message], nextCursor: Int?)> {
+        return repository.fetchMessages(chatRoomId: chatRoomId, before: before, limit: limit)
+    }
+
+    /// 첨부 업로드 — attachment_id를 돌려줍니다
+    func uploadAttachment(
+        chatRoomId: UUID,
+        data: Data,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        duration: Int?
+    ) -> Single<Int> {
+        return repository.uploadAttachment(
+            chatRoomId: chatRoomId, data: data, mediaType: mediaType,
+            fileName: fileName, mimeType: mimeType, duration: duration
+        )
+    }
+
+    /// 첨부가 붙은 메시지 전송
+    func sendMessage(message: Message, attachmentIds: [Int]) -> Single<Message> {
+        return repository.sendMessage(message: message, attachmentIds: attachmentIds)
+    }
+
     func markAsRead(chatRoomId: UUID) -> Single<Void> {
         return repository.markAsRead(chatRoomId: chatRoomId)
+    }
+
+    // MARK: - 신고 · 차단
+
+    func reportChat(roomId: Int, touristId: Int, messageId: Int?, reason: String, detail: String?) -> Single<Void> {
+        repository.reportChat(roomId: roomId, touristId: touristId, messageId: messageId, reason: reason, detail: detail)
+    }
+
+    func fetchBlockedTouristIds() -> Single<[Int]> { repository.fetchBlockedTouristIds() }
+
+    func blockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        repository.blockTourist(tripId: tripId, touristId: touristId)
+    }
+
+    func unblockTourist(tripId: Int, touristId: Int) -> Single<Void> {
+        repository.unblockTourist(tripId: tripId, touristId: touristId)
     }
 }
 
@@ -96,5 +141,14 @@ enum ChatError: LocalizedError, Equatable {
         case .serverError(let msg):
             return msg
         }
+    }
+}
+
+// MARK: - 실시간
+
+extension ChatUseCase {
+    /// 방에 새로 올라온 메시지 (WebSocket)
+    func observeMessages(chatRoomId: UUID) -> Observable<Message> {
+        repository.observeMessages(chatRoomId: chatRoomId)
     }
 }
