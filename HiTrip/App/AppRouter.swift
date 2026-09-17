@@ -51,34 +51,28 @@ final class AppRouter: ObservableObject {
 
     /// 로그인/자동로그인 성공 후 분기
     ///
-    /// 약관·권한 화면은 이 기기에서 처음일 때만 보여줍니다.
-    /// 기기는 이미 동의했는데 관광객 서버 기록만 비어 있으면(다른 계정·새 여행)
-    /// 화면 없이 기기에 기록된 동의 내용으로 서버에 저장합니다.
+    /// 관광객은 **계정 기준**입니다. 서버가 `requires_agreement=true`를 주면 동의 화면을 보여줍니다.
+    /// 기기 기준으로 판단하면 같은 기기에서 다른 계정으로 로그인했을 때 동의를 건너뛰어,
+    /// 그 계정의 동의 이력이 서버에 남지 않습니다.
+    ///
+    /// 안내사는 아직 동의 상태를 내려주지 않아 기기 기록으로 판단합니다.
     func proceedAfterLogin(as type: UserType, requiresAgreement serverRequiresAgreement: Bool) {
         userType = type
+
+        if type == .tourist {
+            if serverRequiresAgreement {
+                currentScreen = .agreement
+            } else {
+                navigateToHomeAs(type)
+            }
+            return
+        }
+
         guard AgreementRecordStore.hasAgreedOnDevice else {
             currentScreen = .agreement
             return
         }
-        if type == .tourist, serverRequiresAgreement {
-            syncTouristAgreement()
-        }
         navigateToHomeAs(type)
-    }
-
-    private let disposeBag = DisposeBag()
-
-    private func syncTouristAgreement() {
-        let status = CLLocationManager().authorizationStatus
-        let locationGranted = status == .authorizedWhenInUse || status == .authorizedAlways
-        AppDIContainer.shared.makeTravelerRepository()
-            .updateAgreements(
-                termsAccepted: true,
-                locationAccepted: locationGranted,
-                notificationAccepted: AgreementRecordStore.optionalAccepted
-            )
-            .subscribe(onFailure: { print("⚠️ [Agreement] 서버 동의 동기화 실패: \($0.localizedDescription)") })
-            .disposed(by: disposeBag)
     }
 
     func navigateToHomeAs(_ type: UserType) {
