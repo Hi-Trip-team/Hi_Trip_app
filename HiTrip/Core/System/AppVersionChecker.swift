@@ -34,9 +34,25 @@ enum AppVersionChecker {
         return isVersion(currentVersion, lowerThan: minimum)
     }
 
-    /// "1.2.10" < "1.10.0" 같은 비교를 숫자 단위로 합니다
+    /// 버전을 점 단위 숫자로 나눠 비교합니다 ("1.2.10" < "1.10.0", "1.0" == "1.0.0")
+    ///
+    /// 문자열 비교(.numeric)를 쓰면 짧은 쪽이 낮다고 나옵니다.
+    /// 앱 버전이 "1.0", 서버 최소 버전이 "1.0.0"일 때 최신 사용자에게도
+    /// 강제 업데이트 팝업이 뜨게 되므로 자리 수를 맞춰 비교합니다.
     static func isVersion(_ a: String, lowerThan b: String) -> Bool {
-        a.compare(b, options: .numeric) == .orderedAscending
+        let left = numbers(of: a)
+        let right = numbers(of: b)
+        for index in 0..<max(left.count, right.count) {
+            let l = index < left.count ? left[index] : 0
+            let r = index < right.count ? right[index] : 0
+            if l != r { return l < r }
+        }
+        return false
+    }
+
+    /// "1.0.0" → [1, 0, 0] (숫자가 아닌 부분은 0으로 봅니다)
+    private static func numbers(of version: String) -> [Int] {
+        version.split(separator: ".").map { Int($0.filter(\.isNumber)) ?? 0 }
     }
 
     // MARK: - Private
