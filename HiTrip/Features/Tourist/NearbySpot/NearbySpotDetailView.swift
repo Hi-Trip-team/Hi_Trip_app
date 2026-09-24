@@ -92,6 +92,8 @@ struct NearbySpotDetailView: View {
         .animation(.easeInOut(duration: 0.2), value: toast)
         .navigationBarHidden(true)
         .confirmationDialog("길찾기", isPresented: $showRouteOptions, titleVisibility: .visible) {
+            // 기본 지도 앱(애플 지도)을 항상 먼저 제공합니다 — App Store 가이드라인 4
+            Button("지도") { openRoute(.apple) }
             Button("카카오맵") { openRoute(.kakao) }
             Button("구글 지도") { openRoute(.google) }
             Button("취소", role: .cancel) { }
@@ -357,16 +359,30 @@ struct NearbySpotDetailView: View {
 
     // MARK: - 길찾기
 
-    /// 카카오맵 → 구글맵 순으로 설치된 앱을 띄우고, 없으면 웹 지도로 넘깁니다.
+    /// 선택한 앱으로 길찾기를 엽니다.
+    ///
+    /// 애플 지도는 기기에 항상 있으므로 URL 스킴 대신 MKMapItem으로 바로 띄웁니다.
+    /// 서드파티는 설치돼 있으면 앱으로, 없으면 웹 지도로 넘깁니다.
     private func openRoute(_ app: MapApp) {
         guard let coordinate else { return }
         let lat = coordinate.latitude
         let lng = coordinate.longitude
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 
+        if app == .apple {
+            let item = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
+            item.name = name
+            item.openInMaps(launchOptions: [
+                MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+            ])
+            return
+        }
+
         let appURL: URL?
         let webURL: URL?
         switch app {
+        case .apple:
+            return  // 위에서 처리
         case .kakao:
             appURL = URL(string: "kakaomap://route?ep=\(lat),\(lng)&by=CAR")
             webURL = URL(string: "https://map.kakao.com/link/to/\(encodedName),\(lat),\(lng)")
@@ -384,7 +400,7 @@ struct NearbySpotDetailView: View {
         }
     }
 
-    private enum MapApp { case kakao, google }
+    private enum MapApp { case apple, kakao, google }
 
     // MARK: - 토스트
 
